@@ -4,11 +4,13 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "MFCharacterTypes.h"
 #include "MFCharacter.generated.h"
 
 class UPaperFlipbookComponent;
 class UPaperFlipbook;
 class UInputAction;
+class UMFAnimationConfig;
 struct FInputActionValue;
 
 UCLASS()
@@ -31,29 +33,36 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
-	// --- Input Actions (在蓝图或数据资产中配置) ---
+	// --- Input Actions ---
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<UInputAction> MoveAction;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
-	TObjectPtr<UInputAction> JumpAction;
+	TObjectPtr<UInputAction> PickAction;
 
-	void HandleMove(const FInputActionValue& Value);
-	void HandleJumpStarted();
-	void HandleJumpCompleted();
+	// --- Character State ---
 
-	// --- Flipbook ---
+	UPROPERTY(BlueprintReadOnly, Category = "State")
+	FMFCharacterState CharacterState;
+
+	// --- Animation ---
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Animation")
+	TObjectPtr<UMFAnimationConfig> AnimationConfig;
+
+	// --- Components ---
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UPaperFlipbookComponent> FlipbookComponent;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Flipbook")
-	TObjectPtr<UPaperFlipbook> IdleFlipbook;
+private:
+	void HandleMove(const FInputActionValue& Value);
+	void HandlePickStarted();
+	void HandlePickCompleted();
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Flipbook")
-	TObjectPtr<UPaperFlipbook> RunFlipbook;
+	void UpdateCharacterAction();
+	void UpdateAnimation();
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Flipbook")
-	TObjectPtr<UPaperFlipbook> JumpFlipbook;
+	static UPaperFlipbook* GetFlipbookForDirection(const FMFDirectionalFlipbooks& Set, EMFFacingDirection Direction);
 };

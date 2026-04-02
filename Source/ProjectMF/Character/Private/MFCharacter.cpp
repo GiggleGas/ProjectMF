@@ -1,6 +1,7 @@
 // Copyright ProjectMF. All Rights Reserved.
 
 #include "MFCharacter.h"
+#include "MFCharacterData.h"
 #include "PaperFlipbookComponent.h"
 #include "PaperFlipbook.h"
 #include "EnhancedInputComponent.h"
@@ -17,16 +18,14 @@ AMFCharacter::AMFCharacter()
 void AMFCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-
-	if (IdleFlipbook)
-	{
-		SetFlipbook(IdleFlipbook);
-	}
 }
 
 void AMFCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	UpdateCharacterAction();
+	UpdateAnimation();
 }
 
 void AMFCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -40,10 +39,10 @@ void AMFCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 			EnhancedInput->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AMFCharacter::HandleMove);
 		}
 
-		if (JumpAction)
+		if (PickAction)
 		{
-			EnhancedInput->BindAction(JumpAction, ETriggerEvent::Started, this, &AMFCharacter::HandleJumpStarted);
-			EnhancedInput->BindAction(JumpAction, ETriggerEvent::Completed, this, &AMFCharacter::HandleJumpCompleted);
+			EnhancedInput->BindAction(PickAction, ETriggerEvent::Started, this, &AMFCharacter::HandlePickStarted);
+			EnhancedInput->BindAction(PickAction, ETriggerEvent::Completed, this, &AMFCharacter::HandlePickCompleted);
 		}
 	}
 }
@@ -63,14 +62,86 @@ void AMFCharacter::HandleMove(const FInputActionValue& Value)
 	}
 }
 
-void AMFCharacter::HandleJumpStarted()
+void AMFCharacter::HandlePickStarted()
 {
-	Jump();
+	CharacterState.bIsPicking = true;
 }
 
-void AMFCharacter::HandleJumpCompleted()
+void AMFCharacter::HandlePickCompleted()
 {
-	StopJumping();
+	CharacterState.bIsPicking = false;
+}
+
+void AMFCharacter::UpdateCharacterAction()
+{
+	if (CharacterState.bIsPicking)
+	{
+		CharacterState.CurrentAction = EMFCharacterAction::Pick;
+		return;
+	}
+
+	const FVector Velocity = GetVelocity();
+	const FVector2D Vel2D(Velocity.X, Velocity.Y);
+
+	if (Vel2D.SizeSquared() > SMALL_NUMBER)
+	{
+		CharacterState.CurrentAction = EMFCharacterAction::Walk;
+
+		// Dominant axis determines facing direction
+		if (FMath::Abs(Vel2D.X) >= FMath::Abs(Vel2D.Y))
+		{
+			CharacterState.FacingDirection = Vel2D.X > 0.f ? EMFFacingDirection::Right : EMFFacingDirection::Left;
+		}
+		else
+		{
+			CharacterState.FacingDirection = Vel2D.Y > 0.f ? EMFFacingDirection::Up : EMFFacingDirection::Down;
+		}
+	}
+	else
+	{
+		CharacterState.CurrentAction = EMFCharacterAction::Idle;
+	}
+}
+
+void AMFCharacter::UpdateAnimation()
+{
+	if (!AnimationConfig)
+	{
+		return;
+	}
+
+	UPaperFlipbook* TargetFlipbook = nullptr;
+
+	switch (CharacterState.CurrentAction)
+	{
+	case EMFCharacterAction::Walk:
+		TargetFlipbook = GetFlipbookForDirection(AnimationConfig->Walk, CharacterState.FacingDirection);
+		break;
+	case EMFCharacterAction::Pick:
+		TargetFlipbook = GetFlipbookForDirection(AnimationConfig->Pick, CharacterState.FacingDirection);
+		break;
+	case EMFCharacterAction::Idle:
+	default:
+		TargetFlipbook = AnimationConfig->Idle;
+		break;
+	}
+
+	if (TargetFlipbook && TargetFlipbook != GetCurrentFlipbook())
+	{
+		SetFlipbook(TargetFlipbook);
+	}
+}
+
+UPaperFlipbook* AMFCharacter::GetFlipbookForDirection(const FMFDirectionalFlipbooks& Set, EMFFacingDirection Direction)
+{
+	switch (Direction)
+	{
+	case EMFFacingDirection::Right: return Set.Right;
+	case EMFFacingDirection::Left:  return Set.Left;
+	case EMFFacingDirection::Up:    return Set.Up;
+	case EMFFacingDirection::Down:  return Set.Down;
+	default:                        return nullptr;
+	}
 }
 
 void AMFCharacter::SetFlipbook(UPaperFlipbook* NewFlipbook)
