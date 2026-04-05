@@ -3,40 +3,84 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Actor.h"
+#include "Components/ActorComponent.h"
 #include "MFCamera.generated.h"
 
-class UCameraComponent;
 class USpringArmComponent;
+class UCameraComponent;
+class UCameraShakeBase;
 
-UCLASS()
-class PROJECTMF_API AMFCamera : public AActor
+/**
+ * Camera controller component attached to MFCharacter.
+ * Manages orbit rotation, zoom interpolation, and camera effects (shake, etc).
+ *
+ * Usage:
+ *   1. CreateDefaultSubobject in character constructor, then call Initialize().
+ *   2. Route input to AddOrbitYaw().
+ *   3. Call ZoomTo() / PlayCameraShake() for effects.
+ */
+UCLASS(ClassGroup = "Camera", meta = (BlueprintSpawnableComponent))
+class PROJECTMF_API UMFCameraController : public UActorComponent
 {
 	GENERATED_BODY()
 
 public:
-	AMFCamera();
+	UMFCameraController();
 
-	virtual void Tick(float DeltaTime) override;
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
-	UFUNCTION(BlueprintCallable, Category = "Camera")
-	void SetFollowTarget(AActor* NewTarget);
+	/** Link this controller to the character's spring arm and camera. Call from the owner's constructor. */
+	void Initialize(USpringArmComponent* InSpringArm, UCameraComponent* InCamera);
 
-	UFUNCTION(BlueprintPure, Category = "Camera")
-	AActor* GetFollowTarget() const { return FollowTarget; }
+	// --- Rotation ---
+
+	/** Add yaw degrees to the orbit angle (driven by player input). */
+	UFUNCTION(BlueprintCallable, Category = "Camera|Rotation")
+	void AddOrbitYaw(float Delta);
+
+	/** Return the current orbit yaw in world space. */
+	UFUNCTION(BlueprintPure, Category = "Camera|Rotation")
+	float GetOrbitYaw() const;
+
+	// --- Zoom ---
+
+	/** Smoothly interpolate the camera arm length to a new value. */
+	UFUNCTION(BlueprintCallable, Category = "Camera|Zoom")
+	void ZoomTo(float NewTargetLength, float InterpSpeed = 5.0f);
+
+	/** Reset zoom to DefaultArmLength. */
+	UFUNCTION(BlueprintCallable, Category = "Camera|Zoom")
+	void ResetZoom(float InterpSpeed = 5.0f);
+
+	// --- Effects ---
+
+	/** Trigger a camera shake on the owning player controller. */
+	UFUNCTION(BlueprintCallable, Category = "Camera|Effects")
+	void PlayCameraShake(TSubclassOf<UCameraShakeBase> ShakeClass, float Scale = 1.0f);
 
 protected:
-	virtual void BeginPlay() override;
+	// --- Zoom config ---
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	TObjectPtr<USpringArmComponent> SpringArmComponent;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera|Zoom")
+	float DefaultArmLength = 1200.0f;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	TObjectPtr<UCameraComponent> CameraComponent;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera|Zoom")
+	float MinArmLength = 600.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
-	TObjectPtr<AActor> FollowTarget;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera|Zoom")
+	float MaxArmLength = 2000.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
-	float FollowSpeed = 5.0f;
+	// --- Rotation config ---
+
+	/** Degrees of orbit added per unit of raw input. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera|Rotation")
+	float OrbitYawSensitivity = 90.0f;
+
+private:
+	TWeakObjectPtr<USpringArmComponent> SpringArm;
+	TWeakObjectPtr<UCameraComponent> Camera;
+
+	float TargetArmLength = 1200.0f;
+	float ZoomInterpSpeed = 5.0f;
+	bool bZooming = false;
 };

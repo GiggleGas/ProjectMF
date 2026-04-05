@@ -11,6 +11,9 @@ class UPaperFlipbookComponent;
 class UPaperFlipbook;
 class UInputAction;
 class UMFAnimationConfig;
+class USpringArmComponent;
+class UCameraComponent;
+class UMFCameraController;
 struct FInputActionValue;
 
 UCLASS()
@@ -30,6 +33,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Flipbook")
 	UPaperFlipbook* GetCurrentFlipbook() const;
 
+	UFUNCTION(BlueprintPure, Category = "Camera")
+	UMFCameraController* GetCameraController() const { return CameraController; }
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -40,6 +46,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<UInputAction> PickAction;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<UInputAction> RotateCameraAction;
 
 	// --- Character State ---
 
@@ -56,10 +65,20 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UPaperFlipbookComponent> FlipbookComponent;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<USpringArmComponent> CameraSpringArm;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UCameraComponent> CameraComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UMFCameraController> CameraController;
+
 private:
 	void HandleMove(const FInputActionValue& Value);
 	void HandlePickStarted();
 	void HandlePickCompleted();
+	void HandleCameraRotate(const FInputActionValue& Value);
 
 	void UpdateCharacterAction();
 	void UpdateAnimation();

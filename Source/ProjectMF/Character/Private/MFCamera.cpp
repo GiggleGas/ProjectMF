@@ -2,40 +2,79 @@
 
 #include "MFCamera.h"
 #include "Camera/CameraComponent.h"
+#include "Camera/CameraShakeBase.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "GameFramework/Character.h"
+#include "GameFramework/PlayerController.h"
 
-AMFCamera::AMFCamera()
+UMFCameraController::UMFCameraController()
 {
-	PrimaryActorTick.bCanEverTick = true;
-
-	SpringArmComponent = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArmComponent"));
-	RootComponent = SpringArmComponent;
-	SpringArmComponent->TargetArmLength = 800.0f;
-	SpringArmComponent->bDoCollisionTest = false;
-
-	CameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComponent"));
-	CameraComponent->SetupAttachment(SpringArmComponent);
+	PrimaryComponentTick.bCanEverTick = true;
 }
 
-void AMFCamera::BeginPlay()
+void UMFCameraController::Initialize(USpringArmComponent* InSpringArm, UCameraComponent* InCamera)
 {
-	Super::BeginPlay();
+	SpringArm = InSpringArm;
+	Camera = InCamera;
+	TargetArmLength = DefaultArmLength;
 }
 
-void AMFCamera::Tick(float DeltaTime)
+void UMFCameraController::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
-	Super::Tick(DeltaTime);
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	if (FollowTarget)
+	if (!bZooming) return;
+
+	USpringArmComponent* Arm = SpringArm.Get();
+	if (!Arm) return;
+
+	const float NewLength = FMath::FInterpTo(Arm->TargetArmLength, TargetArmLength, DeltaTime, ZoomInterpSpeed);
+	Arm->TargetArmLength = NewLength;
+
+	if (FMath::IsNearlyEqual(NewLength, TargetArmLength, 1.0f))
 	{
-		const FVector TargetLocation = FollowTarget->GetActorLocation();
-		const FVector CurrentLocation = GetActorLocation();
-		const FVector NewLocation = FMath::VInterpTo(CurrentLocation, TargetLocation, DeltaTime, FollowSpeed);
-		SetActorLocation(NewLocation);
+		Arm->TargetArmLength = TargetArmLength;
+		bZooming = false;
 	}
 }
 
-void AMFCamera::SetFollowTarget(AActor* NewTarget)
+void UMFCameraController::AddOrbitYaw(float Delta)
 {
-	FollowTarget = NewTarget;
+	USpringArmComponent* Arm = SpringArm.Get();
+	if (!Arm) return;
+
+	FRotator Rot = Arm->GetRelativeRotation();
+	Rot.Yaw += Delta * OrbitYawSensitivity;
+	Arm->SetRelativeRotation(Rot);
+}
+
+float UMFCameraController::GetOrbitYaw() const
+{
+	const USpringArmComponent* Arm = SpringArm.Get();
+	return Arm ? Arm->GetRelativeRotation().Yaw : 0.f;
+}
+
+void UMFCameraController::ZoomTo(float NewTargetLength, float InterpSpeed)
+{
+	TargetArmLength = FMath::Clamp(NewTargetLength, MinArmLength, MaxArmLength);
+	ZoomInterpSpeed = InterpSpeed;
+	bZooming = true;
+}
+
+void UMFCameraController::ResetZoom(float InterpSpeed)
+{
+	ZoomTo(DefaultArmLength, InterpSpeed);
+}
+
+void UMFCameraController::PlayCameraShake(TSubclassOf<UCameraShakeBase> ShakeClass, float Scale)
+{
+	if (!ShakeClass) return;
+
+	const ACharacter* OwnerChar = Cast<ACharacter>(GetOwner());
+	if (!OwnerChar) return;
+
+	APlayerController* PC = Cast<APlayerController>(OwnerChar->GetController());
+	if (!PC) return;
+
+	PC->ClientStartCameraShake(ShakeClass, Scale);
 }

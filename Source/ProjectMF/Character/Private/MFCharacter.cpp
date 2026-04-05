@@ -1,9 +1,12 @@
 // Copyright ProjectMF. All Rights Reserved.
 
 #include "MFCharacter.h"
+#include "MFCamera.h"
 #include "MFCharacterData.h"
 #include "PaperFlipbookComponent.h"
 #include "PaperFlipbook.h"
+#include "Camera/CameraComponent.h"
+#include "GameFramework/SpringArmComponent.h"
 #include "EnhancedInputComponent.h"
 #include "InputActionValue.h"
 
@@ -11,8 +14,29 @@ AMFCharacter::AMFCharacter()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
+	// --- Flipbook ---
 	FlipbookComponent = CreateDefaultSubobject<UPaperFlipbookComponent>(TEXT("FlipbookComponent"));
 	FlipbookComponent->SetupAttachment(RootComponent);
+
+	// --- Camera Spring Arm ---
+	// Fixed isometric angle; orbit yaw is controlled by UMFCameraController.
+	CameraSpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraSpringArm"));
+	CameraSpringArm->SetupAttachment(RootComponent);
+	CameraSpringArm->TargetArmLength = 1200.f;
+	CameraSpringArm->bDoCollisionTest = false;
+	CameraSpringArm->bUsePawnControlRotation = false;
+	CameraSpringArm->bInheritPitch = false;
+	CameraSpringArm->bInheritYaw = false;
+	CameraSpringArm->bInheritRoll = false;
+	CameraSpringArm->SetRelativeRotation(FRotator(-60.f, 0.f, 0.f));
+
+	// --- Camera ---
+	CameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComponent"));
+	CameraComponent->SetupAttachment(CameraSpringArm, USpringArmComponent::SocketName);
+
+	// --- Camera Controller ---
+	CameraController = CreateDefaultSubobject<UMFCameraController>(TEXT("CameraController"));
+	CameraController->Initialize(CameraSpringArm, CameraComponent);
 }
 
 void AMFCharacter::BeginPlay()
@@ -44,6 +68,11 @@ void AMFCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 			EnhancedInput->BindAction(PickAction, ETriggerEvent::Started, this, &AMFCharacter::HandlePickStarted);
 			EnhancedInput->BindAction(PickAction, ETriggerEvent::Completed, this, &AMFCharacter::HandlePickCompleted);
 		}
+
+		if (RotateCameraAction)
+		{
+			EnhancedInput->BindAction(RotateCameraAction, ETriggerEvent::Triggered, this, &AMFCharacter::HandleCameraRotate);
+		}
 	}
 }
 
@@ -51,14 +80,19 @@ void AMFCharacter::HandleMove(const FInputActionValue& Value)
 {
 	const FVector2D MoveInput = Value.Get<FVector2D>();
 
-	if (MoveInput.X != 0.f)
+	// Camera-relative movement: derive axes from spring arm's current yaw.
+	const FRotator YawRotation(0.f, CameraSpringArm->GetRelativeRotation().Yaw, 0.f);
+	const FVector ForwardDir = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
+	const FVector RightDir   = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
+
+	if (!FMath::IsNearlyZero(MoveInput.X))
 	{
-		AddMovementInput(FVector(1.f, 0.f, 0.f), MoveInput.X);
+		AddMovementInput(RightDir, MoveInput.X);
 	}
 
-	if (MoveInput.Y != 0.f)
+	if (!FMath::IsNearlyZero(MoveInput.Y))
 	{
-		AddMovementInput(FVector(0.f, 1.f, 0.f), MoveInput.Y);
+		AddMovementInput(ForwardDir, MoveInput.Y);
 	}
 }
 
@@ -70,6 +104,14 @@ void AMFCharacter::HandlePickStarted()
 void AMFCharacter::HandlePickCompleted()
 {
 	CharacterState.bIsPicking = false;
+}
+
+void AMFCharacter::HandleCameraRotate(const FInputActionValue& Value)
+{
+	if (CameraController)
+	{
+		CameraController->AddOrbitYaw(Value.Get<float>());
+	}
 }
 
 void AMFCharacter::UpdateCharacterAction()
