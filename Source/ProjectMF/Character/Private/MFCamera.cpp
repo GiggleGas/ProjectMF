@@ -14,9 +14,11 @@ UMFCameraController::UMFCameraController()
 
 void UMFCameraController::Initialize(USpringArmComponent* InSpringArm, UCameraComponent* InCamera)
 {
-	SpringArm = InSpringArm;
-	Camera = InCamera;
-	TargetArmLength = DefaultArmLength;
+	SpringArm         = InSpringArm;
+	Camera            = InCamera;
+	TargetArmLength   = DefaultArmLength;
+	SpriteOrientationYaw = 0.f;
+	CurrentPositionIndex = 0;
 }
 
 void UMFCameraController::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -38,27 +40,37 @@ void UMFCameraController::TickComponent(float DeltaTime, ELevelTick TickType, FA
 	}
 }
 
-void UMFCameraController::AddOrbitYaw(float Delta)
+void UMFCameraController::SnapCamera(int32 Direction)
+{
+	// Wrap index in [0, 7]
+	CurrentPositionIndex = (CurrentPositionIndex + Direction % 8 + 8) % 8;
+	ApplySnapPosition();
+}
+
+void UMFCameraController::ApplySnapPosition()
 {
 	USpringArmComponent* Arm = SpringArm.Get();
 	if (!Arm) return;
 
-	FRotator Rot = Arm->GetRelativeRotation();
-	Rot.Yaw += Delta * OrbitYawSensitivity;
-	Arm->SetRelativeRotation(Rot);
-}
+	const float NewYaw = CurrentPositionIndex * 45.f;
 
-float UMFCameraController::GetOrbitYaw() const
-{
-	const USpringArmComponent* Arm = SpringArm.Get();
-	return Arm ? Arm->GetRelativeRotation().Yaw : 0.f;
+	FRotator Rot = Arm->GetRelativeRotation();
+	Rot.Yaw = NewYaw;
+	Arm->SetRelativeRotation(Rot);
+
+	// Only update sprite orientation yaw at canonical 90° positions (even indices).
+	// At 45° intermediate positions (odd indices) the sprite stays unchanged.
+	if (CurrentPositionIndex % 2 == 0)
+	{
+		SpriteOrientationYaw = NewYaw;
+	}
 }
 
 void UMFCameraController::ZoomTo(float NewTargetLength, float InterpSpeed)
 {
-	TargetArmLength = FMath::Clamp(NewTargetLength, MinArmLength, MaxArmLength);
-	ZoomInterpSpeed = InterpSpeed;
-	bZooming = true;
+	TargetArmLength  = FMath::Clamp(NewTargetLength, MinArmLength, MaxArmLength);
+	ZoomInterpSpeed  = InterpSpeed;
+	bZooming         = true;
 }
 
 void UMFCameraController::ResetZoom(float InterpSpeed)

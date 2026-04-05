@@ -12,12 +12,16 @@ class UCameraShakeBase;
 
 /**
  * Camera controller component attached to MFCharacter.
- * Manages orbit rotation, zoom interpolation, and camera effects (shake, etc).
  *
- * Usage:
- *   1. CreateDefaultSubobject in character constructor, then call Initialize().
- *   2. Route input to AddOrbitYaw().
- *   3. Call ZoomTo() / PlayCameraShake() for effects.
+ * Manages:
+ *  - 8 discrete snap positions (every 45°) around the character
+ *  - SpriteOrientationYaw: only updates at canonical 90° positions so that
+ *    rotating to a 45° intermediate keeps the previous sprite unchanged
+ *  - Zoom interpolation (ZoomTo / ResetZoom)
+ *  - Camera shake (PlayCameraShake)
+ *
+ * Call Initialize() from the owning character's constructor after creating
+ * the spring arm and camera components.
  */
 UCLASS(ClassGroup = "Camera", meta = (BlueprintSpawnableComponent))
 class PROJECTMF_API UMFCameraController : public UActorComponent
@@ -29,18 +33,31 @@ public:
 
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
-	/** Link this controller to the character's spring arm and camera. Call from the owner's constructor. */
+	/** Link this controller to the character's spring arm and camera. */
 	void Initialize(USpringArmComponent* InSpringArm, UCameraComponent* InCamera);
 
-	// --- Rotation ---
+	// --- Snap rotation ---
 
-	/** Add yaw degrees to the orbit angle (driven by player input). */
+	/**
+	 * Snap the camera to the next discrete position.
+	 * Direction: +1 = clockwise (right), -1 = counter-clockwise (left).
+	 * At 45° intermediate positions the SpriteOrientationYaw is NOT updated,
+	 * preserving the sprite from the previous canonical (90°-multiple) position.
+	 */
 	UFUNCTION(BlueprintCallable, Category = "Camera|Rotation")
-	void AddOrbitYaw(float Delta);
+	void SnapCamera(int32 Direction);
 
-	/** Return the current orbit yaw in world space. */
+	/** Current position index (0-7), each step is 45°. */
 	UFUNCTION(BlueprintPure, Category = "Camera|Rotation")
-	float GetOrbitYaw() const;
+	int32 GetCurrentPositionIndex() const { return CurrentPositionIndex; }
+
+	/**
+	 * Camera yaw used for sprite selection.
+	 * Only updated when the camera is at a canonical 90° position (index 0,2,4,6).
+	 * Returns a value in [0, 360).
+	 */
+	UFUNCTION(BlueprintPure, Category = "Camera|Rotation")
+	float GetSpriteOrientationYaw() const { return SpriteOrientationYaw; }
 
 	// --- Zoom ---
 
@@ -70,17 +87,20 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera|Zoom")
 	float MaxArmLength = 2000.0f;
 
-	// --- Rotation config ---
-
-	/** Degrees of orbit added per unit of raw input. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera|Rotation")
-	float OrbitYawSensitivity = 90.0f;
-
 private:
 	TWeakObjectPtr<USpringArmComponent> SpringArm;
-	TWeakObjectPtr<UCameraComponent> Camera;
+	TWeakObjectPtr<UCameraComponent>    Camera;
 
-	float TargetArmLength = 1200.0f;
-	float ZoomInterpSpeed = 5.0f;
-	bool bZooming = false;
+	// Current discrete position index (0–7). Maps to Yaw = Index * 45°.
+	int32 CurrentPositionIndex = 0;
+
+	// Yaw used for sprite selection; only valid at canonical positions (index even).
+	float SpriteOrientationYaw = 0.0f;
+
+	// Zoom state
+	float TargetArmLength  = 1200.0f;
+	float ZoomInterpSpeed  = 5.0f;
+	bool  bZooming         = false;
+
+	void ApplySnapPosition();
 };

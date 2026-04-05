@@ -2,9 +2,9 @@
 
 #include "MFCharacter.h"
 #include "MFCamera.h"
-#include "MFCharacterData.h"
+#include "MFPlayerAnimInstance.h"
 #include "PaperFlipbookComponent.h"
-#include "PaperFlipbook.h"
+#include "PaperZDAnimationComponent.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "EnhancedInputComponent.h"
@@ -14,20 +14,24 @@ AMFCharacter::AMFCharacter()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
-	// --- Flipbook ---
+	// --- Flipbook (render target driven by PaperZD) ---
 	FlipbookComponent = CreateDefaultSubobject<UPaperFlipbookComponent>(TEXT("FlipbookComponent"));
 	FlipbookComponent->SetupAttachment(RootComponent);
 
-	// --- Camera Spring Arm ---
-	// Fixed isometric angle; orbit yaw is controlled by UMFCameraController.
+	// --- PaperZD Animation ---
+	// Set the AnimBP class to ABP_Player in the derived Blueprint (B_MFCharacter_Player).
+	AnimationComponent = CreateDefaultSubobject<UPaperZDAnimationComponent>(TEXT("AnimationComponent"));
+	AnimationComponent->InitRenderComponent(FlipbookComponent);
+
+	// --- Spring Arm ---
 	CameraSpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraSpringArm"));
 	CameraSpringArm->SetupAttachment(RootComponent);
-	CameraSpringArm->TargetArmLength = 1200.f;
-	CameraSpringArm->bDoCollisionTest = false;
+	CameraSpringArm->TargetArmLength         = 1200.f;
+	CameraSpringArm->bDoCollisionTest        = false;
 	CameraSpringArm->bUsePawnControlRotation = false;
-	CameraSpringArm->bInheritPitch = false;
-	CameraSpringArm->bInheritYaw = false;
-	CameraSpringArm->bInheritRoll = false;
+	CameraSpringArm->bInheritPitch           = false;
+	CameraSpringArm->bInheritYaw             = false;
+	CameraSpringArm->bInheritRoll            = false;
 	CameraSpringArm->SetRelativeRotation(FRotator(-60.f, 0.f, 0.f));
 
 	// --- Camera ---
@@ -50,69 +54,61 @@ void AMFCharacter::Tick(float DeltaTime)
 
 	UpdateCharacterAction();
 	UpdateAnimation();
+	// UpdateBillboard();
 }
 
 void AMFCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
-	if (UEnhancedInputComponent* EnhancedInput = Cast<UEnhancedInputComponent>(PlayerInputComponent))
+	if (UEnhancedInputComponent* EI = Cast<UEnhancedInputComponent>(PlayerInputComponent))
 	{
 		if (MoveAction)
 		{
-			EnhancedInput->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AMFCharacter::HandleMove);
+			EI->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AMFCharacter::HandleMove);
 		}
-
 		if (PickAction)
 		{
-			EnhancedInput->BindAction(PickAction, ETriggerEvent::Started, this, &AMFCharacter::HandlePickStarted);
-			EnhancedInput->BindAction(PickAction, ETriggerEvent::Completed, this, &AMFCharacter::HandlePickCompleted);
+			EI->BindAction(PickAction, ETriggerEvent::Started,   this, &AMFCharacter::HandlePickStarted);
+			EI->BindAction(PickAction, ETriggerEvent::Completed, this, &AMFCharacter::HandlePickCompleted);
 		}
-
 		if (RotateCameraAction)
 		{
-			EnhancedInput->BindAction(RotateCameraAction, ETriggerEvent::Triggered, this, &AMFCharacter::HandleCameraRotate);
+			EI->BindAction(RotateCameraAction, ETriggerEvent::Started, this, &AMFCharacter::HandleCameraRotate);
 		}
 	}
 }
+
+// ---------------------------------------------------------------------------
+// Input
+// ---------------------------------------------------------------------------
 
 void AMFCharacter::HandleMove(const FInputActionValue& Value)
 {
 	const FVector2D MoveInput = Value.Get<FVector2D>();
 
-	// Camera-relative movement: derive axes from spring arm's current yaw.
 	const FRotator YawRotation(0.f, CameraSpringArm->GetRelativeRotation().Yaw, 0.f);
-	const FVector ForwardDir = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
-	const FVector RightDir   = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
+	const FVector  ForwardDir = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
+	const FVector  RightDir   = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
 
-	if (!FMath::IsNearlyZero(MoveInput.X))
-	{
-		AddMovementInput(RightDir, MoveInput.X);
-	}
-
-	if (!FMath::IsNearlyZero(MoveInput.Y))
-	{
-		AddMovementInput(ForwardDir, MoveInput.Y);
-	}
+	if (!FMath::IsNearlyZero(MoveInput.X)) AddMovementInput(RightDir,   MoveInput.X);
+	if (!FMath::IsNearlyZero(MoveInput.Y)) AddMovementInput(ForwardDir,  MoveInput.Y);
 }
 
-void AMFCharacter::HandlePickStarted()
-{
-	CharacterState.bIsPicking = true;
-}
-
-void AMFCharacter::HandlePickCompleted()
-{
-	CharacterState.bIsPicking = false;
-}
+void AMFCharacter::HandlePickStarted()  { CharacterState.bIsPicking = true;  }
+void AMFCharacter::HandlePickCompleted(){ CharacterState.bIsPicking = false; }
 
 void AMFCharacter::HandleCameraRotate(const FInputActionValue& Value)
 {
 	if (CameraController)
 	{
-		CameraController->AddOrbitYaw(Value.Get<float>());
+		CameraController->SnapCamera(Value.Get<float>() >= 0.f ? 1 : -1);
 	}
 }
+
+// ---------------------------------------------------------------------------
+// Per-frame updates
+// ---------------------------------------------------------------------------
 
 void AMFCharacter::UpdateCharacterAction()
 {
@@ -122,22 +118,16 @@ void AMFCharacter::UpdateCharacterAction()
 		return;
 	}
 
-	const FVector Velocity = GetVelocity();
-	const FVector2D Vel2D(Velocity.X, Velocity.Y);
+	const FVector2D Vel2D(GetVelocity().X, GetVelocity().Y);
 
 	if (Vel2D.SizeSquared() > SMALL_NUMBER)
 	{
 		CharacterState.CurrentAction = EMFCharacterAction::Walk;
 
-		// Dominant axis determines facing direction
 		if (FMath::Abs(Vel2D.X) >= FMath::Abs(Vel2D.Y))
-		{
 			CharacterState.FacingDirection = Vel2D.X > 0.f ? EMFFacingDirection::Right : EMFFacingDirection::Left;
-		}
 		else
-		{
 			CharacterState.FacingDirection = Vel2D.Y > 0.f ? EMFFacingDirection::Up : EMFFacingDirection::Down;
-		}
 	}
 	else
 	{
@@ -147,58 +137,54 @@ void AMFCharacter::UpdateCharacterAction()
 
 void AMFCharacter::UpdateAnimation()
 {
-	if (!AnimationConfig)
-	{
-		return;
-	}
+	if (!AnimationComponent) return;
 
-	UPaperFlipbook* TargetFlipbook = nullptr;
+	UMFPlayerAnimInstance* AI = Cast<UMFPlayerAnimInstance>(AnimationComponent->GetAnimInstance());
+	if (!AI) return;
 
-	switch (CharacterState.CurrentAction)
-	{
-	case EMFCharacterAction::Walk:
-		TargetFlipbook = GetFlipbookForDirection(AnimationConfig->Walk, CharacterState.FacingDirection);
-		break;
-	case EMFCharacterAction::Pick:
-		TargetFlipbook = GetFlipbookForDirection(AnimationConfig->Pick, CharacterState.FacingDirection);
-		break;
-	case EMFCharacterAction::Idle:
-	default:
-		TargetFlipbook = AnimationConfig->Idle;
-		break;
-	}
-
-	if (TargetFlipbook && TargetFlipbook != GetCurrentFlipbook())
-	{
-		SetFlipbook(TargetFlipbook);
-	}
+	AI->Speed            = GetVelocity().Size2D();
+	AI->bIsPicking       = CharacterState.bIsPicking;
+	AI->CameraRelativeDir = GetCameraRelativeDir();
 }
 
-UPaperFlipbook* AMFCharacter::GetFlipbookForDirection(const FMFDirectionalFlipbooks& Set, EMFFacingDirection Direction)
+void AMFCharacter::UpdateBillboard()
 {
-	switch (Direction)
-	{
-	case EMFFacingDirection::Right: return Set.Right;
-	case EMFFacingDirection::Left:  return Set.Left;
-	case EMFFacingDirection::Up:    return Set.Up;
-	case EMFFacingDirection::Down:  return Set.Down;
-	default:                        return nullptr;
-	}
+	FVector ToCam = CameraComponent->GetComponentLocation() - GetActorLocation();
+	ToCam.Z = 0.f;
+	if (ToCam.IsNearlyZero()) return;
+	ToCam.Normalize();
+
+	FRotator BillRot = ToCam.ToOrientationRotator();
+	BillRot.Pitch = 0.f;
+	BillRot.Roll  = 0.f;
+	BillRot.Yaw  += BillboardYawOffset;
 }
 
-void AMFCharacter::SetFlipbook(UPaperFlipbook* NewFlipbook)
+// ---------------------------------------------------------------------------
+// Camera-relative direction helpers
+// ---------------------------------------------------------------------------
+
+EMFCameraRelativeDir AMFCharacter::GetCameraRelativeDir() const
 {
-	if (FlipbookComponent && NewFlipbook)
-	{
-		FlipbookComponent->SetFlipbook(NewFlipbook);
-	}
+	if (!CameraController) return EMFCameraRelativeDir::Front;
+
+	const float Rel = FMath::UnwindDegrees(GetFacingYaw(CharacterState.FacingDirection)
+	                                        - CameraController->GetSpriteOrientationYaw());
+
+	if (Rel > -45.f  && Rel <=  45.f) return EMFCameraRelativeDir::Front;
+	if (Rel >  45.f  && Rel <= 135.f) return EMFCameraRelativeDir::Left;
+	if (Rel > -135.f && Rel <= -45.f) return EMFCameraRelativeDir::Right;
+	return EMFCameraRelativeDir::Back;
 }
 
-UPaperFlipbook* AMFCharacter::GetCurrentFlipbook() const
+float AMFCharacter::GetFacingYaw(EMFFacingDirection Dir)
 {
-	if (FlipbookComponent)
+	switch (Dir)
 	{
-		return FlipbookComponent->GetFlipbook();
+	case EMFFacingDirection::Right: return   0.f;
+	case EMFFacingDirection::Up:    return  90.f;
+	case EMFFacingDirection::Left:  return 180.f;
+	case EMFFacingDirection::Down:  return 270.f;
+	default:                        return   0.f;
 	}
-	return nullptr;
 }
