@@ -57,7 +57,7 @@ protected:
 	 *  -90  = sprite local +Y faces camera  (typical for Paper2D XZ-plane sprites)
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Billboard")
-	float BillboardYawOffset = 0.f;
+	float BillboardYawOffset = -90.f;
 
 	// --- Components ---
 	/** Flipbook render component driven by PaperZD. */
@@ -86,8 +86,8 @@ private:
 	void UpdateCharacterAction();
 	void UpdateAnimation();
 	void UpdateBillboard();
+	void DrawDebug() const;
 
-	EMFCameraRelativeDir GetCameraRelativeDir() const;
-	static float         GetFacingYaw(EMFFacingDirection Dir);
+	FVector2D GetDirectionalInput() const;
 
 };

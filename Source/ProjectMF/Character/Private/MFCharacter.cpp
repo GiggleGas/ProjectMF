@@ -9,6 +9,20 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "EnhancedInputComponent.h"
 #include "InputActionValue.h"
+#include "DrawDebugHelpers.h"
+#include "Engine/Engine.h"
+
+// ---------------------------------------------------------------------------
+// CVar: CharacterBaseDebug  ——  运行时开关 debug 可视化
+// 控制台输入: CharacterBaseDebug 1  开启 / CharacterBaseDebug 0  关闭
+// ---------------------------------------------------------------------------
+static int32 GCharacterBaseDebug = 0;
+static FAutoConsoleVariableRef CVarCharacterBaseDebug(
+	TEXT("MF.Char.CharacterBaseDebug"),
+	GCharacterBaseDebug,
+	TEXT("Enable MFCharacter debug visualization. 1 = on, 0 = off."),
+	ECVF_Default
+);
 
 AMFCharacter::AMFCharacter()
 {
@@ -54,7 +68,8 @@ void AMFCharacter::Tick(float DeltaTime)
 
 	UpdateCharacterAction();
 	UpdateAnimation();
-	// UpdateBillboard();
+	UpdateBillboard();
+	DrawDebug();
 }
 
 void AMFCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -118,16 +133,13 @@ void AMFCharacter::UpdateCharacterAction()
 		return;
 	}
 
-	const FVector2D Vel2D(GetVelocity().X, GetVelocity().Y);
+	const FVector Vel = GetVelocity();
+	const FVector2D Vel2D(Vel.X, Vel.Y);
 
 	if (Vel2D.SizeSquared() > SMALL_NUMBER)
 	{
-		CharacterState.CurrentAction = EMFCharacterAction::Walk;
-
-		if (FMath::Abs(Vel2D.X) >= FMath::Abs(Vel2D.Y))
-			CharacterState.FacingDirection = Vel2D.X > 0.f ? EMFFacingDirection::Right : EMFFacingDirection::Left;
-		else
-			CharacterState.FacingDirection = Vel2D.Y > 0.f ? EMFFacingDirection::Up : EMFFacingDirection::Down;
+		CharacterState.CurrentAction   = EMFCharacterAction::Walk;
+		CharacterState.LastVelocityDir = Vel2D.GetSafeNormal();
 	}
 	else
 	{
@@ -142,49 +154,103 @@ void AMFCharacter::UpdateAnimation()
 	UMFPlayerAnimInstance* AI = Cast<UMFPlayerAnimInstance>(AnimationComponent->GetAnimInstance());
 	if (!AI) return;
 
-	AI->Speed            = GetVelocity().Size2D();
-	AI->bIsPicking       = CharacterState.bIsPicking;
-	AI->CameraRelativeDir = GetCameraRelativeDir();
+	AI->Speed           = GetVelocity().Size2D();
+	AI->bIsPicking      = CharacterState.bIsPicking;
+	AI->DirectionalInput = GetDirectionalInput();
 }
 
 void AMFCharacter::UpdateBillboard()
 {
+	if (!FlipbookComponent || !CameraComponent) return;
+
+	// Full 3D vector from sprite to camera.
 	FVector ToCam = CameraComponent->GetComponentLocation() - GetActorLocation();
-	ToCam.Z = 0.f;
 	if (ToCam.IsNearlyZero()) return;
 	ToCam.Normalize();
 
-	FRotator BillRot = ToCam.ToOrientationRotator();
-	BillRot.Pitch = 0.f;
-	BillRot.Roll  = 0.f;
-	BillRot.Yaw  += BillboardYawOffset;
+	// Build a rotation matrix where local +Y (Paper2D sprite normal) points exactly
+	// toward the camera — i.e., the sprite plane is perpendicular to the camera ray.
+	// World +Z is used as the "up" reference so the sprite doesn't spin unexpectedly.
+	const FRotator BillRot = FRotationMatrix::MakeFromYZ(ToCam, FVector::UpVector).Rotator();
+	FlipbookComponent->SetWorldRotation(BillRot);
 }
 
 // ---------------------------------------------------------------------------
-// Camera-relative direction helpers
+// Directional input for PaperZD SetDirectionality node
 // ---------------------------------------------------------------------------
 
-EMFCameraRelativeDir AMFCharacter::GetCameraRelativeDir() const
+FVector2D AMFCharacter::GetDirectionalInput() const
 {
-	if (!CameraController) return EMFCameraRelativeDir::Front;
+	// Use current velocity direction; fall back to last known when idle.
+	const FVector2D FacingDir = CharacterState.LastVelocityDir;
+	const FVector   FacingWorld(FacingDir.X, FacingDir.Y, 0.f);
 
-	const float Rel = FMath::UnwindDegrees(GetFacingYaw(CharacterState.FacingDirection)
-	                                        - CameraController->GetSpriteOrientationYaw());
+	// Unrotate world-space facing by the camera's sprite orientation yaw so the
+	// result is expressed in camera space.  SpriteOrientationYaw only advances at
+	// canonical 90° snaps, keeping the sprite stable at 45° intermediate positions.
+	const float CameraYaw = CameraController ? CameraController->GetSpriteOrientationYaw() : 0.f;
+	const FVector RelFacing = FRotator(0.f, -CameraYaw, 0.f).RotateVector(FacingWorld);
 
-	if (Rel > -45.f  && Rel <=  45.f) return EMFCameraRelativeDir::Front;
-	if (Rel >  45.f  && Rel <= 135.f) return EMFCameraRelativeDir::Left;
-	if (Rel > -135.f && Rel <= -45.f) return EMFCameraRelativeDir::Right;
-	return EMFCameraRelativeDir::Back;
+	// Map to SetDirectionality's 2D convention:
+	//   RelFacing.X  = camera-forward component  →  DirectionalInput.Y  (0° axis = away from camera)
+	//   RelFacing.Y  = camera-right  component   →  DirectionalInput.X  (90° axis)
+	return FVector2D(RelFacing.Y, RelFacing.X);
 }
 
-float AMFCharacter::GetFacingYaw(EMFFacingDirection Dir)
+// ---------------------------------------------------------------------------
+// Debug
+// ---------------------------------------------------------------------------
+
+void AMFCharacter::DrawDebug() const
 {
-	switch (Dir)
+#if ENABLE_DRAW_DEBUG
+	if (!GCharacterBaseDebug) return;
+
+	const UWorld* World = GetWorld();
+	if (!World) return;
+
+	const FVector Origin = GetActorLocation();
+	constexpr float ArrowLen   = 80.f;
+	constexpr float ArrowSize  = 10.f;
+	constexpr float Thickness  = 2.f;
+	constexpr float LifeTime   = -1.f; // 单帧
+
+	// --- 最后朝向箭头（黄色） ---
+	const FVector2D LastDir = CharacterState.LastVelocityDir;
+	const FVector FacingDir(LastDir.X, LastDir.Y, 0.f);
+	DrawDebugDirectionalArrow(
+		World,
+		Origin,
+		Origin + FacingDir * ArrowLen,
+		ArrowSize, FColor::Yellow, false, LifeTime, 0, Thickness);
+
+	// --- 当前速度箭头（青色） ---
+	const FVector Vel3D = GetVelocity();
+	const FVector Vel2D(Vel3D.X, Vel3D.Y, 0.f);
+	if (!Vel2D.IsNearlyZero())
 	{
-	case EMFFacingDirection::Right: return   0.f;
-	case EMFFacingDirection::Up:    return  90.f;
-	case EMFFacingDirection::Left:  return 180.f;
-	case EMFFacingDirection::Down:  return 270.f;
-	default:                        return   0.f;
+		DrawDebugDirectionalArrow(
+			World,
+			Origin,
+			Origin + Vel2D.GetSafeNormal() * ArrowLen,
+			ArrowSize, FColor::Cyan, false, LifeTime, 0, Thickness);
 	}
+
+	// --- 屏幕左上角：DirectionalInput & 速度分量 ---
+	if (GEngine)
+	{
+		const FVector2D DI = GetDirectionalInput();
+		GEngine->AddOnScreenDebugMessage(
+			43, 0.f, FColor::Yellow,
+			FString::Printf(TEXT("DirInput: (%.2f, %.2f)"), DI.X, DI.Y));
+
+		GEngine->AddOnScreenDebugMessage(
+			41, 0.f, FColor::Cyan,
+			FString::Printf(TEXT("Vel Y  : %.1f"), Vel3D.Y));
+
+		GEngine->AddOnScreenDebugMessage(
+			40, 0.f, FColor::Cyan,
+			FString::Printf(TEXT("Vel X  : %.1f"), Vel3D.X));
+	}
+#endif // ENABLE_DRAW_DEBUG
 }

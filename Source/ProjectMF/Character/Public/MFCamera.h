@@ -76,6 +76,15 @@ public:
 	void PlayCameraShake(TSubclassOf<UCameraShakeBase> ShakeClass, float Scale = 1.0f);
 
 protected:
+	// --- Rotation config ---
+
+	/**
+	 * 相机旋转插值速度。值越大旋转越快；设为 0 则瞬间跳变（关闭平滑）。
+	 * Interp speed for smooth camera rotation. Higher = faster; 0 = instant snap.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera|Rotation", meta = (ClampMin = "0.0", ClampMax = "50.0"))
+	float RotationInterpSpeed = 10.f;
+
 	// --- Zoom config ---
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera|Zoom")
@@ -96,6 +105,11 @@ private:
 
 	// Yaw used for sprite selection; only valid at canonical positions (index even).
 	float SpriteOrientationYaw = 0.0f;
+
+	// Rotation smooth state
+	float CurrentYaw = 0.f;   // actual spring arm yaw being interpolated
+	float TargetYaw  = 0.f;   // destination yaw (unwound to take shortest path)
+	bool  bRotating  = false;
 
 	// Zoom state
 	float TargetArmLength  = 1200.0f;

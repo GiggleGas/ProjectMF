@@ -14,29 +14,58 @@ UMFCameraController::UMFCameraController()
 
 void UMFCameraController::Initialize(USpringArmComponent* InSpringArm, UCameraComponent* InCamera)
 {
-	SpringArm         = InSpringArm;
-	Camera            = InCamera;
-	TargetArmLength   = DefaultArmLength;
+	SpringArm            = InSpringArm;
+	Camera               = InCamera;
+	TargetArmLength      = DefaultArmLength;
 	SpriteOrientationYaw = 0.f;
 	CurrentPositionIndex = 0;
+	CurrentYaw           = 0.f;
+	TargetYaw            = 0.f;
+	bRotating            = false;
 }
 
 void UMFCameraController::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	if (!bZooming) return;
-
 	USpringArmComponent* Arm = SpringArm.Get();
 	if (!Arm) return;
 
-	const float NewLength = FMath::FInterpTo(Arm->TargetArmLength, TargetArmLength, DeltaTime, ZoomInterpSpeed);
-	Arm->TargetArmLength = NewLength;
-
-	if (FMath::IsNearlyEqual(NewLength, TargetArmLength, 1.0f))
+	// --- Smooth rotation ---
+	if (bRotating)
 	{
-		Arm->TargetArmLength = TargetArmLength;
-		bZooming = false;
+		if (RotationInterpSpeed <= 0.f)
+		{
+			// Speed = 0: instant snap
+			CurrentYaw = TargetYaw;
+			bRotating  = false;
+		}
+		else
+		{
+			CurrentYaw = FMath::FInterpTo(CurrentYaw, TargetYaw, DeltaTime, RotationInterpSpeed);
+			if (FMath::IsNearlyEqual(CurrentYaw, TargetYaw, 0.1f))
+			{
+				CurrentYaw = TargetYaw;
+				bRotating  = false;
+			}
+		}
+
+		FRotator Rot = Arm->GetRelativeRotation();
+		Rot.Yaw = CurrentYaw;
+		Arm->SetRelativeRotation(Rot);
+	}
+
+	// --- Smooth zoom ---
+	if (bZooming)
+	{
+		const float NewLength = FMath::FInterpTo(Arm->TargetArmLength, TargetArmLength, DeltaTime, ZoomInterpSpeed);
+		Arm->TargetArmLength = NewLength;
+
+		if (FMath::IsNearlyEqual(NewLength, TargetArmLength, 1.0f))
+		{
+			Arm->TargetArmLength = TargetArmLength;
+			bZooming = false;
+		}
 	}
 }
 
@@ -49,20 +78,22 @@ void UMFCameraController::SnapCamera(int32 Direction)
 
 void UMFCameraController::ApplySnapPosition()
 {
-	USpringArmComponent* Arm = SpringArm.Get();
-	if (!Arm) return;
+	// Compute the raw target yaw for this index.
+	float NewYaw = CurrentPositionIndex * 45.f;
 
-	const float NewYaw = CurrentPositionIndex * 45.f;
+	// Unwind to take the shortest arc from the current interpolated position.
+	while (NewYaw - CurrentYaw >  180.f) NewYaw -= 360.f;
+	while (NewYaw - CurrentYaw < -180.f) NewYaw += 360.f;
 
-	FRotator Rot = Arm->GetRelativeRotation();
-	Rot.Yaw = NewYaw;
-	Arm->SetRelativeRotation(Rot);
+	TargetYaw = NewYaw;
+	bRotating = true;
 
-	// Only update sprite orientation yaw at canonical 90° positions (even indices).
-	// At 45° intermediate positions (odd indices) the sprite stays unchanged.
+	// Update sprite orientation immediately (responsive to input).
+	// Only at canonical 90° positions (even indices); 45° intermediates keep the previous sprite.
 	if (CurrentPositionIndex % 2 == 0)
 	{
-		SpriteOrientationYaw = NewYaw;
+		// Normalise to [0, 360) for GetSpriteOrientationYaw callers.
+		SpriteOrientationYaw = FMath::Fmod(TargetYaw + 360.f * 10.f, 360.f);
 	}
 }
 
