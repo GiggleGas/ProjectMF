@@ -1,7 +1,12 @@
 {
   "permissions": {
     "allow": [
-      "Bash(xargs cat:*)"
+      "Bash(xargs cat:*)",
+      "Bash(ls \"d:/leonwang/UEProjects/ProjectMF/ProjectMF/Saved/Logs/\"*.log)",
+      "Bash(\"C:/Program Files/Epic Games/UE_5.7/Engine/Build/BatchFiles/Build.bat\" ProjectMFEditor Win64 DebugGame -Project=\"D:/leonwang/UEProjects/ProjectMF/ProjectMF/ProjectMF.uproject\" -WaitMutex -architecture=x64)",
+      "Bash(cmd /c '\"C:\\\\Program Files\\\\Epic Games\\\\UE_5.7\\\\Engine\\\\Build\\\\BatchFiles\\\\Build.bat\" ProjectMFEditor Win64 DebugGame -Project=\"D:\\\\leonwang\\\\UEProjects\\\\ProjectMF\\\\ProjectMF\\\\ProjectMF.uproject\" -WaitMutex -architecture=x64')",
+      "Bash(cmd /c \"dotnet \\\\\"C:\\\\Program Files\\\\Epic Games\\\\UE_5.7\\\\Engine\\\\Binaries\\\\DotNET\\\\UnrealBuildTool\\\\UnrealBuildTool.dll\\\\\" ProjectMFEditor Win64 DebugGame -Project=\\\\\"D:\\\\leonwang\\\\UEProjects\\\\ProjectMF\\\\ProjectMF\\\\ProjectMF.uproject\\\\\" -architecture=x64 -NoHotReload 2>&1\")",
+      "Bash(cmd /c \"cd /d \\\\\"C:\\\\Program Files\\\\Epic Games\\\\UE_5.7\\\\Engine\\\\\" && dotnet \\\\\"Binaries\\\\DotNET\\\\UnrealBuildTool\\\\UnrealBuildTool.dll\\\\\" ProjectMFEditor Win64 DebugGame -Project=\\\\\"D:\\\\leonwang\\\\UEProjects\\\\ProjectMF\\\\ProjectMF\\\\ProjectMF.uproject\\\\\" -architecture=x64 2>&1\")"
     ]
   }
 }

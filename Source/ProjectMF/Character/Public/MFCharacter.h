@@ -3,27 +3,28 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Character.h"
-#include "MFCharacterTypes.h"
+#include "MFCharacterBase.h"
 #include "MFCharacter.generated.h"
 
-class UPaperFlipbookComponent;
-class UPaperZDAnimationComponent;
 class UInputAction;
 class USpringArmComponent;
 class UCameraComponent;
 class UMFCameraController;
 struct FInputActionValue;
 
+/**
+ * Player-controlled character.
+ * Extends AMFCharacterBase with a camera rig, enhanced input bindings,
+ * and camera-relative directional movement.
+ */
 UCLASS()
-class PROJECTMF_API AMFCharacter : public ACharacter
+class PROJECTMF_API AMFCharacter : public AMFCharacterBase
 {
 	GENERATED_BODY()
 
 public:
 	AMFCharacter();
 
-	virtual void Tick(float DeltaTime) override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	UFUNCTION(BlueprintPure, Category = "Camera")
@@ -32,7 +33,16 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
-	// --- Input Actions ---
+	// -----------------------------------------------------------------------
+	// Camera accessors (AMFCharacterBase interface)
+	// -----------------------------------------------------------------------
+
+	virtual bool  GetBillboardCameraForward(FVector& OutForward) const override;
+	virtual float GetCameraYawForDirectionality() const override;
+
+	// -----------------------------------------------------------------------
+	// Input Actions
+	// -----------------------------------------------------------------------
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<UInputAction> MoveAction;
@@ -44,29 +54,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<UInputAction> RotateCameraAction;
 
-	// --- Character State ---
-
-	UPROPERTY(BlueprintReadOnly, Category = "State")
-	FMFCharacterState CharacterState;
-
-	// --- Billboard ---
-
-	/**
-	 * Yaw offset added after aligning the sprite plane to the camera.
-	 *   0   = sprite local +X faces camera
-	 *  -90  = sprite local +Y faces camera  (typical for Paper2D XZ-plane sprites)
-	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Billboard")
-	float BillboardYawOffset = -90.f;
-
-	// --- Components ---
-	/** Flipbook render component driven by PaperZD. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	TObjectPtr<UPaperFlipbookComponent> FlipbookComponent;
-
-	/** PaperZD animation component: owns the AnimInstance and drives FlipbookComponent. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	TObjectPtr<UPaperZDAnimationComponent> AnimationComponent;
+	// -----------------------------------------------------------------------
+	// Camera Components
+	// -----------------------------------------------------------------------
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<USpringArmComponent> CameraSpringArm;
@@ -82,12 +72,4 @@ private:
 	void HandlePickStarted();
 	void HandlePickCompleted();
 	void HandleCameraRotate(const FInputActionValue& Value);
-
-	void UpdateCharacterAction();
-	void UpdateAnimation();
-	void UpdateBillboard();
-	void DrawDebug() const;
-
-	FVector2D GetDirectionalInput() const;
-
 };
