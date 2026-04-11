@@ -3,6 +3,61 @@
 #include "MFInventoryComponent.h"
 #include "MFItemDatabase.h"
 #include "MFLog.h"
+#include "MFCharacter.h"
+#include "Engine/Engine.h"
+#include "GameFramework/PlayerController.h"
+
+// ============================================================
+// Debug Console Command: MF.Inventory.Debug
+// ============================================================
+
+static void PrintInventoryDebug(const TArray<FString>& Args, UWorld* World)
+{
+	if (!World) return;
+
+	APlayerController* PC = World->GetFirstPlayerController();
+	AMFCharacter* Player  = PC ? Cast<AMFCharacter>(PC->GetPawn()) : nullptr;
+	if (!Player)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::Red, TEXT("[Inventory] No player found."));
+		return;
+	}
+
+	UMFInventoryComponent* Inv = Player->GetInventoryComponent();
+	if (!Inv)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::Red, TEXT("[Inventory] No InventoryComponent on player."));
+		return;
+	}
+
+	// --- 资源 ---
+	const TArray<FMFInventorySlot>& Resources = Inv->GetResourceSlots();
+	GEngine->AddOnScreenDebugMessage(-1, 10.f, FColor::Cyan,
+		FString::Printf(TEXT("=== Inventory [%d resource slot(s)] ==="), Resources.Num()));
+
+	for (int32 i = Resources.Num() - 1; i >= 0; --i)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 10.f, FColor::White,
+			FString::Printf(TEXT("  [%d] %s"), i, *Resources[i].GetDebugString()));
+	}
+
+	// --- 宠物 ---
+	const TArray<FMFPetInstance>& Pets = Inv->GetAllPets();
+	GEngine->AddOnScreenDebugMessage(-1, 10.f, FColor::Cyan,
+		FString::Printf(TEXT("=== Pets [%d] ==="), Pets.Num()));
+
+	for (int32 i = Pets.Num() - 1; i >= 0; --i)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 10.f, FColor::Green,
+			FString::Printf(TEXT("  [%d] %s"), i, *Pets[i].GetDebugString()));
+	}
+}
+
+static FAutoConsoleCommandWithWorldAndArgs GCmdInventoryDebug(
+	TEXT("MF.Inventory.Debug"),
+	TEXT("打印当前玩家背包内容（资源 + 宠物）到屏幕。"),
+	FConsoleCommandWithWorldAndArgsDelegate::CreateStatic(&PrintInventoryDebug)
+);
 
 UMFInventoryComponent::UMFInventoryComponent()
 {

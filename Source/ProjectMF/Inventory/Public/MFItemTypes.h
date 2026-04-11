@@ -89,6 +89,11 @@ struct PROJECTMF_API FMFInventorySlot
 
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory")
 	int32 Count = 0;
+
+	FString GetDebugString() const
+	{
+		return FString::Printf(TEXT("[Resource] %s x%d"), *ItemID.ToString(), Count);
+	}
 };
 
 // ============================================================
@@ -130,4 +135,11 @@ struct PROJECTMF_API FMFPetInstance
 	bool bIsActive = false;
 
 	bool IsValid() const { return InstanceID.IsValid() && !PetItemID.IsNone(); }
+
+	FString GetDebugString() const
+	{
+		return FString::Printf(TEXT("[Pet] %s  Lv.%d  (%s)  [%s]"),
+			*PetName, Level, *PetItemID.ToString(),
+			bIsActive ? TEXT("Active") : TEXT("Stored"));
+	}
 };
