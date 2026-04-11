@@ -10,6 +10,7 @@ class UInputAction;
 class USpringArmComponent;
 class UCameraComponent;
 class UMFCameraController;
+class UMFInventoryComponent;
 struct FInputActionValue;
 
 /**
@@ -54,6 +55,14 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<UInputAction> RotateCameraAction;
 
+	/**
+	 * 抓宠键（建议绑定 F 或 E）。
+	 * 触发器类型：Released（按下松开后激活技能，避免与移动键冲突）。
+	 * 在 GAS 中激活 MF.Ability.CatchPet。
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<UInputAction> CatchPetAction;
+
 	// -----------------------------------------------------------------------
 	// Camera Components
 	// -----------------------------------------------------------------------
@@ -67,9 +76,22 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UMFCameraController> CameraController;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UMFInventoryComponent> InventoryComponent;
+
+public:
+	UFUNCTION(BlueprintPure, Category = "Inventory")
+	UMFInventoryComponent* GetInventoryComponent() const { return InventoryComponent; }
+
 private:
 	void HandleMove(const FInputActionValue& Value);
 	void HandlePickStarted();
 	void HandlePickCompleted();
 	void HandleCameraRotate(const FInputActionValue& Value);
+
+	/**
+	 * 抓宠键松开时触发，激活 GA_CatchPet（MF.Ability.CatchPet）。
+	 * 技能内部通过 AT_WaitPetTarget Task 处理后续的鼠标瞄准和确认逻辑。
+	 */
+	void HandleCatchPet();
 };

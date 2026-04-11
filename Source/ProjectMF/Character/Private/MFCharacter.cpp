@@ -2,6 +2,10 @@
 
 #include "MFCharacter.h"
 #include "MFCamera.h"
+#include "MFGameplayTags.h"
+#include "MFInventoryComponent.h"
+#include "MFLog.h"
+#include "AbilitySystemComponent.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "EnhancedInputComponent.h"
@@ -27,6 +31,9 @@ AMFCharacter::AMFCharacter()
 	// --- Camera Controller ---
 	CameraController = CreateDefaultSubobject<UMFCameraController>(TEXT("CameraController"));
 	CameraController->Initialize(CameraSpringArm, CameraComponent);
+
+	// --- Inventory ---
+	InventoryComponent = CreateDefaultSubobject<UMFInventoryComponent>(TEXT("InventoryComponent"));
 }
 
 void AMFCharacter::BeginPlay()
@@ -52,6 +59,15 @@ void AMFCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 		if (RotateCameraAction)
 		{
 			EI->BindAction(RotateCameraAction, ETriggerEvent::Started, this, &AMFCharacter::HandleCameraRotate);
+		}
+		if (CatchPetAction)
+		{
+			// Completed = 按键松开后触发，确保不与长按走路等操作冲突
+			EI->BindAction(CatchPetAction, ETriggerEvent::Completed, this, &AMFCharacter::HandleCatchPet);
+		}
+		else
+		{
+			MF_LOG_WARNING(LogMFCharacter, TEXT("AMFCharacter: CatchPetAction is not set — catch ability cannot be activated via input."));
 		}
 	}
 }
@@ -88,13 +104,49 @@ void AMFCharacter::HandleMove(const FInputActionValue& Value)
 	if (!FMath::IsNearlyZero(MoveInput.Y)) AddMovementInput(ForwardDir,  MoveInput.Y);
 }
 
-void AMFCharacter::HandlePickStarted()   { CharacterState.bIsPicking = true;  }
-void AMFCharacter::HandlePickCompleted() { CharacterState.bIsPicking = false; }
+void AMFCharacter::HandlePickStarted()
+{
+	if (AbilitySystemComponent)
+	{
+		AbilitySystemComponent->TryActivateAbilitiesByTag(
+			FGameplayTagContainer(MFGameplayTags::Ability_Pick));
+	}
+}
+
+void AMFCharacter::HandlePickCompleted()
+{
+	if (AbilitySystemComponent)
+	{
+		const FGameplayTagContainer PickTag(MFGameplayTags::Ability_Pick);
+		AbilitySystemComponent->CancelAbilities(&PickTag);
+	}
+}
 
 void AMFCharacter::HandleCameraRotate(const FInputActionValue& Value)
 {
 	if (CameraController)
 	{
 		CameraController->SnapCamera(Value.Get<float>() >= 0.f ? 1 : -1);
+	}
+}
+
+void AMFCharacter::HandleCatchPet()
+{
+	if (!AbilitySystemComponent)
+	{
+		MF_LOG_ERROR(LogMFCharacter, TEXT("AMFCharacter::HandleCatchPet — AbilitySystemComponent is null!"));
+		return;
+	}
+
+	MF_LOG(LogMFCharacter, TEXT("AMFCharacter: CatchPet key released — trying to activate MF.Ability.CatchPet."));
+
+	const bool bActivated = AbilitySystemComponent->TryActivateAbilitiesByTag(
+		FGameplayTagContainer(MFGameplayTags::Ability_CatchPet));
+
+	if (!bActivated)
+	{
+		MF_LOG_WARNING(LogMFCharacter,
+			TEXT("AMFCharacter: TryActivateAbilitiesByTag(CatchPet) returned false. "
+			     "Check that GA_CatchPet is in DefaultAbilities and CatchConfig is assigned."));
 	}
 }

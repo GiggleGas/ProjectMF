@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "UObject/Interface.h"
+#include "GameplayTagContainer.h"
 #include "MFCharacterTypes.h"
 #include "MFMassInterface.generated.h"
 
@@ -50,6 +51,22 @@ struct FMFAICommand
 	 */
 	UPROPERTY(BlueprintReadWrite, Category = "AI|Command")
 	bool bOverrideAction = false;
+
+	// -----------------------------------------------------------------------
+	// GAS ability activation (optional)
+	// -----------------------------------------------------------------------
+
+	/**
+	 * Tag of the ability to activate on the AI's ASC this tick.
+	 * Only applied when bActivateAbility is true.
+	 * Example: set to MF.Ability.Pick to trigger the pick animation via GAS.
+	 */
+	UPROPERTY(BlueprintReadWrite, Category = "AI|Command")
+	FGameplayTag AbilityTagToActivate;
+
+	/** When true, AbilityTagToActivate is passed to TryActivateAbilitiesByTag. */
+	UPROPERTY(BlueprintReadWrite, Category = "AI|Command")
+	bool bActivateAbility = false;
 };
 
 // ---------------------------------------------------------------------------

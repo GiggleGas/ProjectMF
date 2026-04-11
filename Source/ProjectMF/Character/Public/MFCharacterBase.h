@@ -4,11 +4,15 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "AbilitySystemInterface.h"
 #include "MFCharacterTypes.h"
 #include "MFCharacterBase.generated.h"
 
 class UPaperFlipbookComponent;
 class UPaperZDAnimationComponent;
+class UAbilitySystemComponent;
+class UMFAttributeSetBase;
+class UMFGameplayAbilityBase;
 
 /**
  * Abstract base class for all MF characters (player and AI).
@@ -16,14 +20,20 @@ class UPaperZDAnimationComponent;
  * Owns the 2D rendering components (Flipbook + PaperZD) and the shared per-frame
  * logic: character action state machine, animation driving, and billboard alignment.
  *
- * Subclasses provide the camera information needed for billboard and directional
- * animation by overriding the two virtual accessors below.
+ * GAS integration:
+ *   - Implements IAbilitySystemInterface so the GAS subsystem can locate the ASC.
+ *   - ASC and the base AttributeSet live here so every character (player and AI/pet)
+ *     automatically has Health, MaxHealth, and MoveSpeed.
+ *   - DefaultAbilities is configured per Blueprint; InitAbilitySystemComponent()
+ *     grants them at BeginPlay.
+ *   - UpdateCharacterAction() reads MF.Character.State.Picking from the ASC to set
+ *     CharacterState.bIsPicking, keeping the existing PaperZD animation pipeline intact.
  *
  * Mass integration stubs live in IMFMassControllable (AI/Public/MFMassInterface.h).
  * Only AMFAICharacter implements that interface; this base stays input-agnostic.
  */
 UCLASS(Abstract)
-class PROJECTMF_API AMFCharacterBase : public ACharacter
+class PROJECTMF_API AMFCharacterBase : public ACharacter, public IAbilitySystemInterface
 {
 	GENERATED_BODY()
 
@@ -32,8 +42,40 @@ public:
 
 	virtual void Tick(float DeltaTime) override;
 
+	// -----------------------------------------------------------------------
+	// IAbilitySystemInterface
+	// -----------------------------------------------------------------------
+
+	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
+
 protected:
 	virtual void BeginPlay() override;
+
+	// -----------------------------------------------------------------------
+	// GAS Components
+	// -----------------------------------------------------------------------
+
+	/** Ability System Component — owns active abilities, tags, and attribute sets. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAS")
+	TObjectPtr<UAbilitySystemComponent> AbilitySystemComponent;
+
+	/** Base attribute set: Health, MaxHealth, MoveSpeed. Owned by this actor. */
+	UPROPERTY()
+	TObjectPtr<UMFAttributeSetBase> AttributeSet;
+
+	/**
+	 * Abilities granted at BeginPlay.
+	 * Configure in the Blueprint default for each character type.
+	 * Example: BP_MFCharacter adds GA_Pick here.
+	 */
+	UPROPERTY(EditDefaultsOnly, Category = "GAS")
+	TArray<TSubclassOf<UMFGameplayAbilityBase>> DefaultAbilities;
+
+	/**
+	 * Initialize the ASC actor info and grant DefaultAbilities.
+	 * Called from BeginPlay() — safe to call on both server and standalone.
+	 */
+	void InitAbilitySystemComponent();
 
 	// -----------------------------------------------------------------------
 	// 2D Rendering Components
@@ -53,6 +95,40 @@ protected:
 
 	UPROPERTY(BlueprintReadOnly, Category = "State")
 	FMFCharacterState CharacterState;
+
+	// -----------------------------------------------------------------------
+	// Collision fitting
+	// -----------------------------------------------------------------------
+
+	/**
+	 * When true, UpdateCollisionFromFlipbook() is called automatically on BeginPlay.
+	 * Disable if you prefer to set collision size manually in the Blueprint defaults.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Collision|Flipbook")
+	bool bAutoUpdateCollisionFromFlipbook = true;
+
+	/**
+	 * Multiplier applied to (SpriteWidth / 2) to produce the collision sphere radius.
+	 * Tune this per Blueprint to get the desired fit.
+	 *   1.0 → radius = half the sprite width (exact fit)
+	 *   0.5 → quarter of sprite width (tighter, avoids edge gaps)
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Collision|Flipbook",
+		meta = (ClampMin = "0.01", ClampMax = "2.0"))
+	float CollisionRadiusScale = 1.0f;
+
+	/**
+	 * Fit the root CapsuleComponent to a sphere based on the first frame of the
+	 * current flipbook asset.
+	 *
+	 * Sets CapsuleRadius = CapsuleHalfHeight = (SpriteWidth / 2) * CollisionRadiusScale.
+	 * When HalfHeight == Radius the capsule is geometrically identical to a sphere.
+	 *
+	 * Called automatically on BeginPlay when bAutoUpdateCollisionFromFlipbook is true.
+	 * Can also be called from Blueprint at runtime after swapping the flipbook asset.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Collision")
+	virtual void UpdateCollisionFromFlipbook();
 
 	// -----------------------------------------------------------------------
 	// Billboard

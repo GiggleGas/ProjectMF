@@ -1,6 +1,7 @@
 // Copyright ProjectMF. All Rights Reserved.
 
 #include "MFAICharacter.h"
+#include "AbilitySystemComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Camera/PlayerCameraManager.h"
@@ -50,10 +51,17 @@ void AMFAICharacter::ApplyMassCommand_Implementation(const FMFAICommand& Command
 	// 1. Movement
 	ApplyMovementFromCommand(Command);
 
-	// 2. Action override
+	// 2. Action override (legacy path — kept for non-GAS callers)
 	if (Command.bOverrideAction)
 	{
 		CharacterState.bIsPicking = (Command.DesiredAction == EMFCharacterAction::Pick);
+	}
+
+	// 3. GAS ability activation (preferred path — drives state via tag)
+	if (Command.bActivateAbility && Command.AbilityTagToActivate.IsValid() && AbilitySystemComponent)
+	{
+		AbilitySystemComponent->TryActivateAbilitiesByTag(
+			FGameplayTagContainer(Command.AbilityTagToActivate));
 	}
 }
 
