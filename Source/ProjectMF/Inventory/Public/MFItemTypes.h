@@ -134,6 +134,10 @@ struct PROJECTMF_API FMFPetInstance
 	UPROPERTY(BlueprintReadOnly, Category = "Pet")
 	bool bIsActive = false;
 
+	/** 捕获时快照的关键属性值。Key = 属性名，Value = 捕获瞬间的值。 */
+	UPROPERTY()
+	TMap<FName, float> AttributeSnapshot;
+
 	bool IsValid() const { return InstanceID.IsValid() && !PetItemID.IsNone(); }
 
 	FString GetDebugString() const

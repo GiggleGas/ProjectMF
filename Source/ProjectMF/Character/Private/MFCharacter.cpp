@@ -5,6 +5,7 @@
 #include "MFGameplayTags.h"
 #include "MFInventoryComponent.h"
 #include "MFLog.h"
+#include "Abilities/GameplayAbilityTypes.h"
 #include "AbilitySystemComponent.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
@@ -69,6 +70,18 @@ void AMFCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 		{
 			MF_LOG_WARNING(LogMFCharacter, TEXT("AMFCharacter: CatchPetAction is not set — catch ability cannot be activated via input."));
 		}
+
+		// DEMO BEGIN — 召唤按键临时绑定（1-5 对应 slot 1-5）
+		// TODO: GA_PetWheel 完成后，删除此段并改为激活轮盘 Ability
+		for (int32 i = 0; i < SummonSlotActions.Num() && i < 5; ++i)
+		{
+			if (SummonSlotActions[i])
+			{
+				EI->BindAction(SummonSlotActions[i], ETriggerEvent::Started,
+					this, &AMFCharacter::HandleSummonSlot, i + 1);
+			}
+		}
+		// DEMO END
 	}
 }
 
@@ -149,4 +162,13 @@ void AMFCharacter::HandleCatchPet()
 			TEXT("AMFCharacter: TryActivateAbilitiesByTag(CatchPet) returned false. "
 			     "Check that GA_CatchPet is in DefaultAbilities and CatchConfig is assigned."));
 	}
+}
+
+void AMFCharacter::HandleSummonSlot(int32 SlotIndex)
+{
+	if (!AbilitySystemComponent) return;
+
+	FGameplayEventData EventData;
+	EventData.EventMagnitude = static_cast<float>(SlotIndex);
+	AbilitySystemComponent->HandleGameplayEvent(MFGameplayTags::Ability_SummonPet, &EventData);
 }

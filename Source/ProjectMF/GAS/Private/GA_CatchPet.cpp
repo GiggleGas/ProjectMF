@@ -374,42 +374,47 @@ void UGA_CatchPet::EndCatch(bool bSuccess)
 
 	if (bSuccess)
 	{
-		// 通知宠物被收服
 		if (AActor* Pet = TargetPet.Get())
 		{
 			if (Pet->GetClass()->ImplementsInterface(UMFCatchable::StaticClass()))
 			{
 				AActor* Avatar = GetAvatarActorFromActorInfo();
-				IMFCatchable::Execute_OnCaught(Pet, Avatar);
-				MF_LOG(LogMFAbility, TEXT("GA_CatchPet: Called OnCaught on %s."), *Pet->GetName());
 
-				// 注册宠物到背包
-				if (AMFCharacter* Player = Cast<AMFCharacter>(Avatar))
+				// 1. 通知宠物被收服（设置 bIsCaught，不再内部 Destroy）
+				IMFCatchable::Execute_OnCaught(Pet, Avatar);
+
+				// 2. 序列化当前状态 + 注册到背包
+				AMFPetBase* PetBase = Cast<AMFPetBase>(Pet);
+				AMFCharacter* Player = Cast<AMFCharacter>(Avatar);
+				if (PetBase && Player)
 				{
 					if (UMFInventoryComponent* Inventory = Player->GetInventoryComponent())
 					{
-						if (AMFPetBase* PetBase = Cast<AMFPetBase>(Pet))
+						FMFPetInstance Snapshot;
+						PetBase->SerializeToInstance(Snapshot);
+
+						const FGuid NewID = Inventory->RegisterCaughtPet(Snapshot);
+						if (NewID.IsValid())
 						{
-							const FGuid NewID = Inventory->AddPet(PetBase->PetItemID);
-							if (NewID.IsValid())
-							{
-								MF_LOG(LogMFAbility, TEXT("GA_CatchPet: Pet '%s' registered to inventory."),
-									*PetBase->PetItemID.ToString());
-							}
-							else
-							{
-								MF_LOG_WARNING(LogMFAbility,
-									TEXT("GA_CatchPet: AddPet failed for '%s'. PetItemID set in Blueprint?"),
-									*PetBase->PetItemID.ToString());
-							}
+							MF_LOG(LogMFAbility, TEXT("GA_CatchPet: '%s' registered, InstanceID=%s."),
+								*PetBase->PetItemID.ToString(), *NewID.ToString());
+						}
+						else
+						{
+							MF_LOG_WARNING(LogMFAbility,
+								TEXT("GA_CatchPet: RegisterCaughtPet failed for '%s'."),
+								*PetBase->PetItemID.ToString());
 						}
 					}
 				}
+
+				// 3. Actor 序列化完毕后销毁
+				Pet->Destroy();
 			}
 			else
 			{
 				MF_LOG_WARNING(LogMFAbility,
-					TEXT("GA_CatchPet: Target %s does not implement IMFCatchable, skipping OnCaught."),
+					TEXT("GA_CatchPet: Target %s does not implement IMFCatchable."),
 					*Pet->GetName());
 			}
 		}

@@ -20,6 +20,12 @@ namespace MFGameplayTags
 		"Ability tag for the CatchPet ability. Activated on catch-key release.");
 
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
+		Ability_SummonPet,
+		"MF.Ability.SummonPet",
+		"GameplayEvent tag for GA_SummonPet. EventMagnitude = slot index (1-5). "
+		"Fired by demo key bindings now, by GA_PetWheel in the future.");
+
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
 		Catching_State_Aiming,
 		"MF.Catching.State.Aiming",
 		"Player is in aiming phase: preview line shown, hovering to select target.");

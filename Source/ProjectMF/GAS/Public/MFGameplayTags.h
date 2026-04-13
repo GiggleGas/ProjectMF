@@ -38,6 +38,13 @@ namespace MFGameplayTags
 	/** Identifies the CatchPet GameplayAbility. */
 	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_CatchPet);
 
+	/**
+	 * GameplayEvent tag for triggering GA_SummonPet.
+	 * EventMagnitude carries the pet slot index (1-5).
+	 * Sources: demo key bindings (1-5), future: GA_PetWheel confirmation.
+	 */
+	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_SummonPet);
+
 	// -----------------------------------------------------------------------
 	// Catching State Tags
 	// Owned by the ASC to track the active phase of the catch-pet ability.

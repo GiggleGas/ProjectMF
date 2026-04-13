@@ -7,6 +7,10 @@
 #include "MFCatchable.h"
 #include "MFPetBase.generated.h"
 
+// MFItemTypes.h 不在此处 include（会循环），用前向声明 + 引用参数规避。
+// MFPetBase.cpp 中 include MFItemTypes.h 获取完整定义。
+struct FMFPetInstance;
+
 /**
  * AMFPetBase — 可被玩家抓取的宠物 AI 基类。
  *
@@ -79,6 +83,24 @@ public:
 	 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Pet|Data")
 	FName PetItemID;
+
+	// -----------------------------------------------------------------------
+	// 序列化接口
+	// -----------------------------------------------------------------------
+
+	/**
+	 * 将当前 Actor 的关键状态写入 InOutInstance。
+	 * - 捕获时：填充 PetItemID + AttributeSnapshot（由 GA_CatchPet 调用）
+	 * - 召回时：仅刷新 AttributeSnapshot（由 InventoryComponent::RecallPet 调用）
+	 * 子类可 Super:: 后追加自定义字段。
+	 */
+	virtual void SerializeToInstance(FMFPetInstance& InOutInstance) const;
+
+	/**
+	 * 从 Instance 恢复 Actor 运行时状态（由 InventoryComponent::SummonPet 在 BeginPlay 后调用）。
+	 * 子类可 Super:: 后追加自定义恢复逻辑。
+	 */
+	virtual void RestoreFromInstance(const FMFPetInstance& Instance);
 
 protected:
 	// -----------------------------------------------------------------------

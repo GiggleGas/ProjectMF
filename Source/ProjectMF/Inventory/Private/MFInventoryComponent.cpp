@@ -2,9 +2,11 @@
 
 #include "MFInventoryComponent.h"
 #include "MFItemDatabase.h"
+#include "MFPetBase.h"
 #include "MFLog.h"
 #include "MFCharacter.h"
 #include "Engine/Engine.h"
+#include "Engine/World.h"
 #include "GameFramework/PlayerController.h"
 
 // ============================================================
@@ -30,7 +32,6 @@ static void PrintInventoryDebug(const TArray<FString>& Args, UWorld* World)
 		return;
 	}
 
-	// --- 资源 ---
 	const TArray<FMFInventorySlot>& Resources = Inv->GetResourceSlots();
 	GEngine->AddOnScreenDebugMessage(-1, 10.f, FColor::Cyan,
 		FString::Printf(TEXT("=== Inventory [%d resource slot(s)] ==="), Resources.Num()));
@@ -41,7 +42,6 @@ static void PrintInventoryDebug(const TArray<FString>& Args, UWorld* World)
 			FString::Printf(TEXT("  [%d] %s"), i, *Resources[i].GetDebugString()));
 	}
 
-	// --- 宠物 ---
 	const TArray<FMFPetInstance>& Pets = Inv->GetAllPets();
 	GEngine->AddOnScreenDebugMessage(-1, 10.f, FColor::Cyan,
 		FString::Printf(TEXT("=== Pets [%d] ==="), Pets.Num()));
@@ -58,6 +58,10 @@ static FAutoConsoleCommandWithWorldAndArgs GCmdInventoryDebug(
 	TEXT("打印当前玩家背包内容（资源 + 宠物）到屏幕。"),
 	FConsoleCommandWithWorldAndArgsDelegate::CreateStatic(&PrintInventoryDebug)
 );
+
+// ============================================================
+// 构造
+// ============================================================
 
 UMFInventoryComponent::UMFInventoryComponent()
 {
@@ -95,7 +99,6 @@ int32 UMFInventoryComponent::AddResource(FName ItemID, int32 Count)
 	const int32 MaxStack = Def->MaxStackSize;
 	int32 Remaining = Count;
 
-	// 优先填满已有格子
 	const int32 SlotIdx = FindResourceSlotIndex(ItemID);
 	if (SlotIdx != INDEX_NONE)
 	{
@@ -106,7 +109,6 @@ int32 UMFInventoryComponent::AddResource(FName ItemID, int32 Count)
 		Remaining  -= Added;
 	}
 
-	// 剩余量：新建格子
 	if (Remaining > 0)
 	{
 		if (MaxResourceSlots > 0 && ResourceSlots.Num() >= MaxResourceSlots)
@@ -145,7 +147,6 @@ bool UMFInventoryComponent::RemoveResource(FName ItemID, int32 Count)
 
 	int32 ToRemove = Count;
 
-	// 从末尾向前扣除（避免正向遍历删除引起下标偏移）
 	for (int32 i = ResourceSlots.Num() - 1; i >= 0 && ToRemove > 0; --i)
 	{
 		if (ResourceSlots[i].ItemID != ItemID) continue;
@@ -171,10 +172,7 @@ int32 UMFInventoryComponent::GetResourceCount(FName ItemID) const
 	int32 Total = 0;
 	for (const FMFInventorySlot& Slot : ResourceSlots)
 	{
-		if (Slot.ItemID == ItemID)
-		{
-			Total += Slot.Count;
-		}
+		if (Slot.ItemID == ItemID) Total += Slot.Count;
 	}
 	return Total;
 }
@@ -188,91 +186,162 @@ int32 UMFInventoryComponent::FindResourceSlotIndex(FName ItemID) const
 {
 	for (int32 i = 0; i < ResourceSlots.Num(); ++i)
 	{
-		if (ResourceSlots[i].ItemID == ItemID)
-		{
-			return i;
-		}
+		if (ResourceSlots[i].ItemID == ItemID) return i;
 	}
 	return INDEX_NONE;
 }
 
 // ============================================================
-// 宠物
+// 宠物 — 捕获
 // ============================================================
 
-FGuid UMFInventoryComponent::AddPet(FName PetItemID, const FString& PetName)
+FGuid UMFInventoryComponent::RegisterCaughtPet(const FMFPetInstance& Snapshot)
 {
-	if (PetItemID.IsNone())
+	if (Snapshot.PetItemID.IsNone())
 	{
-		MF_LOG_WARNING(LogMFInventory, TEXT("AddPet: PetItemID is None."));
+		MF_LOG_WARNING(LogMFInventory,
+			TEXT("RegisterCaughtPet: PetItemID is None. 请在宠物 Blueprint CDO 中设置 PetItemID。"));
 		return FGuid();
 	}
 
 	if (MaxPetSlots > 0 && PetSlots.Num() >= MaxPetSlots)
 	{
 		MF_LOG_WARNING(LogMFInventory,
-			TEXT("AddPet: Pet roster full (%d/%d)."), PetSlots.Num(), MaxPetSlots);
+			TEXT("RegisterCaughtPet: Pet roster full (%d/%d)."), PetSlots.Num(), MaxPetSlots);
 		return FGuid();
 	}
 
-	// 昵称：优先用参数，为空时取 DisplayName
-	FString FinalName = PetName;
-	if (FinalName.IsEmpty() && ItemDatabase)
+	FMFPetInstance NewInstance    = Snapshot;   // 复制快照（含 PetItemID + AttributeSnapshot）
+	NewInstance.InstanceID        = FGuid::NewGuid();
+	NewInstance.Level             = 1;
+	NewInstance.Experience        = 0;
+	NewInstance.bIsActive         = false;
+
+	// 默认昵称从 DA 读取
+	if (NewInstance.PetName.IsEmpty() && ItemDatabase)
 	{
-		if (const FMFItemDef* Def = ItemDatabase->FindItem(PetItemID))
+		if (const FMFItemDef* Def = ItemDatabase->FindItem(Snapshot.PetItemID))
 		{
-			FinalName = Def->DisplayName.ToString();
+			NewInstance.PetName = Def->DisplayName.ToString();
 		}
 	}
-	if (FinalName.IsEmpty())
+	if (NewInstance.PetName.IsEmpty())
 	{
-		FinalName = PetItemID.ToString();
+		NewInstance.PetName = Snapshot.PetItemID.ToString();
 	}
 
-	FMFPetInstance NewPet;
-	NewPet.InstanceID = FGuid::NewGuid();
-	NewPet.PetItemID  = PetItemID;
-	NewPet.PetName    = FinalName;
-	NewPet.Level      = 1;
-	NewPet.Experience = 0;
-	NewPet.bIsActive  = false;
+	PetSlots.Add(NewInstance);
 
-	PetSlots.Add(NewPet);
-
-	MF_LOG(LogMFInventory, TEXT("AddPet: '%s' (%s) registered. Total: %d."),
-		*FinalName, *PetItemID.ToString(), PetSlots.Num());
+	MF_LOG(LogMFInventory, TEXT("RegisterCaughtPet: '%s' (%s) registered. Total: %d."),
+		*NewInstance.PetName, *Snapshot.PetItemID.ToString(), PetSlots.Num());
 	OnPetRosterChanged.Broadcast();
 
-	return NewPet.InstanceID;
+	return NewInstance.InstanceID;
 }
+
+// ============================================================
+// 宠物 — 召唤 / 召回
+// ============================================================
+
+AMFPetBase* UMFInventoryComponent::SummonPet(FGuid InstanceID, FVector Location)
+{
+	FMFPetInstance* InstancePtr = FindPetMutable(InstanceID);
+	if (!InstancePtr)
+	{
+		MF_LOG_WARNING(LogMFInventory, TEXT("SummonPet: InstanceID not found."));
+		return nullptr;
+	}
+
+	if (!ItemDatabase)
+	{
+		MF_LOG_ERROR(LogMFInventory, TEXT("SummonPet: ItemDatabase not set."));
+		return nullptr;
+	}
+
+	const FMFItemDef* Def = ItemDatabase->FindItem(InstancePtr->PetItemID);
+	if (!Def || !Def->PetClass)
+	{
+		MF_LOG_ERROR(LogMFInventory, TEXT("SummonPet: No PetClass set for '%s'."),
+			*InstancePtr->PetItemID.ToString());
+		return nullptr;
+	}
+
+	UWorld* World = GetWorld();
+	if (!World) return nullptr;
+
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.SpawnCollisionHandlingOverride =
+		ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+
+	// BeginPlay 在 SpawnActor 内部同步调用完毕，之后立即可访问 ASC
+	AMFPetBase* SpawnedPet = World->SpawnActor<AMFPetBase>(
+		Def->PetClass, Location, FRotator::ZeroRotator, SpawnParams);
+
+	if (!SpawnedPet)
+	{
+		MF_LOG_ERROR(LogMFInventory, TEXT("SummonPet: SpawnActor failed for '%s'."),
+			*InstancePtr->PetItemID.ToString());
+		return nullptr;
+	}
+
+	SpawnedPet->RestoreFromInstance(*InstancePtr);
+
+	ActivePetActors.Add(InstanceID, SpawnedPet);
+	InstancePtr->bIsActive = true;
+
+	MF_LOG(LogMFInventory, TEXT("SummonPet: '%s' spawned at %s."),
+		*InstancePtr->PetName, *Location.ToString());
+	OnPetRosterChanged.Broadcast();
+
+	return SpawnedPet;
+}
+
+void UMFInventoryComponent::RecallPet(FGuid InstanceID)
+{
+	TWeakObjectPtr<AMFPetBase>* ActorPtr = ActivePetActors.Find(InstanceID);
+	if (!ActorPtr || !ActorPtr->IsValid())
+	{
+		MF_LOG_WARNING(LogMFInventory, TEXT("RecallPet: Actor not found or already destroyed."));
+		ActivePetActors.Remove(InstanceID);
+		return;
+	}
+
+	AMFPetBase* Pet = ActorPtr->Get();
+
+	// 刷新快照（只更新属性，保留 Level/Exp/Name 等）
+	if (FMFPetInstance* InstancePtr = FindPetMutable(InstanceID))
+	{
+		Pet->SerializeToInstance(*InstancePtr);
+		InstancePtr->bIsActive = false;
+	}
+
+	Pet->Destroy();
+	ActivePetActors.Remove(InstanceID);
+
+	MF_LOG(LogMFInventory, TEXT("RecallPet: Pet recalled and snapshot updated."));
+	OnPetRosterChanged.Broadcast();
+}
+
+// ============================================================
+// 宠物 — 查询
+// ============================================================
 
 const FMFPetInstance* UMFInventoryComponent::FindPet(FGuid InstanceID) const
 {
 	for (const FMFPetInstance& Pet : PetSlots)
 	{
-		if (Pet.InstanceID == InstanceID)
-		{
-			return &Pet;
-		}
+		if (Pet.InstanceID == InstanceID) return &Pet;
 	}
 	return nullptr;
 }
 
-void UMFInventoryComponent::SetPetActive(FGuid InstanceID, bool bActive)
+FMFPetInstance* UMFInventoryComponent::FindPetMutable(FGuid InstanceID)
 {
 	for (FMFPetInstance& Pet : PetSlots)
 	{
-		if (Pet.InstanceID == InstanceID)
-		{
-			Pet.bIsActive = bActive;
-			MF_LOG(LogMFInventory, TEXT("SetPetActive: '%s' -> %s."),
-				*Pet.PetName, bActive ? TEXT("Active") : TEXT("Inactive"));
-			OnPetRosterChanged.Broadcast();
-			return;
-		}
+		if (Pet.InstanceID == InstanceID) return &Pet;
 	}
-
-	MF_LOG_WARNING(LogMFInventory, TEXT("SetPetActive: InstanceID not found."));
+	return nullptr;
 }
 
 TArray<FMFPetInstance> UMFInventoryComponent::GetActivePets() const
@@ -280,10 +349,7 @@ TArray<FMFPetInstance> UMFInventoryComponent::GetActivePets() const
 	TArray<FMFPetInstance> Active;
 	for (const FMFPetInstance& Pet : PetSlots)
 	{
-		if (Pet.bIsActive)
-		{
-			Active.Add(Pet);
-		}
+		if (Pet.bIsActive) Active.Add(Pet);
 	}
 	return Active;
 }
