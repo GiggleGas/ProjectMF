@@ -19,7 +19,7 @@ public class ProjectMF : ModuleRules
 			// "MassEntity", "MassCommon", "MassActors", "MassRepresentation", "MassSignals"
 		});
 
-		PrivateDependencyModuleNames.AddRange(new string[] {  });
+		PrivateDependencyModuleNames.AddRange(new string[] { "Voronoi" });
 
 		// Character
 		PublicIncludePaths.Add(Path.Combine(ModuleDirectory, "Character", "Public"));
@@ -46,5 +46,9 @@ public class ProjectMF : ModuleRules
 		// Inventory (背包系统)
 		PublicIncludePaths.Add(Path.Combine(ModuleDirectory, "Inventory", "Public"));
 		PrivateIncludePaths.Add(Path.Combine(ModuleDirectory, "Inventory", "Private"));
-	}
+
+        //
+        PublicIncludePaths.Add(Path.Combine(ModuleDirectory, "NMap", "Public"));
+        PrivateIncludePaths.Add(Path.Combine(ModuleDirectory, "Nmap", "Private"));
+    }
 }
