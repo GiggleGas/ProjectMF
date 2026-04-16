@@ -61,6 +61,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map Generation")
 	int32 LloydRelaxations = 2;
 
+
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map Generation")
+	UTextureRenderTarget2D* RenderTarget;
+
 	// Generate the map
 	UFUNCTION(BlueprintCallable, Category = "Map Generation")
 	void GenerateMap();
@@ -96,5 +101,6 @@ private:
 	TFunction<bool(FVector)> GetIslandChecker() const;
 
 	// Generate random points for Voronoi
-	TArray<FVector> GenerateRandomPoints(int32 Count);
+	TArray<FVector> GenerateRandomPoints3D(int32 Count);
+	TArray<FVector2D> GenerateRandomPoints2D(int32 Count);
 };

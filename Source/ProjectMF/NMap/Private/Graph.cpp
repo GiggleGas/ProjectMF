@@ -50,7 +50,9 @@ void FNMGraph::Init(TFunction<bool(FVector)> checkIsland, TArray<FVector> points
 
 TArray<FVector> FNMGraph::RelaxPoints(TArray<FVector> startingPoints, float width, float height)
 {
-    FVoronoiDiagram  vd(startingPoints, FBox(FVector(0, 0, 0), FVector(width, height, 0)), 0.0);
+
+    // 
+    FVoronoiDiagram  vd(startingPoints, FBox(FVector(0, 0, 0), FVector(width, height, 100)), 10.0);
     TArray<FVoronoiCellInfo> cells;
     vd.ComputeAllCells(cells);
     TArray<FVector> ret;
@@ -103,7 +105,7 @@ void FNMGraph::BuildGraph(const TArray<FVector>& points)
     // Build graph data structure in 'edges', 'centers', 'corners',
 
     // cellinfos
-    FVoronoiDiagram voronoi(points, FBox(FVector(0, 0, 0), FVector(Width, Height, 0)), 0.0);
+    FVoronoiDiagram voronoi(points, FBox(FVector(0, 0, 0), FVector(Width, Height, 100)), 0.0);
     TArray<FVoronoiCellInfo> CellInfos;
     voronoi.ComputeAllCells(CellInfos);
 
