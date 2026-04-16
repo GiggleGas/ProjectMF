@@ -70,7 +70,19 @@ void AMapGenerator::GenerateMap()
 		FDelaunay2 deal;
 		bool re = deal.Triangulate(points2);
 		TArray<TArray<FVector2D>>vers = deal.GetVoronoiCells(points2, true, FAxisAlignedBox2d{FVector2D(5),FVector2D(490)});
-
+		for (int32 i = 0; i < LloydRelaxations; ++i)
+		{
+			for (int j = 0; j < points2.Num(); ++j)
+			{
+				if (vers[j].Num() > 0) {
+					points2[j].Set(0, 0);
+					for (auto& v : vers[j]) points2[j] += v;
+					points2[j] /= vers[j].Num();
+				}
+			}
+			deal.Triangulate(points2);
+			vers = deal.GetVoronoiCells(points2, true, FAxisAlignedBox2d{ FVector2D(5),FVector2D(490) });
+		}
 
 		FDrawToRenderTargetContext Context;
 		UCanvas* Canvas;
