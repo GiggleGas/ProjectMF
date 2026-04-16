@@ -27,6 +27,18 @@ namespace MFGameplayTags
 	 *  Drives EMFCharacterAction::Pick and the bIsPicking animation flag. */
 	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_Picking);
 
+	/**
+	 * Granted when Health reaches 0 (via HandleDeath).
+	 * Blocks further ability activation. StateTree and UI listen for this tag.
+	 */
+	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_Dead);
+
+	/**
+	 * Granted when a character enters combat (has an active enemy target).
+	 * Used by StateTree to switch between Follow and Combat states.
+	 */
+	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_InCombat);
+
 	// -----------------------------------------------------------------------
 	// Ability Tags
 	// Used with TryActivateAbilitiesByTag / CancelAbilitiesByTag.

@@ -13,6 +13,7 @@ PROJECTMF_API DECLARE_LOG_CATEGORY_EXTERN(LogMFCatch,     Log, All);  // 抓宠�
 PROJECTMF_API DECLARE_LOG_CATEGORY_EXTERN(LogMFAbility,   Log, All);  // GAS 技能
 PROJECTMF_API DECLARE_LOG_CATEGORY_EXTERN(LogMFCharacter, Log, All);  // 角色/玩家
 PROJECTMF_API DECLARE_LOG_CATEGORY_EXTERN(LogMFInventory, Log, All);  // 背包系统
+PROJECTMF_API DECLARE_LOG_CATEGORY_EXTERN(LogMFSpawnAI,   Log, All);  // AI生成系统
 
 // ============================================================
 // Screen Log Helper

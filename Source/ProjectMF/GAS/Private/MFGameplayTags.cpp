@@ -10,6 +10,16 @@ namespace MFGameplayTags
 		"Owned by the ASC while the Pick ability is active. Drives the Pick animation state.");
 
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
+		State_Dead,
+		"MF.Character.State.Dead",
+		"Granted when Health reaches 0. Blocks ability activation; monitored by StateTree and UI.");
+
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
+		State_InCombat,
+		"MF.Character.State.InCombat",
+		"Granted when a character has an active combat target. Drives StateTree Combat state.");
+
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
 		Ability_Pick,
 		"MF.Ability.Pick",
 		"Ability tag for the Pick/gather ability. Used with TryActivateAbilitiesByTag.");

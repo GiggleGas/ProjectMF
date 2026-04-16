@@ -3,26 +3,39 @@
 #include "MFCharacterBase.h"
 #include "MFAnimInstanceBase.h"
 #include "MFAttributeSetBase.h"
+#include "MFCombatAttributeSet.h"
 #include "MFGameplayAbilityBase.h"
 #include "MFGameplayTags.h"
 #include "AbilitySystemComponent.h"
+#include "GameplayEffect.h"
 #include "PaperFlipbookComponent.h"
 #include "PaperZDAnimationComponent.h"
 #include "PaperFlipbook.h"
 #include "PaperSprite.h"
 #include "Components/CapsuleComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "DrawDebugHelpers.h"
 #include "Engine/Engine.h"
 
 // ---------------------------------------------------------------------------
-// CVar: MF.Char.CharacterBaseDebug
-// 控制台输入: MF.Char.CharacterBaseDebug 1  开启 / 0  关闭
+// CVars
+// 控制台输入示例:
+//   MF.Char.CharacterBaseDebug 1   → 开启箭头/碰撞球
+//   MF.Char.AttributeDebug 1       → 开启角色头顶属性面板
 // ---------------------------------------------------------------------------
 static int32 GCharacterBaseDebug = 0;
 static FAutoConsoleVariableRef CVarCharacterBaseDebug(
 	TEXT("MF.Char.CharacterBaseDebug"),
 	GCharacterBaseDebug,
-	TEXT("Enable MFCharacterBase debug visualization. 1 = on, 0 = off."),
+	TEXT("Enable MFCharacterBase debug visualization (arrows, collision sphere). 1 = on, 0 = off."),
+	ECVF_Default
+);
+
+static int32 GAttributeDebug = 0;
+static FAutoConsoleVariableRef CVarAttributeDebug(
+	TEXT("MF.Char.AttributeDebug"),
+	GAttributeDebug,
+	TEXT("Render GAS attribute values as world-space text above each character. 1 = on, 0 = off."),
 	ECVF_Default
 );
 
@@ -36,7 +49,8 @@ AMFCharacterBase::AMFCharacterBase()
 
 	// --- GAS ---
 	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
-	AttributeSet            = CreateDefaultSubobject<UMFAttributeSetBase>(TEXT("AttributeSet"));
+	AttributeSet           = CreateDefaultSubobject<UMFAttributeSetBase>(TEXT("AttributeSet"));
+	CombatAttributeSet     = CreateDefaultSubobject<UMFCombatAttributeSet>(TEXT("CombatAttributeSet"));
 
 	// --- Flipbook (render target driven by PaperZD) ---
 	FlipbookComponent = CreateDefaultSubobject<UPaperFlipbookComponent>(TEXT("FlipbookComponent"));
@@ -52,6 +66,12 @@ void AMFCharacterBase::BeginPlay()
 {
 	Super::BeginPlay();
 	InitAbilitySystemComponent();
+
+	// 绑定死亡委托：AttributeSet 的 OnDeath → HandleDeath（虚函数，派生类可覆盖）
+	if (AttributeSet)
+	{
+		AttributeSet->OnDeath.AddUObject(this, &AMFCharacterBase::HandleDeath);
+	}
 
 	if (bAutoUpdateCollisionFromFlipbook)
 	{
@@ -79,12 +99,46 @@ void AMFCharacterBase::InitAbilitySystemComponent()
 	// Owner and Avatar are both this actor (no separate PlayerState for now).
 	AbilitySystemComponent->InitAbilityActorInfo(this, this);
 
+	// Apply default init effect (sets MaxHealth, Attack, Defense, etc.)
+	// Must come before granting abilities so attribute values are ready.
+	if (DefaultInitEffect)
+	{
+		FGameplayEffectContextHandle Context = AbilitySystemComponent->MakeEffectContext();
+		Context.AddSourceObject(this);
+		const FGameplayEffectSpecHandle Spec =
+			AbilitySystemComponent->MakeOutgoingSpec(DefaultInitEffect, 1.f, Context);
+		if (Spec.IsValid())
+		{
+			AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*Spec.Data);
+		}
+	}
+
 	// Grant every ability listed in DefaultAbilities at level 1.
 	for (const TSubclassOf<UMFGameplayAbilityBase>& AbilityClass : DefaultAbilities)
 	{
 		if (!AbilityClass) continue;
 		AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(AbilityClass, 1));
 	}
+}
+
+void AMFCharacterBase::HandleDeath()
+{
+	if (!AbilitySystemComponent) return;
+
+	// 防止重复触发（已有 State.Dead 时直接返回）
+	if (AbilitySystemComponent->HasMatchingGameplayTag(MFGameplayTags::State_Dead))
+	{
+		return;
+	}
+
+	// 打上死亡 Tag（阻断后续能力激活，StateTree 可监听此 Tag 切换死亡状态）
+	AbilitySystemComponent->AddLooseGameplayTag(MFGameplayTags::State_Dead);
+
+	// 取消所有进行中的能力
+	AbilitySystemComponent->CancelAllAbilities();
+
+	// 停止移动
+	GetCharacterMovement()->DisableMovement();
 }
 
 // ---------------------------------------------------------------------------
@@ -223,9 +277,81 @@ void AMFCharacterBase::UpdateCollisionFromFlipbook()
 // Debug
 // ---------------------------------------------------------------------------
 
+void AMFCharacterBase::DrawAttributeDebug() const
+{
+#if ENABLE_DRAW_DEBUG
+	if (!AttributeSet) return;
+
+	const UWorld* World = GetWorld();
+	if (!World) return;
+
+	// 文本锚点：胶囊顶部再往上一点
+	const float CapsuleTop = GetCapsuleComponent() ? GetCapsuleComponent()->GetScaledCapsuleRadius() : 50.f;
+	const FVector Base = GetActorLocation() + FVector(0.f, 0.f, CapsuleTop + 15.f);
+
+	constexpr float LineHeight = 22.f;  // 世界空间行间距（单位：cm）
+	constexpr float FontScale  = 1.2f;
+	constexpr float Duration   = 0.f;  // 单帧，每 Tick 刷新
+
+	int32 Line = 0;
+	auto DrawLine = [&](const FString& Text, const FColor& Color)
+	{
+		DrawDebugString(World,
+			Base + FVector(0.f, 0.f, LineHeight * Line),
+			Text, nullptr, Color, Duration, /*bDrawShadow=*/true, FontScale);
+		++Line;
+	};
+
+	// --- 角色名 ---
+	DrawLine(FString::Printf(TEXT("[%s]"), *GetName()), FColor::White);
+
+	// --- Health（按血量比例变色：绿/黄/红）---
+	const float HP    = AttributeSet->GetHealth();
+	const float MaxHP = AttributeSet->GetMaxHealth();
+	const float HPRatio = (MaxHP > 0.f) ? HP / MaxHP : 0.f;
+	const FColor HPColor = (HPRatio > 0.6f) ? FColor::Green
+	                     : (HPRatio > 0.3f) ? FColor::Yellow
+	                                        : FColor::Red;
+	DrawLine(FString::Printf(TEXT("HP  %.0f / %.0f"), HP, MaxHP), HPColor);
+
+	// --- MoveSpeed ---
+	DrawLine(FString::Printf(TEXT("SPD %.0f"), AttributeSet->GetMoveSpeed()), FColor::White);
+
+	// --- Combat 属性（CombatAttributeSet 挂载时显示）---
+	if (CombatAttributeSet)
+	{
+		const FColor OrangeColor(255, 165, 0);
+		DrawLine(FString::Printf(TEXT("ATK %.0f  DEF %.0f"),
+			CombatAttributeSet->GetAttack(),
+			CombatAttributeSet->GetDefense()), OrangeColor);
+
+		DrawLine(FString::Printf(TEXT("Flee %.0f%%"),
+			CombatAttributeSet->GetFleeThreshold() * 100.f), FColor::White);
+	}
+
+	// --- 状态 Tag ---
+	if (AbilitySystemComponent)
+	{
+		if (AbilitySystemComponent->HasMatchingGameplayTag(MFGameplayTags::State_Dead))
+		{
+			DrawLine(TEXT("[DEAD]"), FColor::Red);
+		}
+		else if (AbilitySystemComponent->HasMatchingGameplayTag(MFGameplayTags::State_InCombat))
+		{
+			DrawLine(TEXT("[IN COMBAT]"), FColor(255, 80, 80));
+		}
+	}
+#endif
+}
+
 void AMFCharacterBase::DrawDebug() const
 {
 #if ENABLE_DRAW_DEBUG
+	if (GAttributeDebug)
+	{
+		DrawAttributeDebug();
+	}
+
 	if (!GCharacterBaseDebug) return;
 
 	const UWorld* World = GetWorld();
