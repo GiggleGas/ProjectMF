@@ -27,7 +27,8 @@ enum class ENMBiome : uint8
 	Grassland = 14,
 	SubtropicalDesert = 15,
 	TropicalRainForest = 16,
-	TropicalSeasonalForest = 17
+	TropicalSeasonalForest = 17,
+	COUNT
 };
 
 /**

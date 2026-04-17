@@ -4,6 +4,8 @@
 #include "GameFramework/Actor.h"
 #include "NMGraph.h"
 #include "IslandShape.h"
+#include <PaperTileMapActor.h>
+#include "PaperTileSet.h"
 #include "MapGenerator.generated.h"
 
 
@@ -62,9 +64,18 @@ public:
 	int32 LloydRelaxations = 2;
 
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map Generation")
+	APaperTileMapActor* TileMapActor;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map Generation")
 	UTextureRenderTarget2D* RenderTarget;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map Generation")
+	UTextureRenderTarget2D* RTBiome;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map Generation")
+	TMap<ENMBiome, TObjectPtr<UPaperTileSet>>  BiomeTileSets;
+
 
 	// Generate the map
 	UFUNCTION(BlueprintCallable, Category = "Map Generation")
@@ -72,6 +83,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Map Generation")
 	void DrawToRT();
+
+	UFUNCTION(BlueprintCallable, Category = "Map Generation")
+	void UpdateTileMap();
 
 	// Accessors
 	UFUNCTION(BlueprintCallable, Category = "Map Generation")
@@ -92,7 +106,16 @@ public:
 	// Get biome at a specific location
 	UFUNCTION(BlueprintCallable, Category = "Map Generation")
 	ENMBiome GetBiomeAtLocation(FVector Location) const;
+private:
 
+	// Generate random points for Voronoi
+	static TArray<FVector2D> GenerateRandomPoints2D(int32 Count, float Width, float Height);
+
+	// generate voronoi corners 
+	static TArray<TArray<FVector2D>>  GenerateCornerPoints(TArray<FVector2D>& InOutPoints, float Width, float Height, int LloydRelaxations = 2);
+
+	// Get island check function based on selected type
+	TFunction<bool(FVector2D)> GetIslandChecker() const;
 private:
 	// The generated map
 	TUniquePtr<FNMGraph> Graph;
@@ -100,12 +123,7 @@ private:
 	// Island check function
 	TFunction<bool(FVector2D)> IslandChecker;
 
-	// Get island check function based on selected type
-	TFunction<bool(FVector2D)> GetIslandChecker() const;
+	TArray<TArray<ENMBiome>> BiomeMap;
 
-	// Generate random points for Voronoi
-	static TArray<FVector2D> GenerateRandomPoints2D(int32 Count,float Width,float Height);
 
-	// generate voronoi corners 
-	static TArray<TArray<FVector2D>>  GenerateCornerPoints(TArray<FVector2D>& InOutPoints,float Width, float Height,int LloydRelaxations=2);
 };

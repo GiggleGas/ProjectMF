@@ -8,6 +8,9 @@
 #include "BoxTypes.h"
 #include "VNGraph.h"
 
+#include "PaperTileMapComponent.h"
+#include "PaperTileLayer.h"
+
 AMapGenerator::AMapGenerator()
 {
 	PrimaryActorTick.bCanEverTick = false;
@@ -80,6 +83,80 @@ void AMapGenerator::DrawToRT()
 
 		// 结束渲染
 		UKismetRenderingLibrary::EndDrawCanvasToRenderTarget(this, Context);
+	}
+
+	// 
+	if (Graph && RTBiome)
+	{
+		FDrawToRenderTargetContext Context;
+		UCanvas* Canvas;
+		FVector2D Size;
+		
+		// 获取Canvas和渲染上下文
+		UKismetRenderingLibrary::BeginDrawCanvasToRenderTarget(this, RTBiome, Canvas, Size, Context);
+		if (!Canvas) return;
+
+		const TArray<FNMCenter>& Centers = GetCenters();
+		const TArray<FNMCorner>& Corners = GetCorners();
+		const TArray<FNMEdge>& Edges = GetEdges();
+
+		for (const FNMCenter& cen : Centers)
+		{
+			FCanvasUVTri tri{};
+			tri.V0_Pos = cen.pvn->Position;
+			FLinearColor cl = { float(cen.biome),0,0,1 };
+			tri.V0_Color = tri.V1_Color = tri.V2_Color = cl;
+
+			TArray<FCanvasUVTri> CanvasUVTri;
+
+			for (int k = 0; k < cen.pvn->Corners.Num(); ++k)
+			{
+				int c1 = cen.pvn->Corners[k];
+				int c2 = cen.pvn->Corners[(k + 1) % cen.pvn->Corners.Num()];
+
+				tri.V1_Pos = Corners[c1].pvn->Position;
+				tri.V2_Pos = Corners[c2].pvn->Position;
+				CanvasUVTri.Add(tri);
+
+			}
+			Canvas->K2_DrawTriangle(nullptr, CanvasUVTri);
+		}
+
+		FLinearColor clr = { 100,0,0,1 };
+		for (auto& e : Edges)
+		{
+			if(e.river > 0)
+			Canvas->K2_DrawLine(Corners[e.pvn->StartCornerId].pvn->Position, Corners[e.pvn->EndCornerId].pvn->Position, 1, clr);
+		}
+
+		// 结束渲染
+		UKismetRenderingLibrary::EndDrawCanvasToRenderTarget(this, Context);
+	}
+}
+
+void AMapGenerator::UpdateTileMap()
+{
+	if (!TileMapActor) return;
+	UPaperTileMapComponent* TileMapComp = TileMapActor->GetRenderComponent();
+	if (!TileMapComp) return;
+	TileMapComp->CreateNewTileMap(MapWidth,MapHeight,128,128);
+
+	TArray<FPaperTileInfo> BiomeTileInfos;
+	BiomeTileInfos.Reserve(int(ENMBiome::COUNT));
+	for (int i = 0; i<int(ENMBiome::COUNT); ++i)
+	{
+		TObjectPtr<UPaperTileSet>* TileSetpp = BiomeTileSets.Find(ENMBiome(i));
+		FPaperTileInfo info;
+		info.TileSet = (TileSetpp ? *TileSetpp : nullptr);
+		info.PackedTileIndex = 0;
+		BiomeTileInfos.Add(info);
+	}
+	for (int i=0;i< BiomeMap.Num();++i)
+	{
+		for (int j = 0; j < BiomeMap[i].Num(); ++j)
+		{
+			TileMapComp->SetTile(i, j, 0,BiomeTileInfos[int(BiomeMap[i][j])]);
+		}
 	}
 }
 
