@@ -2,10 +2,10 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "MapTypes.h"
-#include "Graph.h"
+#include "NMGraph.h"
 #include "IslandShape.h"
 #include "MapGenerator.generated.h"
+
 
 /**
  * AMapGenerator - Main actor for generating procedural maps
@@ -70,6 +70,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Map Generation")
 	void GenerateMap();
 
+	UFUNCTION(BlueprintCallable, Category = "Map Generation")
+	void DrawToRT();
+
 	// Accessors
 	UFUNCTION(BlueprintCallable, Category = "Map Generation")
 	int32 GetCenterCount() const { return Graph ? Graph->GetCenters().Num() : 0; }
@@ -95,12 +98,14 @@ private:
 	TUniquePtr<FNMGraph> Graph;
 
 	// Island check function
-	TFunction<bool(FVector)> IslandChecker;
+	TFunction<bool(FVector2D)> IslandChecker;
 
 	// Get island check function based on selected type
-	TFunction<bool(FVector)> GetIslandChecker() const;
+	TFunction<bool(FVector2D)> GetIslandChecker() const;
 
 	// Generate random points for Voronoi
-	TArray<FVector> GenerateRandomPoints3D(int32 Count);
-	TArray<FVector2D> GenerateRandomPoints2D(int32 Count);
+	static TArray<FVector2D> GenerateRandomPoints2D(int32 Count,float Width,float Height);
+
+	// generate voronoi corners 
+	static TArray<TArray<FVector2D>>  GenerateCornerPoints(TArray<FVector2D>& InOutPoints,float Width, float Height,int LloydRelaxations=2);
 };

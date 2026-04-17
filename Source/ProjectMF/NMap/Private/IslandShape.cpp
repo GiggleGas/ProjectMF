@@ -2,7 +2,7 @@
 #include "Math/UnrealMathUtility.h"
 #include "Containers/Map.h"
 
-TFunction<bool(FVector)> FIslandShape::MakeRadial()
+TFunction<bool(FVector2D)> FIslandShape::MakeRadial()
 {
 	// Random parameters for this island
 	int32 Bumps = FMath::RandRange(1, 5);
@@ -14,7 +14,7 @@ TFunction<bool(FVector)> FIslandShape::MakeRadial()
 	float End = 0.7f;
 	float DipWidth = (End - Start) * Random + Start;
 
-	return [Bumps, StartAngle, DipAngle, DipWidth](FVector Q) -> bool
+	return [Bumps, StartAngle, DipAngle, DipWidth](FVector2D Q) -> bool
 	{
 		float Angle = FMath::Atan2(Q.Y, Q.X);
 		float Length = 0.5f * (FMath::Max(FMath::Abs(Q.X), FMath::Abs(Q.Y)) + Q.Length());
@@ -34,11 +34,11 @@ TFunction<bool(FVector)> FIslandShape::MakeRadial()
 	};
 }
 
-TFunction<bool(FVector)> FIslandShape::MakePerlin()
+TFunction<bool(FVector2D)> FIslandShape::MakePerlin()
 {
 	float Offset = FMath::RandRange(0.0f, 100000.0f);
 
-	return [Offset](FVector Q) -> bool
+	return [Offset](FVector2D Q) -> bool
 	{
 		float X = Q.X + Offset;
 		float Y = Q.Y + Offset;
@@ -48,9 +48,9 @@ TFunction<bool(FVector)> FIslandShape::MakePerlin()
 	};
 }
 
-TFunction<bool(FVector)> FIslandShape::MakeSquare()
+TFunction<bool(FVector2D)> FIslandShape::MakeSquare()
 {
-	return [](FVector Q) -> bool
+	return [](FVector2D Q) -> bool
 	{
 		return true; // Entire map is land
 	};

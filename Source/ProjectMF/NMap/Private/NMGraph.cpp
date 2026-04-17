@@ -1,25 +1,27 @@
-#include "Graph.h"
-#include "Voronoi/Voronoi.h"
-#include "VoronoiDataGenerator.h"
+#include "NMGraph.h"
 #include "IslandShape.h"
+#include "VNGraph.h"
+#include <Biome.h>
 
-FNMGraph::FNMGraph(const TArray<FVector>& points, int width, int height, float lakeThreshold)
+FNMGraph::FNMGraph(TSharedPtr<FVNGraph> Graph, int width, int height, float lakeThreshold)
 {
-    Init(FIslandShape::MakePerlin(), points,  width, height, lakeThreshold);
+    Init(FIslandShape::MakePerlin(), Graph,  width, height, lakeThreshold);
 }
 
-FNMGraph::FNMGraph(TFunction<bool(FVector)> checkIsland, TArray<FVector> points,  int width, int height, float lakeThreshold)
+FNMGraph::FNMGraph(TFunction<bool(FVector2D)> checkIsland, TSharedPtr<FVNGraph> Graph,  int width, int height, float lakeThreshold)
 {
-    Init(checkIsland, points,  width, height, lakeThreshold);
+    Init(checkIsland, Graph,  width, height, lakeThreshold);
 }
 
-void FNMGraph::Init(TFunction<bool(FVector)> checkIsland, TArray<FVector> points,  int width, int height, float lakeThreshold)
+void FNMGraph::Init(TFunction<bool(FVector2D)> checkIsland, TSharedPtr<FVNGraph> Graph,  int width, int height, float lakeThreshold)
 {
     Width = width;
     Height = height;
     inside = checkIsland;
+    VNGraph = Graph;
+    if (!Graph) return;
 
-    BuildGraph(points);
+    BuildGraph();
     AssignCornerElevations();
     AssignOceanCoastAndLand(lakeThreshold);
     RedistributeElevations();
@@ -48,30 +50,12 @@ void FNMGraph::Init(TFunction<bool(FVector)> checkIsland, TArray<FVector> points
     for (auto& p : centers) p.biome = GetBiome(p);
 }
 
-TArray<FVector> FNMGraph::RelaxPoints(TArray<FVector> startingPoints, float width, float height)
-{
-
-    // 
-    FVoronoiDiagram  vd(startingPoints, FBox(FVector(0, 0, 0), FVector(width, height, 100)), 10.0);
-    TArray<FVoronoiCellInfo> cells;
-    vd.ComputeAllCells(cells);
-    TArray<FVector> ret;
-    ret.SetNumZeroed(startingPoints.Num());
-    for (int i = 0; i < cells.Num(); ++i)
-    {
-        auto& cell = cells[i];
-        FVector v = FVector::Zero();
-        for (auto& co : cell.Vertices) v += co;
-        ret[i] = v / cell.Vertices.Num();
-    }
-    return ret;
-}
-
 const FNMCenter* FNMGraph::GetCenterAtLocation(FVector Location) const
 {
-    for (int i = 0; i < VNCells.Num(); ++i)
+    if (!VNGraph) return nullptr;
+    for (int i = 0; i < centers.Num(); ++i)
     {
-        if (PointInside(CornerPoints, VNCells[i].Corners, Location.X, Location.Y))
+        if (VNGraph->PointInside(i, Location.X, Location.Y))
             return &centers[i];
     }
     return nullptr;
@@ -81,58 +65,58 @@ const FNMCenter* FNMGraph::GetCenterAtLocation(FVector Location) const
 
 int FNMGraph::lookupEdgeFromCenter(int pi, int ri)
 {
-    if (pi==ri||!VNCells.IsValidIndex(pi) || !VNCells.IsValidIndex(ri)) return -1;
-    for (auto& ei : VNCells[pi].Edges)
+    if (pi==ri||!centers.IsValidIndex(pi) || !centers.IsValidIndex(ri)) return -1;
+    for (auto& ei : centers[pi].pvn->Edges)
     {
-        if (VNEdges[ei].CellId1==ri || VNEdges[ei].CellId2 == ri) return ei;
+        if (edges[ei].pvn->CellId1==ri || edges[ei].pvn->CellId2 == ri) return ei;
     }
     return -1;
 }
 
 int FNMGraph::lookupEdgeFromCorner(int qi, int si)
 {
-    if (qi == si || !VNCorners.IsValidIndex(qi) || !VNCorners.IsValidIndex(si)) return -1;
+    if (qi == si || !corners.IsValidIndex(qi) || !corners.IsValidIndex(si)) return -1;
 
-    for (auto& ei : VNCorners[qi].Edges)
+    for (auto& ei : corners[qi].pvn->Edges)
     {
-        if (VNEdges[ei].StartCornerId == si || VNEdges[ei].EndCornerId == si) return ei;
+        if (edges[ei].pvn->StartCornerId == si || edges[ei].pvn->EndCornerId == si) return ei;
     }
     return -1;
 }
 
-void FNMGraph::BuildGraph(const TArray<FVector>& points)
+
+void FNMGraph::BuildGraph()
 {
     // Build graph data structure in 'edges', 'centers', 'corners',
 
-    // cellinfos
-    FVoronoiDiagram voronoi(points, FBox(FVector(0, 0, 0), FVector(Width, Height, 100)), 0.0);
-    TArray<FVoronoiCellInfo> CellInfos;
-    voronoi.ComputeAllCells(CellInfos);
-
-    // build graph
-    FVoronoiDataGenerator::GenerateVoronoiData(CellInfos, points, CornerPoints, VNCells, VNCorners, VNEdges);
-    centers.SetNumZeroed(points.Num());
-    corners.SetNumZeroed(CornerPoints.Num());
-    edges.SetNumZeroed(VNEdges.Num());
+    centers.SetNumZeroed(VNGraph->Cells.Num());
+    corners.SetNumZeroed(VNGraph->Corners.Num());
+    edges.SetNumZeroed(VNGraph->Edges.Num());
 
     
     for (int i = 0; i < centers.Num(); ++i)
     {
         centers[i].index = i;
+        centers[i].pvn = &VNGraph->Cells[i];
+        //VNGraph->Cells[i].ExData = &centers[i];
     }
     for (int i = 0; i < corners.Num(); ++i)
     {
         corners[i].index = i;
+        corners[i].pvn = &VNGraph->Corners[i];
+        //VNGraph->Corners[i].ExData = &corners[i];
     }
     for (int i = 0; i < edges.Num(); ++i)
     {
         edges[i].index = i;
+        edges[i].pvn = &VNGraph->Edges[i];
+        //VNGraph->Edges[i].ExData = &edges[i];
     }
 
     //
 
 
-
+    /*
     double tl = double(Width+Height);
     double  br = 0;
     double bl = double(Width+Height);
@@ -192,39 +176,11 @@ void FNMGraph::BuildGraph(const TArray<FVector>& points)
 
     // required for polygon fill
     // for ( auto &  center : centers) { center.corners.Sort(ClockwiseComparison(center)); }
+
+    */
 }
 
-bool FNMGraph::PointInside(const TArray<FVector>& CornerPoints, const TArray<int>& CornerIndex, float x, float y)
-{
-    // http://alienryderflex.com/polygon/
 
-    //  The function will return YES if the point x,y is inside the polygon, or
-    //  NO if it is not.  If the point is exactly on the edge of the polygon,
-    //  then the function may return YES or NO.
-    //
-    //  Note that division by zero is avoided because the division is protected
-    //  by the "if" clause which surrounds it.
-
-    int polyCorners = CornerIndex.Num();
-
-    int j = polyCorners - 1;
-    bool oddNodes = false;
-
-    for (int i : CornerIndex)
-    {
-        const FVector& tpointi = CornerPoints[i];
-        const FVector& tpointj = CornerPoints[j];
-        if ((tpointi.Y < y && tpointj.Y >= y
-            || tpointj.Y < y && tpointi.Y >= y)
-            && (tpointi.X <= x || tpointj.X <= x))
-        {
-            oddNodes ^= (tpointi.X + (y - tpointi.Y) / (tpointj.Y - tpointi.Y) * (tpointj.X - tpointi.X) < x);
-        }
-        j = i;
-    }
-
-    return oddNodes;
-}
 
 /*
 void FNMGraph::AddCorner(FNMCenter& topLeft, int x, int y)
@@ -284,26 +240,23 @@ void FNMGraph::AssignCornerElevations()
     // elevation as much as other terrain does.
 
     //var q:Corner, s:Corner;
-    TQueue<int> queue;
 
-    for(int i=0;i<CornerPoints.Num();++i)
-    {
-        auto& q = corners[i];
-        q.water = !inside(CornerPoints[i]);
-    }
+    for(auto& cor: corners) cor.water = !inside(cor.pvn->Position);
 
-    for (int i = 0; i < CornerPoints.Num(); ++i)
+    // 
+    TQueue<FNMCorner*> queue;
+
+    for (auto& cor : corners)
     {
-        auto& q = corners[i];
         // The edges of the map are elevation 0
-        if (q.border)
+        if (cor.border)
         {
-            q.elevation = 0;
-            queue.Enqueue(i);
+            cor.elevation = 0;
+            queue.Enqueue(&cor);
         }
         else
         {
-            q.elevation = 10000000000;// float.PositiveInfinity;
+            cor.elevation = 10000000000;// float.PositiveInfinity;
         }
     }
 
@@ -313,19 +266,19 @@ void FNMGraph::AssignCornerElevations()
     // going downhill (no local minima).
     while (!queue.IsEmpty())
     {
-        int qi;
-        queue.Dequeue(qi);
+        FNMCorner* corp;
+        queue.Dequeue(corp);
+        FNMCorner& cor = *corp;
 
-        for (auto &si : VNCorners[ qi].Corners)
+        for (auto &corsi : cor.pvn->Corners)
         {
             // Every step up is epsilon over water or 1 over land. The
             // number doesn't matter because we'll rescale the
             // elevations later.
-            FNMCorner& s = corners[si];
-            FNMCorner& q = corners[qi];
+            FNMCorner& cors = corners[corsi];
 
-            float newElevation = 0.01f +q.elevation;
-            if (!q.water && !s.water)
+            float newElevation = 0.01f + cor.elevation;
+            if (!cor.water && !cors.water)
             {
                 newElevation += 1;
                 if (_needsMoreRandomness)
@@ -338,15 +291,15 @@ void FNMGraph::AssignCornerElevations()
                     // think there must be a better way. This hack is only
                     // used with square/hexagon grids.
                     // 
-                    //newElevation += UnityEngine.Random.value; 
+                    newElevation += FMath::Rand();
                 }
             }
             // If this point changed, we'll add it to the queue so
             // that we can process its neighbors too.
-            if (newElevation < s.elevation)
+            if (newElevation < cors.elevation)
             {
-                s.elevation = newElevation;
-                queue.Enqueue(si);
+                cors.elevation = newElevation;
+                queue.Enqueue(&cors);
             }
         }
     }
@@ -360,48 +313,45 @@ void FNMGraph::AssignOceanCoastAndLand(float lakeThreshold)
     // map. : the first pass, mark the edges of the map as ocean;
     // : the second pass, mark any water-containing polygon
     // connected an ocean as ocean.
-    TQueue<int> queue;
+    TQueue<FNMCenter*> queue;
     //var p:Center, q:Corner, r:Center, numWater:int;
 
-    for (int pi=0;pi<VNCells.Num();++pi)
+    for (auto& cen : centers)
     {
-        auto& pv = VNCells[pi];
-        auto& p = centers[pi];
-        //auto& p : centers;
-
         int numWater = 0;
-        for (auto& qi : pv.Corners)
+        for (auto& cori : cen.pvn->Corners)
         {
-            FNMCorner& q = corners[qi];
-            if (q.border)
+            FNMCorner& cor = corners[cori];
+            if (cor.border)
             {
-                p.border = true;
-                p.ocean = true;
-                q.water = true;
-                queue.Enqueue(pi);
+                cen.border = true;
+                cen.ocean = true;
+                cor.water = true;
+                queue.Enqueue(&cen);
             }
 
-            if (q.water) numWater += 1;
+            if (cor.water) numWater += 1;
         }
 
-        p.water = (p.ocean || numWater >= pv.Corners.Num() * lakeThreshold);
+        cen.water = (cen.ocean || numWater >= cen.pvn->Corners.Num() * lakeThreshold);
     }
+
     while (!queue.IsEmpty())
     {
-        int pi;
-        queue.Dequeue(pi);
+        FNMCenter* cenp;
+        queue.Dequeue(cenp);
 
-        auto& pv = VNCells[pi];
-        auto& p = centers[pi];
 
-        for (auto ri : pv.Cells)
+        auto& cen = *cenp;
+
+        for (auto cenri : cen.pvn->Cells)
         {
-            auto& r = centers[ri];
+            auto& cenr = centers[cenri];
 
-            if (r.water && !r.ocean)
+            if (cenr.water && !cenr.ocean)
             {
-                r.ocean = true;
-                queue.Enqueue(ri);
+                cenr.ocean = true;
+                queue.Enqueue(&cenr);
             }
         }
     }
@@ -409,40 +359,36 @@ void FNMGraph::AssignOceanCoastAndLand(float lakeThreshold)
     // Set the polygon attribute 'coast' based on its neighbors. If
     // it has at least one ocean and at least one land neighbor,
     // then this is a coastal polygon.
-    for (int pi = 0; pi < VNCells.Num(); ++pi)
+    for (auto& cen: centers)
     {
-        auto& pv = VNCells[pi];
-        auto& p = centers[pi];
         int numOcean = 0;
         int numLand = 0;
-        for (auto ri : pv.Cells)
+        for (auto cenri : cen.pvn->Cells)
         {
-            auto& r = centers[ri];
-            numOcean += r.ocean ? 1 : 0;
-            numLand += !r.water ? 1 : 0;
+            auto& cenr = centers[cenri];
+            numOcean += cenr.ocean ? 1 : 0;
+            numLand += !cenr.water ? 1 : 0;
         }
-        p.coast = (numOcean > 0) && (numLand > 0);
+        cen.coast = (numOcean > 0) && (numLand > 0);
     }
 
     // Set the corner attributes based on the computed polygon
     // attributes. If all polygons connected to this corner are
     // ocean, then it's ocean; if all are land, then it's land;
     // otherwise it's coast.
-    for (int qi=0;qi<VNCorners.Num();++qi)
+    for (FNMCorner& cor:corners)
     {
-        FVNCorner& qv = VNCorners[qi];
-        FNMCorner& q = corners[qi];
         int numOcean = 0;
         int numLand = 0;
-        for (auto pi : qv.Cells)
+        for (auto ceni : cor.pvn->Cells)
         {
-            auto& p = centers[pi];
-            numOcean += p.ocean ? 1 : 0;
-            numLand += !p.water ? 1 : 0;
+            auto& cen = centers[ceni];
+            numOcean += cen.ocean ? 1 : 0;
+            numLand += !cen.water ? 1 : 0;
         }
-        q.ocean = (numOcean == qv.Cells.Num());
-        q.coast = (numOcean > 0) && (numLand > 0);
-        q.water = q.border || ((numLand != qv.Cells.Num()) && !q.coast);
+        cor.ocean = (numOcean == cor.pvn->Cells.Num());
+        cor.coast = (numOcean > 0) && (numLand > 0);
+        cor.water = cor.border || ((numLand != cor.pvn->Cells.Num()) && !cor.coast);
     }
 }
 
@@ -480,25 +426,20 @@ void FNMGraph::RedistributeElevations()
     }
 
     // Assign elevations to non-land corners
-    for (auto& p : corners)
-    {
-        if (p.ocean || p.coast) p.elevation = 0;
-    }
+    for (auto& p : corners) if (p.ocean || p.coast) p.elevation = 0;
 }
 
 void FNMGraph::AssignPolygonElevations()
 {
     // Polygon elevations are the average of their corners
-    for(int pi=0;pi<VNCells.Num();++pi)
+    for(FNMCenter& cen:centers)
     {
-        FVNCell& pv = VNCells[pi];
-
         float sumElevation = 0.0f;
-        for (auto& qi : pv.Corners)
+        for (auto& cori : cen.pvn->Corners)
         {
-            sumElevation += corners[qi].elevation;
+            sumElevation += corners[cori].elevation;
         }
-        centers[pi].elevation = sumElevation / pv.Corners.Num();
+        cen.elevation = sumElevation / cen.pvn->Corners.Num();
     }
 }
 
@@ -508,10 +449,10 @@ void FNMGraph::CalculateDownslopes()
     // point downstream from it, or to itself.  This is used for
     // generating rivers and watersheds.
 
-    for(int qi=0;qi<VNCorners.Num();++qi)
+    for(int qi=0;qi<corners.Num();++qi)
     {
         int ri = qi;
-        for (auto& si : VNCorners[qi].Corners)
+        for (auto& si : corners[qi].pvn->Corners)
         {
             if (corners[ si].elevation <= corners[ri].elevation) ri = si;
         }
@@ -568,19 +509,19 @@ void FNMGraph::CreateRivers()
     // move downslope. Mark the edges and corners as rivers.
     for (int i = 0; i < (Width + Height) / 4; i++)
     {
-        FNMCorner* q = &corners[FMath::RandRange(0, corners.Num() - 1)];
-        if (q->ocean || q->elevation < 0.3 || q->elevation > 0.9) continue;
-        // Bias rivers to go west: if (q.downslope.X > q.X) continue;
-        while (!q->coast)
+        FNMCorner* corp = &corners[FMath::RandRange(0, corners.Num() - 1)];
+        if (corp->ocean || corp->elevation < 0.3 || corp->elevation > 0.9) continue;
+        // Bias rivers to go west: if (corp.downslope.X > corp.X) continue;
+        while (!corp->coast)
         {
-            if (q == q->downslope) break;
+            if (corp == corp->downslope) break;
 
-            int ei = lookupEdgeFromCorner(q->index, q->downslope->index);
+            int ei = lookupEdgeFromCorner(corp->index, corp->downslope->index);
             edges[ei].river = edges[ei].river + 1;
 
-            q->river++;
-            q->downslope->river++;  // TODO: fix double count
-            q = q->downslope;
+            corp->river++;
+            corp->downslope->river++;  // TODO: fix double count
+            corp = corp->downslope;
         }
     }
 }
@@ -612,7 +553,7 @@ void FNMGraph::AssignCornerMoisture()
         queue.Dequeue(qi);
         FNMCorner& q = corners[qi];
 
-        for (auto ri : VNCorners[qi].Corners)
+        for (auto ri : q.pvn->Corners)
         {
             FNMCorner& r = corners[ri];
 
@@ -634,19 +575,18 @@ void FNMGraph::AssignCornerMoisture()
 void FNMGraph::AssignPolygonMoisture()
 {
     // Polygon moisture is the average of the moisture at corners
-    for (int pi=0;pi<VNCells.Num();++pi)
+    for (int pi=0;pi<centers.Num();++pi)
     {
-        FVNCell& pv = VNCells[pi];
         FNMCenter& p = centers[pi];
         float sumMoisture = 0.0f;
-        for (auto& qi : pv.Corners)
+        for (auto& qi : p.pvn->Corners)
         {
             FNMCorner& q = corners[qi];
             if (q.moisture > 1.0) q.moisture = 1.0f;
 
             sumMoisture += q.moisture;
         }
-        p.moisture = sumMoisture / pv.Corners.Num();
+        p.moisture = sumMoisture / p.pvn->Corners.Num();
     }
 }
 
@@ -654,11 +594,11 @@ void FNMGraph::RedistributeMoisture()
 {
     // Change the overall distribution of moisture to be evenly distributed.
     TArray<int> locations = LandCorners();
-    locations.Sort([&](auto& a, auto& b) {return centers[a].moisture > centers[b].moisture; });
+    locations.Sort([&](auto& a, auto& b) {return corners[a].moisture > corners[b].moisture; });
 
     for (int i = 0; i < locations.Num(); i++)
     {
-        centers[locations[i]].moisture = (float)i / (locations.Num() - 1);
+        corners[locations[i]].moisture = (float)i / (locations.Num() - 1);
     }
 }
 

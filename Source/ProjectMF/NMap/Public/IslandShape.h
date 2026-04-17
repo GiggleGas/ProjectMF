@@ -17,17 +17,17 @@ public:
 	 * Create a radial island with overlapping sine waves
 	 * @return Function that takes normalized point (x,y: -1 to +1) and returns true if on island
 	 */
-	static TFunction<bool(FVector)> MakeRadial();
+	static TFunction<bool(FVector2D)> MakeRadial();
 
 	/**
 	 * Create an island using Perlin noise
 	 * @return Function that determines if point is on island
 	 */
-	static TFunction<bool(FVector)> MakePerlin();
+	static TFunction<bool(FVector2D)> MakePerlin();
 
 	/**
 	 * Create a square island (entire space is land)
 	 * @return Function that always returns true
 	 */
-	static TFunction<bool(FVector)> MakeSquare();
+	static TFunction<bool(FVector2D)> MakeSquare();
 };
