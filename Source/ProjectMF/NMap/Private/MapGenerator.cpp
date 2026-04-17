@@ -131,16 +131,71 @@ void AMapGenerator::DrawToRT()
 
 		// 结束渲染
 		UKismetRenderingLibrary::EndDrawCanvasToRenderTarget(this, Context);
+
+
+		
 	}
+}
+
+void AMapGenerator::PullFromRT()
+{
+
+
+
+	BiomeMap.SetNumZeroed(MapHeight * MapWidth);
+
+	FRenderTarget* SrcRenderTarget = RTBiomeCopy->GameThread_GetRenderTargetResource(); // 假设this是一个FRenderTarget的派生类实例
+
+
+	// 将读取命令提交到渲染线程
+	ENQUEUE_RENDER_COMMAND(ReadSurfaceCommand)(
+		[&, SrcRenderTarget](FRHICommandListImmediate& RHICmdList) {
+			
+			TArray<FLinearColor> OutImageData;
+			RHICmdList.ReadSurfaceData(
+				SrcRenderTarget->GetRenderTargetTexture(),
+				FIntRect(0, 0, MapWidth, MapHeight),
+				OutImageData,
+				FReadSurfaceDataFlags()
+			);
+			// FlushRenderingCommands();
+			
+			for (int i = 0; i < MapHeight * MapWidth; ++i)
+			{
+				if (OutImageData.IsEmpty()) break;
+				if (OutImageData[i].R <= 17) BiomeMap[i] = (ENMBiome)OutImageData[i].R;
+			}
+			
+
+		}
+		);
+	// 等待渲染线程执行完毕，此处会造成CPU等待GPU
+	// FlushRenderingCommands();
+
 }
 
 void AMapGenerator::UpdateTileMap()
 {
-	if (!TileMapActor) return;
+
+	if (!TileMapActor||!BiomeTileSet_Global) return;
+
 	UPaperTileMapComponent* TileMapComp = TileMapActor->GetRenderComponent();
 	if (!TileMapComp) return;
 	TileMapComp->CreateNewTileMap(MapWidth,MapHeight,128,128);
 
+	FPaperTileInfo info;
+	info.TileSet = BiomeTileSet_Global;
+
+	for (int i = 0; i < MapHeight; ++i)
+	{
+		for (int j = 0; j < MapWidth; ++j)
+		{
+			info.PackedTileIndex = int(BiomeMap[i * MapWidth + j]);
+			TileMapComp->SetTile(i, j, 0, info);
+		}
+	}
+
+	/*
 	TArray<FPaperTileInfo> BiomeTileInfos;
 	BiomeTileInfos.Reserve(int(ENMBiome::COUNT));
 	for (int i = 0; i<int(ENMBiome::COUNT); ++i)
@@ -151,13 +206,14 @@ void AMapGenerator::UpdateTileMap()
 		info.PackedTileIndex = 0;
 		BiomeTileInfos.Add(info);
 	}
-	for (int i=0;i< BiomeMap.Num();++i)
+	for (int i=0;i< MapHeight;++i)
 	{
-		for (int j = 0; j < BiomeMap[i].Num(); ++j)
+		for (int j = 0; j < MapWidth; ++j)
 		{
-			TileMapComp->SetTile(i, j, 0,BiomeTileInfos[int(BiomeMap[i][j])]);
+			TileMapComp->SetTile(i, j, 0,BiomeTileInfos[int(BiomeMap[i*MapWidth+j])]);
 		}
 	}
+	*/
 }
 
 void AMapGenerator::GenerateMap()

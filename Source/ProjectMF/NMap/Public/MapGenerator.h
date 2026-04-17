@@ -74,8 +74,13 @@ public:
 	UTextureRenderTarget2D* RTBiome;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map Generation")
+	UTextureRenderTarget2D* RTBiomeCopy;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map Generation")
 	TMap<ENMBiome, TObjectPtr<UPaperTileSet>>  BiomeTileSets;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map Generation")
+	TObjectPtr<UPaperTileSet>  BiomeTileSet_Global;
 
 	// Generate the map
 	UFUNCTION(BlueprintCallable, Category = "Map Generation")
@@ -83,6 +88,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Map Generation")
 	void DrawToRT();
+
+	UFUNCTION(BlueprintCallable, Category = "Map Generation")
+	void PullFromRT();
 
 	UFUNCTION(BlueprintCallable, Category = "Map Generation")
 	void UpdateTileMap();
@@ -123,7 +131,7 @@ private:
 	// Island check function
 	TFunction<bool(FVector2D)> IslandChecker;
 
-	TArray<TArray<ENMBiome>> BiomeMap;
+	TArray<ENMBiome> BiomeMap;
 
 
 };
