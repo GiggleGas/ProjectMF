@@ -3,6 +3,7 @@
 #include "MFPetBase.h"
 #include "MFItemTypes.h"
 #include "MFAttributeSetBase.h"
+#include "MFPetAIController.h"
 #include "MFLog.h"
 #include "AbilitySystemComponent.h"
 
@@ -13,7 +14,11 @@
 AMFPetBase::AMFPetBase()
 {
 	// AMFCharacterBase 的 Tick 已足够，宠物不需要额外的 ActorTick 逻辑
-	// 具体 AI 行为由 Behavior Tree / Mass 驱动
+	// 具体 AI 行为由 StateTree / Mass 驱动
+
+	// 设置默认 Controller 类，使 AutoPossessAI 自动 Possess AMFPetAIController。
+	// AMFSpawnAIManager 之后调用 RunStateTree() 绑定具体资产。
+	AIControllerClass = AMFPetAIController::StaticClass();
 }
 
 // ============================================================

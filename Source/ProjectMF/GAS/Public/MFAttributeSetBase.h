@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "AttributeSet.h"
 #include "AbilitySystemComponent.h"
+#include "GameplayEffectExtension.h"
 #include "MFAttributeSetBase.generated.h"
 
 // Boilerplate macro: generates Property getter, Value getter/setter/initter
@@ -15,20 +16,38 @@
 	GAMEPLAYATTRIBUTE_VALUE_SETTER(PropertyName)                \
 	GAMEPLAYATTRIBUTE_VALUE_INITTER(PropertyName)
 
+// -----------------------------------------------------------------------
+// Damage event delegates (broadcast from PostGameplayEffectExecute)
+// -----------------------------------------------------------------------
+
+/** 角色血量变化时广播（NewHealth 已夹紧到 [0, MaxHealth]）。 */
+DECLARE_MULTICAST_DELEGATE_OneParam(FMFOnHealthChanged, float /*NewHealth*/);
+
+/** 角色 HP 归零时广播。只广播一次（由 PostGE 保证）。 */
+DECLARE_MULTICAST_DELEGATE(FMFOnDeath);
+
+/**
+ * 角色 HP 低于 FleeThreshold 时广播。
+ * 每次受伤后如果仍低于阈值都会广播，由监听方自行去重。
+ */
+DECLARE_MULTICAST_DELEGATE_OneParam(FMFOnLowHealth, float /*NewHealth*/);
+
 /**
  * Base attribute set shared by all MF characters (player and AI).
  *
  * Defines the minimal stats every character owns:
  *   - Health / MaxHealth
  *   - MoveSpeed
+ *   - Damage (meta attribute, consumed in PostGameplayEffectExecute)
  *
- * Pet-specific stats (Attack, Defense, MP, Luck, etc.) live in
- * UMFPetAttributeSet, which will be added to pet actors on top of this set.
+ * Combat stats (Attack, Defense, FleeThreshold) live in UMFCombatAttributeSet,
+ * which is added to every character on top of this set.
  *
- * Attribute initialization:
- *   Default values are set in the constructor via InitXxx().
- *   Later, a startup GameplayEffect (GE_CharacterInit) can override these
- *   per character type once the GE system is set up.
+ * Damage pipeline:
+ *   GA_Attack → GE_DamageBase (SetByCaller "Data.Damage") → Damage meta attr
+ *   → PostGameplayEffectExecute: reads Defense from UMFCombatAttributeSet,
+ *     computes FinalDamage = max(Damage - Defense, 1), subtracts from Health,
+ *     then broadcasts OnHealthChanged / OnDeath / OnLowHealth.
  */
 UCLASS()
 class PROJECTMF_API UMFAttributeSetBase : public UAttributeSet
@@ -60,9 +79,35 @@ public:
 	ATTRIBUTE_ACCESSORS(UMFAttributeSetBase, MoveSpeed)
 
 	// -----------------------------------------------------------------------
+	// Damage (meta attribute — not persisted, consumed in PostGE)
+	// -----------------------------------------------------------------------
+
+	/**
+	 * Transient incoming damage value. Set by GE_DamageBase → consumed and reset
+	 * to 0 in PostGameplayEffectExecute. Never query this from outside the PostGE.
+	 */
+	UPROPERTY(BlueprintReadOnly, Category = "Attributes|Combat")
+	FGameplayAttributeData Damage;
+	ATTRIBUTE_ACCESSORS(UMFAttributeSetBase, Damage)
+
+	// -----------------------------------------------------------------------
+	// Damage pipeline events
+	// -----------------------------------------------------------------------
+
+	FMFOnHealthChanged OnHealthChanged;
+	FMFOnDeath         OnDeath;
+	FMFOnLowHealth     OnLowHealth;
+
+	// -----------------------------------------------------------------------
 	// UAttributeSet interface
 	// -----------------------------------------------------------------------
 
 	/** Clamp Health to [0, MaxHealth] before the attribute is committed. */
 	virtual void PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue) override;
+
+	/**
+	 * Consume the Damage meta attribute, apply Defense reduction, subtract from
+	 * Health, then broadcast OnHealthChanged / OnDeath / OnLowHealth.
+	 */
+	virtual void PostGameplayEffectExecute(const FGameplayEffectModCallbackData& Data) override;
 };

@@ -12,7 +12,9 @@ class UPaperFlipbookComponent;
 class UPaperZDAnimationComponent;
 class UAbilitySystemComponent;
 class UMFAttributeSetBase;
+class UMFCombatAttributeSet;
 class UMFGameplayAbilityBase;
+class UGameplayEffect;
 
 /**
  * Abstract base class for all MF characters (player and AI).
@@ -59,9 +61,13 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAS")
 	TObjectPtr<UAbilitySystemComponent> AbilitySystemComponent;
 
-	/** Base attribute set: Health, MaxHealth, MoveSpeed. Owned by this actor. */
+	/** Base attribute set: Health, MaxHealth, MoveSpeed, Damage. Owned by this actor. */
 	UPROPERTY()
 	TObjectPtr<UMFAttributeSetBase> AttributeSet;
+
+	/** Combat attribute set: Attack, Defense, FleeThreshold. Owned by this actor. */
+	UPROPERTY()
+	TObjectPtr<UMFCombatAttributeSet> CombatAttributeSet;
 
 	/**
 	 * Abilities granted at BeginPlay.
@@ -72,10 +78,30 @@ protected:
 	TArray<TSubclassOf<UMFGameplayAbilityBase>> DefaultAbilities;
 
 	/**
-	 * Initialize the ASC actor info and grant DefaultAbilities.
+	 * Instant GameplayEffect applied at BeginPlay to set initial attribute values
+	 * (MaxHealth, Health, MoveSpeed, Attack, Defense, FleeThreshold).
+	 *
+	 * Create one Blueprint GE per character type (e.g. GE_Init_Cat, GE_Init_Boss)
+	 * and assign it here in the Blueprint defaults. If null, constructor defaults are used.
+	 */
+	UPROPERTY(EditDefaultsOnly, Category = "GAS")
+	TSubclassOf<UGameplayEffect> DefaultInitEffect;
+
+	/**
+	 * Initialize the ASC actor info, grant DefaultAbilities, and apply DefaultInitEffect.
 	 * Called from BeginPlay() — safe to call on both server and standalone.
 	 */
 	void InitAbilitySystemComponent();
+
+	/**
+	 * Called when Health reaches 0. Grants State.Dead tag, cancels abilities,
+	 * and disables movement.
+	 *
+	 * Override in C++ subclasses (e.g. AMFPetBase sets bIsDead on FMFPetInstance).
+	 * Also callable from Blueprint via BlueprintCallable.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Combat")
+	virtual void HandleDeath();
 
 	// -----------------------------------------------------------------------
 	// 2D Rendering Components
@@ -184,6 +210,12 @@ protected:
 
 	/** Console-var-gated debug visualization (arrows + screen text). */
 	virtual void DrawDebug() const;
+
+	/**
+	 * Render all GAS attribute values as world-space text above this character.
+	 * Called from DrawDebug() when MF.Char.AttributeDebug is non-zero.
+	 */
+	void DrawAttributeDebug() const;
 
 	/**
 	 * Compute a 2D camera-relative facing vector for PaperZD SetDirectionality.

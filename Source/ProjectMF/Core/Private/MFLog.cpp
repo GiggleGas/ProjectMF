@@ -11,6 +11,7 @@ DEFINE_LOG_CATEGORY(LogMFCatch);
 DEFINE_LOG_CATEGORY(LogMFAbility);
 DEFINE_LOG_CATEGORY(LogMFCharacter);
 DEFINE_LOG_CATEGORY(LogMFInventory);
+DEFINE_LOG_CATEGORY(LogMFSpawnAI);
 
 // ============================================================
 // CVar: MF.Debug.ScreenLog

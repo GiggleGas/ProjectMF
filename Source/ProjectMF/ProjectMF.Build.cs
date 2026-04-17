@@ -15,6 +15,8 @@ public class ProjectMF : ModuleRules
 			"AIModule", "NavigationSystem",
 			// GAS (Gameplay Ability System)
 			"GameplayAbilities", "GameplayTags", "GameplayTasks",
+			// StateTree (UStateTreeComponent, UStateTreeAIComponent)
+			"StateTreeModule", "GameplayStateTreeModule",
 			// TODO(Mass Phase 2): 添加 Mass 模块时取消注释:
 			// "MassEntity", "MassCommon", "MassActors", "MassRepresentation", "MassSignals"
 		});
