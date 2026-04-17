@@ -100,12 +100,20 @@ void FNMGraph::BuildGraph()
         centers[i].pvn = &VNGraph->Cells[i];
         //VNGraph->Cells[i].ExData = &centers[i];
     }
+    int watercount = 0;
     for (int i = 0; i < corners.Num(); ++i)
     {
         corners[i].index = i;
         corners[i].pvn = &VNGraph->Corners[i];
         //VNGraph->Corners[i].ExData = &corners[i];
+
+        corners[i].border = (corners[i].pvn->Position.X == 0 || corners[i].pvn->Position.X >= Width || corners[i].pvn->Position.Y == 0 || corners[i].pvn->Position.Y >= Height);
+        corners[i].water = !inside(corners[i].pvn->Position);
+        corners[i].ocean = (corners[i].pvn->Position.X == 0 || corners[i].pvn->Position.X >= Width )&&( corners[i].pvn->Position.Y == 0 || corners[i].pvn->Position.Y >= Height);
+    
+        watercount += corners[i].water;
     }
+    UE_LOG(LogTemp, Display, TEXT("%d"), watercount);
     for (int i = 0; i < edges.Num(); ++i)
     {
         edges[i].index = i;
@@ -240,8 +248,6 @@ void FNMGraph::AssignCornerElevations()
     // elevation as much as other terrain does.
 
     //var q:Corner, s:Corner;
-
-    for(auto& cor: corners) cor.water = !inside(cor.pvn->Position);
 
     // 
     TQueue<FNMCorner*> queue;

@@ -42,9 +42,10 @@ TFunction<bool(FVector2D)> FIslandShape::MakePerlin()
 	{
 		float X = Q.X + Offset;
 		float Y = Q.Y + Offset;
-		float Perlin = FMath::PerlinNoise2D(FVector2D(X / 10.0f, Y / 10.0f));
+		//float Perlin = FMath::PerlinNoise2D(FVector2D(X / 10.0f, Y / 10.0f));
+		float Perlin = FMath::PerlinNoise2D(Q);
 		float CheckValue = 0.3f + 0.3f * Q.SquaredLength();
-		return Perlin > 0.3f;
+		return Perlin > -0.3f;
 	};
 }
 
