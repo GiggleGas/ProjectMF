@@ -137,43 +137,8 @@ void AMapGenerator::DrawToRT()
 	}
 }
 
-void AMapGenerator::PullFromRT()
-{
 
-
-
-	BiomeMap.SetNumZeroed(MapHeight * MapWidth);
-
-	FRenderTarget* SrcRenderTarget = RTBiomeCopy->GameThread_GetRenderTargetResource(); // 假设this是一个FRenderTarget的派生类实例
-
-
-	// 将读取命令提交到渲染线程
-	ENQUEUE_RENDER_COMMAND(ReadSurfaceCommand)(
-		[&, SrcRenderTarget](FRHICommandListImmediate& RHICmdList) {
-			
-			TArray<FLinearColor> OutImageData;
-			RHICmdList.ReadSurfaceData(
-				SrcRenderTarget->GetRenderTargetTexture(),
-				FIntRect(0, 0, MapWidth, MapHeight),
-				OutImageData,
-				FReadSurfaceDataFlags()
-			);
-			// FlushRenderingCommands();
-			
-			for (int i = 0; i < MapHeight * MapWidth; ++i)
-			{
-				if (OutImageData.IsEmpty()) break;
-				if (OutImageData[i].R <= 17) BiomeMap[i] = (ENMBiome)OutImageData[i].R;
-			}
-			
-
-		}
-		);
-	// 等待渲染线程执行完毕，此处会造成CPU等待GPU
-	// FlushRenderingCommands();
-
-}
-
+/*
 void AMapGenerator::UpdateTileMap()
 {
 
@@ -195,7 +160,7 @@ void AMapGenerator::UpdateTileMap()
 		}
 	}
 
-	/*
+	/ *
 	TArray<FPaperTileInfo> BiomeTileInfos;
 	BiomeTileInfos.Reserve(int(ENMBiome::COUNT));
 	for (int i = 0; i<int(ENMBiome::COUNT); ++i)
@@ -213,24 +178,21 @@ void AMapGenerator::UpdateTileMap()
 			TileMapComp->SetTile(i, j, 0,BiomeTileInfos[int(BiomeMap[i*MapWidth+j])]);
 		}
 	}
-	*/
+	* /
 }
+*/
 
 void AMapGenerator::GenerateMap()
 {
 	// Validate parameters
 	if (PointCount <= 0) PointCount = 500;
-
 	if (MapWidth <= 0) MapWidth = 50.0f;
-
 	if (MapHeight <= 0) MapHeight = 50.0f;
 
-	
 	// Generate initial random points
 	TArray<FVector2D> points = GenerateRandomPoints2D(PointCount,MapWidth,MapHeight);
 	TArray<TArray<FVector2D>> corners = GenerateCornerPoints(points, MapWidth, MapHeight, LloydRelaxations);
 	TSharedPtr<FVNGraph> VNGraph=  FVNGraph::BuildFromPointsAndCorners(points, corners);
-
 
 
 	// Get island checker function
@@ -300,6 +262,130 @@ TFunction<bool(FVector2D)> AMapGenerator::GetIslandChecker() const
 	}
 }
 
+
+ENMBiome AMapGenerator::GetBiomeAtLocation(int TileX, int TileY)
+{
+
+	if(TileX <0|| TileX >=MapWidth|| TileY <0|| TileY >=MapHeight) ENMBiome::Ocean;
+
+	int X = TileX / SectionSizeX;
+	int Y = TileY / SectionSizeY;
+	if(!UpdateSections(X,Y)) return ENMBiome::Ocean;
+
+	// 
+	FNMMapSectionData& section = MapSectionDatas[MapSectionDataIndex[0]];
+	int mx = TileX % SectionSizeX;
+	int my = TileY % SectionSizeY;
+	int id = my * section.SizeX + mx;
+
+	if(id>section.BiomeMap.Num()) return ENMBiome::Ocean;
+
+	return MapSectionDatas[MapSectionDataIndex[0]].BiomeMap[id];
+
+}
+
+bool AMapGenerator::UpdateSections(int SectionX, int SectionY)
+{
+	int id = -1;
+	for (int ii = 0; ii < MapSectionDataIndex.Num(); ++ii)
+	{
+		int i = MapSectionDataIndex[ii];
+		if (MapSectionDatas[i].X == SectionX && MapSectionDatas[i].Y == SectionY)
+		{
+			id = ii;
+			break;
+		}
+	}
+
+	// find it, move to first
+	if (id != -1)
+	{
+		int i = MapSectionDataIndex[id];
+		for (int ii = id; ii > 0; --ii)
+		{
+			MapSectionDataIndex[ii] = MapSectionDataIndex[ii - 1];
+		}
+		MapSectionDataIndex[0] = i;
+		return true;
+	}
+
+	// not find
+	return PullSection(SectionX, SectionY);
+}
+
+bool AMapGenerator::PullSection(int SectionX, int SectionY)
+{
+	// make rect 
+	if (SectionX < 0 || SectionY < 0) return false;
+	int tlx = SectionX * SectionSizeX;
+	int tly = SectionY * SectionSizeY;
+	if (tlx >= MapWidth || tly >= MapHeight) return false;
+	int sizex = FMath::Min(SectionSizeX, MapWidth - tlx);
+	int sizey = FMath::Min(SectionSizeY, MapHeight - tly);
+
+
+	FIntRect rect;
+	rect.Min = { tlx,tly };
+	rect.Max = { tlx + sizex, tly + sizey };
+
+	// read rt
+	TArray<FLinearColor> Colors;
+	if (!PullFromRT(rect, Colors)) return false;
+
+
+	// 
+	FNMMapSectionData NewSection;
+	NewSection.X = SectionX;
+	NewSection.Y = SectionY;
+	NewSection.SizeX = sizex;
+	NewSection.SizeX = sizey;
+
+	// set BiomeMap array
+	NewSection.BiomeMap.SetNumZeroed(Colors.Num());
+	for (int i = 0; i < Colors.Num(); ++i)
+	{
+		if (Colors[i].R <= 17) NewSection.BiomeMap[i] = (ENMBiome)Colors[i].R;
+	}
+
+
+	// add to sections
+	if (MapSectionDataIndex.Num() < MaxBufferSize)
+	{
+		MapSectionDataIndex.Insert(MapSectionDataIndex.Num(), 0);
+		MapSectionDatas.Add(MoveTemp(NewSection));
+	}
+	else
+	{
+		MapSectionDatas.Last() = MoveTemp(NewSection);
+	}
+
+	return true;
+}
+
+
+bool AMapGenerator::PullFromRT(FIntRect rect, TArray<FLinearColor>& OutColors)
+{
+	if (!RTBiomeCopy) return false;
+	FRenderTarget* SrcRenderTarget = RTBiomeCopy->GameThread_GetRenderTargetResource(); // 假设this是一个FRenderTarget的派生类实例
+
+	// 将读取命令提交到渲染线程
+	ENQUEUE_RENDER_COMMAND(ReadSurfaceCommand)(
+		[&, SrcRenderTarget](FRHICommandListImmediate& RHICmdList) {
+
+			RHICmdList.ReadSurfaceData(
+				SrcRenderTarget->GetRenderTargetTexture(),
+				rect,
+				OutColors,
+				FReadSurfaceDataFlags()
+			);
+		}
+		);
+	// 等待渲染线程执行完毕，此处会造成CPU等待GPU
+	FlushRenderingCommands();
+	return true;
+}
+
+
 const TArray<FNMCenter>& AMapGenerator::GetCenters() const
 {
 	static TArray<FNMCenter> Empty;
@@ -320,12 +406,3 @@ const TArray<FNMEdge>& AMapGenerator::GetEdges() const
 
 
 
-ENMBiome AMapGenerator::GetBiomeAtLocation(FVector Location) const
-{
-	if (!Graph) return ENMBiome::Ocean;
-	
-	const auto* Center = Graph->GetCenterAtLocation(Location);
-
-	if (Center) return Center->biome;
-	return ENMBiome::Ocean;
-}

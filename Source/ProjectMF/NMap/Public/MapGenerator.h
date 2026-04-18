@@ -63,9 +63,17 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map Generation")
 	int32 LloydRelaxations = 2;
 
-
+	/*
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map Generation")
 	APaperTileMapActor* TileMapActor;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map Generation")
+	TMap<ENMBiome, TObjectPtr<UPaperTileSet>>  BiomeTileSets;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map Generation")
+	TObjectPtr<UPaperTileSet>  BiomeTileSet_Global;
+
+	*/
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map Generation")
 	UTextureRenderTarget2D* RenderTarget;
@@ -76,11 +84,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map Generation")
 	UTextureRenderTarget2D* RTBiomeCopy;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map Generation")
-	TMap<ENMBiome, TObjectPtr<UPaperTileSet>>  BiomeTileSets;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map Generation")
-	TObjectPtr<UPaperTileSet>  BiomeTileSet_Global;
+	
 
 	// Generate the map
 	UFUNCTION(BlueprintCallable, Category = "Map Generation")
@@ -89,13 +93,17 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Map Generation")
 	void DrawToRT();
 
+	/*
 	UFUNCTION(BlueprintCallable, Category = "Map Generation")
 	void PullFromRT();
 
 	UFUNCTION(BlueprintCallable, Category = "Map Generation")
 	void UpdateTileMap();
+	*/
 
 	// Accessors
+
+	/*
 	UFUNCTION(BlueprintCallable, Category = "Map Generation")
 	int32 GetCenterCount() const { return Graph ? Graph->GetCenters().Num() : 0; }
 
@@ -110,10 +118,11 @@ public:
 
 	// UFUNCTION(BlueprintCallable, Category = "Map Generation")
 	const TArray<FNMEdge>& GetEdges() const;
+	*/
 
 	// Get biome at a specific location
 	UFUNCTION(BlueprintCallable, Category = "Map Generation")
-	ENMBiome GetBiomeAtLocation(FVector Location) const;
+	ENMBiome GetBiomeAtLocation(int TileX, int TileY) ;
 private:
 
 	// Generate random points for Voronoi
@@ -124,6 +133,20 @@ private:
 
 	// Get island check function based on selected type
 	TFunction<bool(FVector2D)> GetIslandChecker() const;
+
+	//
+	const TArray<FNMCenter>& GetCenters() const;
+	const TArray<FNMCorner>& GetCorners() const;
+	const TArray<FNMEdge>& GetEdges() const;
+	
+	//
+	bool UpdateSections(int SectionX, int SectionY);
+
+	bool PullSection(int SectionX, int SectionY);
+
+
+	//
+	bool PullFromRT(FIntRect rect,TArray<FLinearColor>&OutColors);
 private:
 	// The generated map
 	TUniquePtr<FNMGraph> Graph;
@@ -131,7 +154,24 @@ private:
 	// Island check function
 	TFunction<bool(FVector2D)> IslandChecker;
 
-	TArray<ENMBiome> BiomeMap;
+
+	// 
+
+	struct FNMMapSectionData
+	{
+		int X;
+		int Y;
+		int SizeX;
+		int SizeY;
+		TArray<ENMBiome> BiomeMap;
+	};
+
+	int SectionSizeX=25;
+	int SectionSizeY=25;
+	int MaxBufferSize=3;
+
+	TArray<FNMMapSectionData> MapSectionDatas;
+	TArray<int> MapSectionDataIndex;
 
 
 };
