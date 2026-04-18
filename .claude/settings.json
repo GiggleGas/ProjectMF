@@ -1,5 +1,12 @@
 {
   "permissions": {
+    "allow": [
+      "Read(//c/Users/wangliyue/AppData/**)",
+      "Read(//c//**)",
+      "Read(//d//**)",
+      "Read(//e//**)",
+      "Read(//e/Epic Games/UE_5.7/Engine/Plugins/Runtime/StateTree/Source/StateTreeModule/Public/**)"
+    ],
     "additionalDirectories": [
       "C:\\Users\\wangliyue\\.claude\\projects\\f--GitProjects-ProjectMF"
     ]

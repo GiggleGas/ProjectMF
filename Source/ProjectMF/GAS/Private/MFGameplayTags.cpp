@@ -30,6 +30,11 @@ namespace MFGameplayTags
 		"Ability tag for the CatchPet ability. Activated on catch-key release.");
 
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
+		Ability_Attack,
+		"MF.Ability.Attack",
+		"Identifies any AI attack ability. STTask_ActivateAttack finds the first granted ability with this tag.");
+
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
 		Ability_SummonPet,
 		"MF.Ability.SummonPet",
 		"GameplayEvent tag for GA_SummonPet. EventMagnitude = slot index (1-5). "
@@ -59,4 +64,25 @@ namespace MFGameplayTags
 		Catching_Event_Fail,
 		"MF.Catching.Event.Fail",
 		"Sent when the catch attempt fails (QTE timeout or other failure).");
+
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
+		Team_Player,
+		"MF.Team.Player",
+		"Owned by player-faction characters. Used by UGA_AIAttackBase::FilterTarget for enemy/ally detection.");
+
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
+		Team_Enemy,
+		"MF.Team.Enemy",
+		"Owned by enemy/AI-faction characters. Used by UGA_AIAttackBase::FilterTarget for enemy/ally detection.");
+
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
+		Attack_Data_Damage,
+		"MF.Attack.Data.Damage",
+		"SetByCaller key written into damage GE specs by UGA_AIAttackBase. "
+		"The damage GameplayEffect must read this via GetSetByCallerMagnitude.");
+
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
+		State_Attacking,
+		"MF.Character.State.Attacking",
+		"Granted to the ASC while an AI attack ability is active.");
 }

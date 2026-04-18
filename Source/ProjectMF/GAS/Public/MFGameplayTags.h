@@ -51,6 +51,13 @@ namespace MFGameplayTags
 	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_CatchPet);
 
 	/**
+	 * Identifies any AI attack GameplayAbility.
+	 * STTask_ActivateAttack finds and activates the first granted ability with this tag.
+	 * Assign this tag in AbilityTags on the attack ability blueprint.
+	 */
+	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Attack);
+
+	/**
 	 * GameplayEvent tag for triggering GA_SummonPet.
 	 * EventMagnitude carries the pet slot index (1-5).
 	 * Sources: demo key bindings (1-5), future: GA_PetWheel confirmation.
@@ -81,4 +88,35 @@ namespace MFGameplayTags
 
 	/** Fired when the catch attempt fails (QTE timeout or other failure). */
 	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Catching_Event_Fail);
+
+	// -----------------------------------------------------------------------
+	// Team Tags
+	// Placed on character ASCs to identify faction for attack filtering.
+	// FilterTarget() in UGA_AIAttackBase compares these between caster and target.
+	// -----------------------------------------------------------------------
+
+	/** Owned by player-faction characters. */
+	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Team_Player);
+
+	/** Owned by enemy/AI-faction characters. */
+	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Team_Enemy);
+
+	// -----------------------------------------------------------------------
+	// Attack Data Tags
+	// Used as SetByCaller keys in damage GameplayEffect specs.
+	// -----------------------------------------------------------------------
+
+	/**
+	 * SetByCaller magnitude key for attack damage.
+	 * The damage GE must read this tag via GetSetByCallerMagnitude.
+	 * Written by UGA_AIAttackBase::ApplyDamageToTarget with DamageMultiplier.
+	 */
+	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Attack_Data_Damage);
+
+	// -----------------------------------------------------------------------
+	// Attack State Tags
+	// -----------------------------------------------------------------------
+
+	/** Granted while an AI attack ability is active. */
+	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_Attacking);
 }
