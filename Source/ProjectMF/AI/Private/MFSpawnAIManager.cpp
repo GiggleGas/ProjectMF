@@ -3,6 +3,8 @@
 #include "MFSpawnAIManager.h"
 #include "MFPetBase.h"
 #include "MFPetAIController.h"
+#include "MFRadarSensingComponent.h"
+#include "MFThreatComponent.h"
 #include "MFLog.h"
 #include "NavigationSystem.h"
 #include "EnvironmentQuery/EnvQueryManager.h"
@@ -189,7 +191,22 @@ void AMFSpawnAIManager::SpawnSinglePet(const FMFSpawnEntry& Entry, const FVector
 	// 3. 启动 StateTree
 	Controller->RunStateTree(Config->StateTreeAsset);
 
-	// 4. 记录
+	// 4. 初始化雷达感知配置（先于索敌配置写入）
+	//    RadarConfig → SensingRadius / TargetTags / ScanInterval 写入组件。
+	if (UMFRadarSensingComponent* RadarComp =
+		Pet->FindComponentByClass<UMFRadarSensingComponent>())
+	{
+		RadarComp->ApplyConfig(Config->RadarConfig);
+	}
+
+	// 5. 初始化索敌配置（依赖 RadarConfig 已写入，内部校验 EngagementRadius <= SensingRadius）
+	if (UMFThreatComponent* ThreatComp =
+		Pet->FindComponentByClass<UMFThreatComponent>())
+	{
+		ThreatComp->ApplyConfig(Config->ThreatConfig);
+	}
+
+	// 7. 记录
 	SpawnedPets.Add(Pet);
 
 	MF_LOG(LogMFSpawnAI, TEXT("%s: Spawned '%s' with controller '%s' at %s."),

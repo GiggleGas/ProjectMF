@@ -1,6 +1,8 @@
 // Copyright ProjectMF. All Rights Reserved.
 
 #include "MFAICharacter.h"
+#include "MFRadarSensingComponent.h"
+#include "MFThreatComponent.h"
 #include "AbilitySystemComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
@@ -10,6 +12,13 @@ AMFAICharacter::AMFAICharacter()
 {
 	// AI characters auto-possess an AIController when placed or spawned.
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
+
+	// 雷达感知组件：默认感知半径和扫描频率由组件 CDO 提供，
+	// 子类或编辑器中可按需覆盖（如 BP_MFPet 配置不同的感知半径）。
+	RadarSensingComp = CreateDefaultSubobject<UMFRadarSensingComponent>(TEXT("RadarSensingComp"));
+
+	// 索敌组件：依赖 RadarSensingComp，BeginPlay 中自动绑定其事件。
+	ThreatComp = CreateDefaultSubobject<UMFThreatComponent>(TEXT("ThreatComp"));
 }
 
 void AMFAICharacter::BeginPlay()

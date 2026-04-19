@@ -45,7 +45,7 @@ EStateTreeRunStatus FSTTask_ActivateAttack::EnterState(
 	FGameplayAbilitySpec* AttackSpec = nullptr;
 	for (FGameplayAbilitySpec& Spec : ASC->GetActivatableAbilities())
 	{
-		if (Spec.Ability && Spec.Ability->AbilityTags.HasTag(MFGameplayTags::Ability_Attack))
+		if (Spec.Ability && Spec.Ability->GetAssetTags().HasTag(MFGameplayTags::Ability_Attack))
 		{
 			AttackSpec = &Spec;
 			break;

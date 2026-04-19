@@ -6,7 +6,7 @@
 UGA_Pick::UGA_Pick()
 {
 	// This ability is found and activated/cancelled by tag.
-	AbilityTags.AddTag(MFGameplayTags::Ability_Pick);
+	SetAssetTags(FGameplayTagContainer(MFGameplayTags::Ability_Pick));
 
 	// MF.Character.State.Picking is automatically added to the owning ASC while this
 	// ability is active and removed the moment it ends or is cancelled.

@@ -4,6 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
+#include "MFRadarSensingComponent.h"
+#include "MFThreatComponent.h"
 #include "MFSpawnAIConfig.generated.h"
 
 class AMFPetBase;
@@ -45,4 +47,28 @@ public:
 	 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "SpawnAI")
 	TSubclassOf<AMFPetAIController> ControllerClass;
+
+	/**
+	 * 雷达感知配置：Spawn 完成后写入宠物的 UMFRadarSensingComponent。
+	 *
+	 * 每种宠物类型可独立设置：
+	 *   SensingRadius  — 感知半径（cm）
+	 *   TargetTags     — 目标阵营标签（通常为 MF.Team.Player）
+	 *   ScanInterval   — 扫描频率（秒）
+	 *
+	 * 不填写时组件使用 CDO 中的默认值（Radius=1000, Interval=0.15s, Tags=空）。
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "SpawnAI|Radar")
+	FMFRadarSensingConfig RadarConfig;
+
+	/**
+	 * 索敌配置：Spawn 完成后写入宠物的 UMFThreatComponent。
+	 * RadarConfig 须先写入，ApplyConfig 内部会校验 EngagementRadius <= SensingRadius。
+	 *
+	 * 每种宠物类型可独立设置：
+	 *   EngagementRadius — 交战半径（须 <= SensingRadius）
+	 *   LockDuration     — 锁定持续时间（秒）
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "SpawnAI|Threat")
+	FMFThreatConfig ThreatConfig;
 };

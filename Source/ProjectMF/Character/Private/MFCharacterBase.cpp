@@ -119,6 +119,15 @@ void AMFCharacterBase::InitAbilitySystemComponent()
 		if (!AbilityClass) continue;
 		AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(AbilityClass, 1));
 	}
+
+	// 添加阵营 / 固有属性标签（Loose Tag，不依赖 GameplayEffect）。
+	// 在各子类蓝图 Defaults 中配置 DefaultOwnedTags，例如：
+	//   BP_MFCharacter → MF.Team.Player
+	//   BP_MFPet       → MF.Team.Enemy
+	if (!DefaultOwnedTags.IsEmpty())
+	{
+		AbilitySystemComponent->AddLooseGameplayTags(DefaultOwnedTags);
+	}
 }
 
 void AMFCharacterBase::HandleDeath()

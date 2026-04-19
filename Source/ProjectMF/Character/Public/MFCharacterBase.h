@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "AbilitySystemInterface.h"
+#include "GameplayTagContainer.h"
 #include "MFCharacterTypes.h"
 #include "MFCharacterBase.generated.h"
 
@@ -76,6 +77,17 @@ protected:
 	 */
 	UPROPERTY(EditDefaultsOnly, Category = "GAS")
 	TArray<TSubclassOf<UMFGameplayAbilityBase>> DefaultAbilities;
+
+	/**
+	 * Loose GameplayTags added to the ASC at BeginPlay.
+	 * 用于声明该角色的阵营或固有属性标签，无需 GameplayEffect 即可持有。
+	 *
+	 * 典型配置（在各子类 Blueprint 的 Defaults 中设置）：
+	 *   BP_MFCharacter (玩家)  → MF.Team.Player
+	 *   BP_MFPet / BP_MFEnemy → MF.Team.Enemy
+	 */
+	UPROPERTY(EditDefaultsOnly, Category = "GAS")
+	FGameplayTagContainer DefaultOwnedTags;
 
 	/**
 	 * Instant GameplayEffect applied at BeginPlay to set initial attribute values

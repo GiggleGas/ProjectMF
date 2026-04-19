@@ -119,4 +119,16 @@ namespace MFGameplayTags
 
 	/** Granted while an AI attack ability is active. */
 	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_Attacking);
+
+	// -----------------------------------------------------------------------
+	// AI Perception Tags
+	// 用于感知系统与 StateTree / 威胁系统通信。
+	// -----------------------------------------------------------------------
+
+	/**
+	 * AI 雷达感知到至少一个目标时，由外部系统（如威胁管理器）授予。
+	 * StateTree 可用此标签作为条件判断：是否有感知目标存在。
+	 * 注：RadarSensingComponent 本身不自动授予此 Tag，需要威胁系统来管理。
+	 */
+	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(AI_Perception_HasTarget);
 }

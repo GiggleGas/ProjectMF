@@ -85,4 +85,10 @@ namespace MFGameplayTags
 		State_Attacking,
 		"MF.Character.State.Attacking",
 		"Granted to the ASC while an AI attack ability is active.");
+
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
+		AI_Perception_HasTarget,
+		"MF.AI.Perception.HasTarget",
+		"Indicates that the AI's radar has at least one valid perceived target. "
+		"Managed by the threat system; queried by StateTree to decide combat transitions.");
 }

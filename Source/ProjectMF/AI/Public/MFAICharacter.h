@@ -5,6 +5,8 @@
 #include "CoreMinimal.h"
 #include "MFCharacterBase.h"
 #include "MFMassInterface.h"
+#include "MFRadarSensingComponent.h"
+#include "MFThreatComponent.h"
 #include "MFAICharacter.generated.h"
 
 /**
@@ -75,6 +77,26 @@ protected:
 	 * Keeps directional sprites consistent across player and AI characters.
 	 */
 	virtual float GetCameraYawForDirectionality() const override;
+
+	// -----------------------------------------------------------------------
+	// Radar Sensing
+	// -----------------------------------------------------------------------
+
+	/**
+	 * 雷达感知组件：球形范围内检测指定 GameplayTag 的目标。
+	 * 在编辑器中通过 RadarSensingComp 配置感知半径和目标 Tag。
+	 * StateTree / 威胁系统通过 OnTargetDetected 委托或 GetPerceivedActors() 获取结果。
+	 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI|Radar")
+	TObjectPtr<UMFRadarSensingComponent> RadarSensingComp;
+
+	/**
+	 * 索敌组件：消费 RadarSensingComp 的感知列表，进行打分并维护当前目标。
+	 * 通过 GetCurrentTarget() 获取目标，供 StateTree / 攻击系统调用。
+	 * 目标变化时广播 OnTargetChanged；ASC 上的 MF.AI.Perception.HasTarget 标签联动更新。
+	 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI|Threat")
+	TObjectPtr<UMFThreatComponent> ThreatComp;
 
 	// -----------------------------------------------------------------------
 	// Mass-driven state (protected so Blueprint subclasses can inspect it)

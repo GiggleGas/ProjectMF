@@ -15,7 +15,7 @@
 
 UGA_SummonPet::UGA_SummonPet()
 {
-	AbilityTags.AddTag(MFGameplayTags::Ability_SummonPet);
+	SetAssetTags(FGameplayTagContainer(MFGameplayTags::Ability_SummonPet));
 
 	// 通过 GameplayEvent 触发，EventMagnitude = slot 序号
 	FAbilityTriggerData TriggerData;

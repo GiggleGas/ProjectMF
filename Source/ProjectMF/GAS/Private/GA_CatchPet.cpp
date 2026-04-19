@@ -22,7 +22,7 @@
 
 UGA_CatchPet::UGA_CatchPet()
 {
-	AbilityTags.AddTag(MFGameplayTags::Ability_CatchPet);
+	SetAssetTags(FGameplayTagContainer(MFGameplayTags::Ability_CatchPet));
 
 	// 激活期间阻止同类型 Ability 再次激活（防止重入）
 	ActivationBlockedTags.AddTag(MFGameplayTags::Ability_CatchPet);
