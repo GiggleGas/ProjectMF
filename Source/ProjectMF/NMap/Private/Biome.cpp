@@ -5,9 +5,9 @@ FLinearColor FBiomeProperties::GetBiomeColor(ENMBiome Biome)
 	// Convert hex colors like from the original C# implementation
 	static const TMap<ENMBiome, FLinearColor> BiomeColors = {
 		{ ENMBiome::Ocean, FLinearColor(0.267f, 0.267f, 0.478f) },        // 44447a
-		{ ENMBiome::Lake, FLinearColor(0.2f, 0.4f, 0.6f) },               // 336699
 		{ ENMBiome::Marsh, FLinearColor(0.184f, 0.4f, 0.4f) },            // 2f6666
 		{ ENMBiome::Ice, FLinearColor(0.6f, 1.0f, 1.0f) },                // 99ffff
+		{ ENMBiome::Lake, FLinearColor(0.2f, 0.4f, 0.6f) },               // 336699
 		{ ENMBiome::Beach, FLinearColor(0.627f, 0.565f, 0.467f) },        // a09077
 		{ ENMBiome::Snow, FLinearColor(1.0f, 1.0f, 1.0f) },               // ffffff
 		{ ENMBiome::Tundra, FLinearColor(0.733f, 0.733f, 0.667f) },       // bbbbaa

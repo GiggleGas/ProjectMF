@@ -122,10 +122,11 @@ void AMapGenerator::DrawToRT()
 			Canvas->K2_DrawTriangle(nullptr, CanvasUVTri);
 		}
 
-		FLinearColor clr = { 100,0,0,1 };
+		FLinearColor clr = { float(ENMBiome::Lake),0,0,1 };  // river as lake
+
 		for (auto& e : Edges)
 		{
-			if(e.river > 0)
+			if(e.river > 0) // e.river as line Thickness ?
 			Canvas->K2_DrawLine(Corners[e.pvn->StartCornerId].pvn->Position, Corners[e.pvn->EndCornerId].pvn->Position, 1, clr);
 		}
 
