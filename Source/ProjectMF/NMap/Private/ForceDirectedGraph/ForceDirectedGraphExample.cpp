@@ -1,6 +1,6 @@
 #include "ForceDirectedGraph/ForceDirectedGraphExample.h"
 #include "Misc/OutputDevice.h"
-
+/*
 void FForceDirectedGraphExample::RunExample()
 {
     // Create sample nodes and edges
@@ -76,3 +76,4 @@ void FForceDirectedGraphExample::PrintNodePositions(const TArray<FForceDirectedG
         UE_LOG(LogTemp, Warning, TEXT("Node %d: (%.2f, %.2f)"), Node.Id, Node.Position.X, Node.Position.Y);
     }
 }
+*/

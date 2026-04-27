@@ -3,6 +3,8 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "ForceDirectedGraph/ForceDirectedGraph.h"
+#include "ForceDirectedGraph/ForceDirectedSolver.h"
+#include "WorldSim.h"
 #include "ForceDirectedGraphActor.generated.h"
 
 UCLASS()
@@ -18,7 +20,7 @@ public:
 
     // Configuration
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Force Directed Graph")
-    int32 NodeCount = 50; // Increased default node count
+    int32 NodeCount = 30; // Increased default node count
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Force Directed Graph")
     float CanvasWidth = 800.0f;
@@ -53,19 +55,28 @@ public:
     void DrawToRenderTarget();
 
 private:
-    // Force-directed graph instances (hierarchical)
-    TSharedPtr<FForceDirectedGraph> RootGraph;
-    TArray<TSharedPtr<FForceDirectedGraph>> ChildGraphs;
-
-    // Test data
-    TArray<FForceDirectedGraph::FNode> RootNodes;
-    TArray<FForceDirectedGraph::FEdge> RootEdges;
-    TArray<TArray<FForceDirectedGraph::FNode>> ChildNodesList;
-    TArray<TArray<FForceDirectedGraph::FEdge>> ChildEdgesList;
-
-    // Create sample nodes and edges for hierarchical graph
-    void CreateTestHierarchicalGraph();
-
-    // Draw a graph and its children
-    void DrawGraphHierarchy(UCanvas* Canvas, TSharedPtr<FForceDirectedGraph> GraphToDraw, int Depth = 0);
+    // WorldSim instance for data management
+    FWorldSim WorldSim;
+    
+    
+    // Create test data in WorldSim
+    void CreateTestData();
+    
+    // Create random edges between nodes
+    void CreateRandomEdges(FWorldSim& InWorldSim, const TArray<FString>& NodeIds, int EdgeCount);
+    
+    // Create a cycle of edges between nodes
+    void CreateCycleEdges(FWorldSim& InWorldSim, const TArray<FString>& NodeIds);
+    
+    // Create star-shaped edges distribution
+    void CreateStarEdges(FWorldSim& InWorldSim, const TArray<FString>& NodeIds, int CenterNodeIndex = 0);
+    
+    // Add new nodes connected to existing nodes
+    void AddNewNodesToExistingNodes(FWorldSim& InWorldSim, const TArray<FColor>& GraphColors);
+    
+    // Add new nodes to nodes with fewer than 2 edges
+    void AddNewNodesToNodesWithFewEdges(FWorldSim& InWorldSim, const TArray<FColor>& GraphColors);
+    
+    // Draw the graph
+    void DrawGraph(UCanvas* Canvas);
 };

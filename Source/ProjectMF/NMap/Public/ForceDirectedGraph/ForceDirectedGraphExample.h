@@ -3,9 +3,11 @@
 #include "CoreMinimal.h"
 #include "ForceDirectedGraph.h"
 
-/**
+
+/*
+/ **
  * Example usage of the ForceDirectedGraph class
- */
+ * /
 class FForceDirectedGraphExample
 {
 public:
@@ -19,3 +21,4 @@ private:
     // Print node positions
     static void PrintNodePositions(const TArray<FForceDirectedGraph::FNode>& Nodes);
 };
+*/
