@@ -2,7 +2,6 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "ForceDirectedGraph/ForceDirectedGraph.h"
 #include "ForceDirectedGraph/ForceDirectedSolver.h"
 #include "WorldSim.h"
 #include "ForceDirectedGraphActor.generated.h"
@@ -42,6 +41,9 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Force Directed Graph")
     float Damping = 0.9f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Force Directed Graph")
+    float Scale = 1.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Force Directed Graph")
     UTextureRenderTarget2D* RenderTarget;

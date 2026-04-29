@@ -34,13 +34,18 @@ void AForceDirectedGraphActor::BeginPlay()
     WorldSim.GenerateForceDirectedData();
     
     // Force-directed graph instances
-    const TArray<FForceDirectedGraph>& ForceDirectedGraphs = WorldSim.GetForceDirectedGraphs();
-
-    // Log information about each graph
-    for (int i = 0; i < ForceDirectedGraphs.Num(); i++)
+    const TArray< FWorldSimGraph>& Nodes = WorldSim.GetNodes();
+    if (Nodes.IsEmpty())
     {
-        const auto& Graph = ForceDirectedGraphs[i];
-        UE_LOG(LogTemp, Log, TEXT("Graph %d: %d nodes, %d edges"),  i, Graph.GetNodeIds().Num(), Graph.GetEdges().Num());
+
+    }
+    else
+    {
+        // Log information about each graph
+        for (auto& index : Nodes[0].ChildrenIndex)
+        {
+            UE_LOG(LogTemp, Log, TEXT("Graph %s: %d nodes, %d edges"), *Nodes[index].Id, Nodes[index].GetNodeNum(), Nodes[index].GetEdgeNum());
+        }
     }
 }
 
@@ -124,21 +129,32 @@ void AForceDirectedGraphActor::CreateTestData()
     
     for (int g = 0; g < GraphCount; g++)
     {
+
         FString GraphId = FString::Printf(TEXT("Graph_%d"), g);
+        FColor Color = GraphColors[g % GraphColors.Num()];
+        // add graph to root
+        WorldSim.AddChild(
+            "Root",
+            GraphId,
+            "value",
+            Color,
+            TEXT("Node"),
+            TEXT("TestNode")
+        );
+
         TArray<FString> NodeIds;
         
         // Create nodes for this graph
         for (int i = 0; i < NodesPerGraph; i++)
         {
             FString NodeId = FString::Printf(TEXT("Node_%d_%d"), g, i);
-            FColor Color = GraphColors[g % GraphColors.Num()];
             
             // Add child (creates graph if it doesn't exist, and adds node to the graph)
             WorldSim.AddChild(
                 GraphId, 
                 NodeId, 
                 FString::Printf(TEXT("Node %d-%d"), g, i),
-                Color.R / 255.0f, Color.G / 255.0f, Color.B / 255.0f, Color.A / 255.0f,
+                Color,
                 TEXT("Node"),
                 TEXT("TestNode")
             );
@@ -221,8 +237,7 @@ void AForceDirectedGraphActor::DrawToRenderTarget()
 {
     if (!RenderTarget ) return;
 
-    const TArray<FForceDirectedNode>& ForceDirectedNodes = WorldSim.GetForceDirectedNodes();
-    if (ForceDirectedNodes.IsEmpty()) return;
+    if (WorldSim.GetNodes().IsEmpty()) return;
 
     // clear
     UKismetRenderingLibrary::ClearRenderTarget2D(this, RenderTarget);
@@ -247,14 +262,15 @@ void AForceDirectedGraphActor::AddNewNodesToExistingNodes(FWorldSim& InWorldSim,
     // Add 1 to 2 new nodes connected to each existing node in each graph
     int NewNodeCounter = 0;
     
+    const TArray< FWorldSimGraph>& Nodes = WorldSim.GetNodes();
+    if (Nodes.IsEmpty()) return;
+
+    // Log information about each graph
     // Get all graphs from WorldSim
-    const TMap<FString, FWorldSimGraph>& Graphs = InWorldSim.GetGraphs();
-    
-    int GraphIndex = 0;
-    for (const auto& GraphPair : Graphs)
+    Nodes[0].ForEachWorldSimGraph([&](const FWorldSimGraph*, const FWorldSimGraph* Graphp, int GraphIndex)
     {
-        const FWorldSimGraph& Graph = GraphPair.Value;
-        const FString& GraphId = GraphPair.Key;
+        const FWorldSimGraph& Graph = *Graphp;
+        const FString& GraphId = Graph.Id;
         
         // Get color for this graph
         FColor BaseColor = GraphColors[GraphIndex % GraphColors.Num()];
@@ -269,10 +285,10 @@ void AForceDirectedGraphActor::AddNewNodesToExistingNodes(FWorldSim& InWorldSim,
         
         // Get existing nodes in this graph
         // copy
-        TArray<FString> ExistingNodeIds = Graph.NodeIds;
-        
+        TArray<int> ExistingNodeIds = Graph.ChildrenIndex;
+
         // For each existing node, add 0 to 2 new nodes
-        for (const FString& ExistingNodeId : ExistingNodeIds)
+        for (int ExistingNodeId : ExistingNodeIds)
         {
             int NumNewNodes = FMath::RandRange(1, 2);
             for (int i = 0; i < NumNewNodes; i++)
@@ -284,18 +300,16 @@ void AForceDirectedGraphActor::AddNewNodesToExistingNodes(FWorldSim& InWorldSim,
                     GraphId, 
                     NewNodeId, 
                     FString::Printf(TEXT("New Node %d"), NewNodeCounter - 1),
-                    NewNodeColor.R / 255.0f, NewNodeColor.G / 255.0f, NewNodeColor.B / 255.0f, NewNodeColor.A / 255.0f,
+                    NewNodeColor,
                     TEXT("Node"),
                     TEXT("NewTestNode")
                 );
                 
                 // Connect new node to existing node
-                InWorldSim.AddLink(ExistingNodeId, NewNodeId);
+                InWorldSim.AddLink(Nodes[ExistingNodeId].Id, NewNodeId);
             }
         }
-        
-        GraphIndex++;
-    }
+    });
 }
 
 void AForceDirectedGraphActor::AddNewNodesToNodesWithFewEdges(FWorldSim& InWorldSim, const TArray<FColor>& GraphColors)
@@ -303,37 +317,27 @@ void AForceDirectedGraphActor::AddNewNodesToNodesWithFewEdges(FWorldSim& InWorld
     // Add new nodes to nodes with fewer than 2 edges
     int NewNodeCounter = 0;
     
-    // Get all graphs from WorldSim
-    const TMap<FString, FWorldSimGraph>& Graphs = InWorldSim.GetGraphs();
+    const TArray< FWorldSimGraph>& Nodes = WorldSim.GetNodes();
+    if (Nodes.IsEmpty()) return;
     
-    int GraphIndex = 0;
-    for (const auto& GraphPair : Graphs)
+    Nodes[0].ForEachWorldSimGraph([&](const FWorldSimGraph*, const FWorldSimGraph* Graphp, int)
     {
-        const FWorldSimGraph& Graph = GraphPair.Value;
-        const FString& GraphId = GraphPair.Key;
+        const FWorldSimGraph& Graph = *Graphp;
+        const FString& GraphId = Graph.Id;
         
         // Use fixed gray color for new nodes
         FColor NewNodeColor = FColor(128, 128, 128, 255); // Gray color
         
         // Get existing nodes in this graph
         // copy
-        TArray<FString> ExistingNodeIds = Graph.NodeIds;
+        TArray<int> ExistingNodeIds = Graph.ChildrenIndex;
         
         // For each existing node, check edge count and add new node if needed
-        for (const FString& ExistingNodeId : ExistingNodeIds)
+        for (int ExistingNodeId : ExistingNodeIds) // nodes
         {
             // Count edges for this node
-            int EdgeCount = 0;
+            int EdgeCount = Nodes[ExistingNodeId].InternalLinksIndex.Num();
             
-            // Count internal edges
-            for (const auto &[ EdgeId,Edge] : Graph.InternalEdges)
-            {
-                if (Edge.Node1Id == ExistingNodeId || Edge.Node2Id == ExistingNodeId)
-                {
-                    EdgeCount++;
-                    if (EdgeCount > 1)break;
-                }
-            }
             
             // If edge count is less than 2, add a new node with 50% probability
             if (EdgeCount < 2 && FMath::FRand() < 0.5f)
@@ -345,83 +349,77 @@ void AForceDirectedGraphActor::AddNewNodesToNodesWithFewEdges(FWorldSim& InWorld
                     GraphId, 
                     NewNodeId, 
                     FString::Printf(TEXT("New Node Extra %d"), NewNodeCounter - 1),
-                    NewNodeColor.R / 255.0f, NewNodeColor.G / 255.0f, NewNodeColor.B / 255.0f, NewNodeColor.A / 255.0f,
+                    NewNodeColor,
                     TEXT("Node"),
                     TEXT("NewTestNode")
                 );
                 
                 // Connect new node to existing node
-                InWorldSim.AddLink(ExistingNodeId, NewNodeId);
+                InWorldSim.AddLink(Nodes[ExistingNodeId].Id, NewNodeId);
             }
         }
-        
-        GraphIndex++;
-    }
+    });
 }
 
 void AForceDirectedGraphActor::DrawGraph(UCanvas* Canvas)
 {
     if (!Canvas) return;
 
-    const TArray<FForceDirectedGraph>& Graphs = WorldSim.GetForceDirectedGraphs();
-    const TArray<FForceDirectedNode>& Nodes = WorldSim.GetForceDirectedNodes();
-    const TMap<FString, FWorldSimNode>& WorldSimNodes = WorldSim.GetNodes();
+    const TArray<FWorldSimGraph>& WorldSimNodes = WorldSim.GetNodes();
+    if (WorldSimNodes.IsEmpty()) return;
 
-    // Create a map from node index to FWorldSimNode
-    TMap<int, const FWorldSimNode*> IndexToWorldSimNode;
-    int Index = 0;
-    for (const auto& NodePair : WorldSimNodes)
+    // Calculate canvas center for relative scaling
+    FVector2D CanvasCenter(CanvasWidth / 2, CanvasHeight / 2);
+
+    // Helper function to apply scale transformation relative to center
+    auto ApplyScale = [&](const FVector2D& Position) -> FVector2D
     {
-        IndexToWorldSimNode.Add(Index, &NodePair.Value);
-        Index++;
-    }
+        // Translate to origin relative to center, scale, then translate back
+        return (Position - CanvasCenter) * Scale + CanvasCenter;
+    };
 
     // Draw edges for all graphs with node colors
-    for (int GraphIndex = 0; GraphIndex < Graphs.Num(); GraphIndex++)
+    WorldSimNodes[0].ForEachWorldSimGraph([&](const FWorldSimGraph*,const FWorldSimGraph* Graph, int)
     {
-        const auto& Graph = Graphs[GraphIndex];
-        
-        for (const FForceDirectedEdge& Edge : Graph.GetEdges())
+        Graph->ForEachInternalLink([&](const FWorldSimGraph*, const FWorldSimGraph* Source, const FWorldSimGraph* Target, int)
         {
-            // Check if node indices are valid
-            if (Edge.SourceId >= 0 && Edge.SourceId < Nodes.Num() && 
-                Edge.TargetId >= 0 && Edge.TargetId < Nodes.Num())
-            {
-                FVector2D SourcePos = Nodes[Edge.SourceId].Position;
-                FVector2D TargetPos = Nodes[Edge.TargetId].Position;
-                         
-                // Use the source node's color for edges
-                FLinearColor EdgeColor = FLinearColor::Black;
-                if (const FWorldSimNode** WorldSimNodePtr = IndexToWorldSimNode.Find(Edge.SourceId))
-                {
-                    EdgeColor = FLinearColor((*WorldSimNodePtr)->Color) * 0.7f; // Darken the color for edges
-                }
-                Canvas->K2_DrawLine(SourcePos, TargetPos, 1.0f, EdgeColor);
-            }
-        }
-    }
+            FVector2D SourcePos = ApplyScale(Source->FDNode.Position);
+            FVector2D TargetPos = ApplyScale(Target->FDNode.Position);
+            
+            // Use the source node's color for edges
+            FLinearColor EdgeColor = Source->Color * 0.7f; // Darken the color for edges
+
+            Canvas->K2_DrawLine(SourcePos, TargetPos, 1.0f, EdgeColor);
+        });
+
+        // Draw external links
+        Graph->ForEachExternalLink([&](const FWorldSimGraph*, const FWorldSimGraph* Source, const FWorldSimGraph* Target, int)
+        {
+            FVector2D SourcePos = ApplyScale(Source->FDNode.Position);
+            FVector2D TargetPos = ApplyScale(Target->FDNode.Position);
+            
+            // Use the source node's color for edges
+            FLinearColor EdgeColor = Source->Color * 0.7f; // Darken the color for edges
+
+            Canvas->K2_DrawLine(SourcePos, TargetPos, 1.0f, EdgeColor);
+        });
+    });
 
     // Draw nodes with their own color
-    for (int GraphIndex = 0; GraphIndex < Graphs.Num(); GraphIndex++)
+    WorldSimNodes[0].ForEachWorldSimGraph([&](const FWorldSimGraph*, const FWorldSimGraph* Graph, int NodeIndex)
     {
-        const auto& Graph = Graphs[GraphIndex];
-        
-        // Draw nodes belonging to this graph
-        for (int NodeId : Graph.GetNodeIds())
+        Graph->ForEachWorldSimGraph([&](const FWorldSimGraph*, const FWorldSimGraph* Node, int NodeIndex)
         {
-            if (NodeId >= 0 && NodeId < Nodes.Num())
-            {
-                const FForceDirectedNode& Node = Nodes[NodeId];
-                float Radius = 10.0f * Node.Weight;
-                
-                // Use the node's own color from FWorldSimNode
-                FLinearColor NodeColor = FLinearColor::Blue; // Default color
-                if (const FWorldSimNode** WorldSimNodePtr = IndexToWorldSimNode.Find(NodeId))
-                {
-                    NodeColor = FLinearColor((*WorldSimNodePtr)->Color);
-                }
-                Canvas->K2_DrawBox(Node.Position - Radius / 2, FVector2D{ Radius }, Radius / 2, NodeColor);
-            }
-        }
-    }
+            const FWorldSimGraph& node = *Node;
+
+            float Radius = 10.0f * node.FDNode.Weight*Scale;
+
+            // Apply scale to node position
+            FVector2D ScaledPosition = ApplyScale(node.FDNode.Position);
+
+            // Use the node's own color from FWorldSimNode
+            FLinearColor NodeColor = node.Color; // Default color
+            Canvas->K2_DrawBox(ScaledPosition - Radius / 2, FVector2D{ Radius }, Radius / 2, NodeColor);
+        });
+    }); 
 }

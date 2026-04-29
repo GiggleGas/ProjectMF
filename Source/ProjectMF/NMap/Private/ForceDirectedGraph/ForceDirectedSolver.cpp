@@ -16,78 +16,36 @@ void FForceDirectedSolver::SetCanvasSize(float Width, float Height)
     CanvasHeight = Height;
 }
 
-void FForceDirectedSolver::CalculateForces(const TArray<int>& NodeIds, TArray<FForceDirectedNode>& Nodes, const TArray<FForceDirectedEdge>& Edges, const FVector2D& GraphPosition)
+void FForceDirectedSolver::CalculateForces(IForceDirectedGraph* Graph, const FVector2D& GraphPosition)
 {
+    // Calculate center gravity
+    CalculateCenterGravity(Graph, GraphPosition);
 
-    // Calculate node forces (center gravity and repulsion)
-    CalculateNodeForces(NodeIds, Nodes, GraphPosition);
-
+    // Calculate node repulsion
+    CalculateNodeForces(Graph);
+    
     // Calculate edge forces (spring forces)
-    CalculateEdgeForces(Edges, Nodes);
+    CalculateEdgeForces(Graph);
+    
+    // Calculate edge midpoint repulsion
+    CalculateEdgeMidpointRepulsion(Graph);
 }
 
-void FForceDirectedSolver::CalculateForcesForAllNodes(TArray<FForceDirectedNode>& Nodes, const TArray<FForceDirectedEdge>& Edges, const FVector2D& GraphPosition)
-{
-    // Create an array of all node indices
-    TArray<int> AllNodeIds;
-    for (int i = 0; i < Nodes.Num(); i++)
-    {
-        AllNodeIds.Add(i);
-    }
-    
-    // Calculate node forces (center gravity and repulsion) for all nodes
-    CalculateNodeForces(AllNodeIds, Nodes, GraphPosition);
 
-    // Calculate edge forces (spring forces) for all edges
-    CalculateEdgeForces(Edges, Nodes);
-}
-
-void FForceDirectedSolver::CalculateAllNodeForces(TArray<FForceDirectedNode>& Nodes, const FVector2D& GraphPosition)
+void FForceDirectedSolver::CalculateRepulsionForces(IForceDirectedGraph* GraphA, IForceDirectedGraph* GraphB, const TArray<int>& IgnoreNodeIdsB)
 {
-    // Create an array of all node indices
-    TArray<int> AllNodeIds;
-    for (int i = 0; i < Nodes.Num(); i++)
-    {
-        AllNodeIds.Add(i);
-    }
-    
-    // Calculate node forces (center gravity and repulsion) for all nodes
-    CalculateNodeForces(AllNodeIds, Nodes, GraphPosition);
-    
-    // Note: No edge forces calculation since this method is intended for graph nodes
-    // which don't have edges between them
-}
 
-void FForceDirectedSolver::CalculateRepulsionForces(const TArray<int>& NodeIdsA, TArray<FForceDirectedNode>& NodesA, const TArray<int>& IgnoreNodeIdsB, const TArray<FForceDirectedNode>& NodesB)
-{
-    // Calculate repulsion forces for nodes in A, ignoring nodes in IgnoreNodeIdsB
-    for (int32 i = 0; i < NodeIdsA.Num(); i++)
+    GraphA->ForEachNode([&](IForceDirectedGraph*, FForceDirectedNode* NodeA, int) 
     {
-        // Get node A
-        int NodeIndexA = NodeIdsA[i];
-        if (NodeIndexA < 0 || NodeIndexA >= NodesA.Num())
-        {
-            continue; // Skip if index is out of bounds
-        }
-        
-        FForceDirectedNode& NodeA = NodesA[NodeIndexA];
         float Fx = 0;
         float Fy = 0;
-        
-        // Calculate repulsion from all nodes in B except those in IgnoreNodeIdsB
-        for (int32 j = 0; j < NodesB.Num(); j++)
+        GraphB->ForEachNode([&](IForceDirectedGraph*, FForceDirectedNode* NodeB, int NodeIndexB) 
         {
-            // Check if this node is in the ignore list
-            if (IgnoreNodeIdsB.Contains(j))
-            {
-                continue; // Skip nodes in the ignore list
-            }
-            
-            const FForceDirectedNode& NodeB = NodesB[j];
-            
+            if (IgnoreNodeIdsB.Contains(NodeIndexB)) return; // Skip nodes in the ignore list
+
             // Calculate distance between nodes
-            float Dx = NodeA.Position.X - NodeB.Position.X;
-            float Dy = NodeA.Position.Y - NodeB.Position.Y;
+            float Dx = NodeA->Position.X - NodeB->Position.X;
+            float Dy = NodeA->Position.Y - NodeB->Position.Y;
             float DistSq = Dx * Dx + Dy * Dy;
             
             // Avoid division by zero
@@ -100,69 +58,53 @@ void FForceDirectedSolver::CalculateRepulsionForces(const TArray<int>& NodeIdsA,
             
             float Dist = FMath::Sqrt(DistSq);
             // Repulsion force: proportional to average weight, inversely proportional to distance squared
-            float Force = Params.Repulsion * (NodeA.Weight + NodeB.Weight) * 0.5f / DistSq;
+            float Force = Params.Repulsion * (NodeA->Weight + NodeB->Weight) * 0.5f / DistSq;
             
             // Add repulsion force component
             Fx += (Dx / Dist) * Force;
             Fy += (Dy / Dist) * Force;
-        }
-        
-        // Apply forces to velocity of node A
-        NodeA.Velocity.X += Fx;
-        NodeA.Velocity.Y += Fy;
-    }
+        });
+                // Apply forces to velocity of node A
+        NodeA->Velocity.X += Fx;
+        NodeA->Velocity.Y += Fy;
+    });
 }
 
-void FForceDirectedSolver::ResetNodeVelocities(TArray<FForceDirectedNode>& Nodes)
+void FForceDirectedSolver::ResetNodeVelocities(IForceDirectedGraph* Graph)
 {
     // Reset velocities (since we're directly modifying velocity in this implementation)
-    for (FForceDirectedNode& Node : Nodes)
-    {
+    Graph->ForEachNode([this](IForceDirectedGraph*, FForceDirectedNode* Node, int) {
         // Apply damping to velocity
-        Node.Velocity *= Params.Damping;
-    }
+        Node->Velocity *= Params.Damping;
+    });
 }
 
-void FForceDirectedSolver::CalculateNodeForces(const TArray<int>& NodeIds, TArray<FForceDirectedNode>& Nodes, const FVector2D& GraphPosition)
+void FForceDirectedSolver::CalculateCenterGravity(IForceDirectedGraph* Graph, const FVector2D& GraphPosition)
 {
-    float Fx = 0;
-    float Fy = 0;
-
-    // Calculate center gravity and node repulsion
-    for (int32 i = 0; i < NodeIds.Num(); i++)
-    {
-        // NodeIds 就是数组索引
-        int NodeIndex = NodeIds[i];
-        if (NodeIndex < 0 || NodeIndex >= Nodes.Num())
-        {
-            continue; // Skip if index is out of bounds
-        }
-
-        FForceDirectedNode& Node = Nodes[NodeIndex];
-
+    // Calculate center gravity for nodes
+    Graph->ForEachNode([this, &GraphPosition](IForceDirectedGraph*, FForceDirectedNode* Node, int) {
         // Additional gravity toward the graph's position (stronger pull)
-        Fx = (GraphPosition.X - Node.Position.X) * (Params.CenterPull * 2.0f);
-        Fy = (GraphPosition.Y - Node.Position.Y) * (Params.CenterPull * 2.0f);
+        float Fx = (GraphPosition.X - Node->Position.X) * (Params.CenterPull * 2.0f);
+        float Fy = (GraphPosition.Y - Node->Position.Y) * (Params.CenterPull * 2.0f);
 
-        // Node repulsion forces
-        for (int32 j = 0; j < NodeIds.Num(); j++)
-        {
-            if (i == j)
-            {
-                continue; // Skip self
-            }
+        // Apply forces to velocity
+        Node->Velocity.X += Fx;
+        Node->Velocity.Y += Fy;
+    });
+}
 
-            // NodeIds 就是数组索引
-            int OtherNodeIndex = NodeIds[j];
-            if (OtherNodeIndex < 0 || OtherNodeIndex >= Nodes.Num())
-            {
-                continue; // Skip if index is out of bounds
-            }
+void FForceDirectedSolver::CalculateNodeForces(IForceDirectedGraph* Graph)
+{
+    Graph->ForEachNode([&](IForceDirectedGraph*, FForceDirectedNode* Node, int) 
+    {
+        float Fx = 0;
+        float Fy = 0;
 
-            FForceDirectedNode& OtherNode = Nodes[OtherNodeIndex];
-
-            float Dx = Node.Position.X - OtherNode.Position.X;
-            float Dy = Node.Position.Y - OtherNode.Position.Y;
+        Graph->ForEachNode([ &](IForceDirectedGraph*, FForceDirectedNode* OtherNode, int) {
+            if (Node == OtherNode ) return;// Skip self-edges
+            
+            float Dx = Node->Position.X - OtherNode->Position.X;
+            float Dy = Node->Position.Y - OtherNode->Position.Y;
             float DistSq = Dx * Dx + Dy * Dy;
 
             // Avoid division by zero
@@ -175,43 +117,30 @@ void FForceDirectedSolver::CalculateNodeForces(const TArray<int>& NodeIds, TArra
 
             float Dist = FMath::Sqrt(DistSq);
             // Repulsion force: proportional to average weight, inversely proportional to distance squared
-            float Force = Params.Repulsion * (Node.Weight + OtherNode.Weight) * 0.5f / DistSq;
+            float Force = Params.Repulsion * (Node->Weight + OtherNode->Weight) * 0.5f / DistSq;
 
             // Add repulsion force component
             Fx += (Dx / Dist) * Force;
             Fy += (Dy / Dist) * Force;
-        }
+            
+        });
 
-        // Apply forces to velocity
-        Node.Velocity.X += Fx;
-        Node.Velocity.Y += Fy;
-    }
+        Node->Velocity.X += Fx;
+        Node->Velocity.Y += Fy;
+    });
 }
 
-void FForceDirectedSolver::CalculateEdgeForces(const TArray<FForceDirectedEdge>& Edges, TArray<FForceDirectedNode>& Nodes)
+void FForceDirectedSolver::CalculateEdgeForces(IForceDirectedGraph* Graph)
 {
     // Calculate spring forces for edges
-    for (const FForceDirectedEdge& Edge : Edges)
-    {
-        // Edge.SourceId 和 Edge.TargetId 是 NodeIds 数组中的索引
-        int SourceIndex = Edge.SourceId;
-        int TargetIndex = Edge.TargetId;
-
-        if (SourceIndex < 0 || SourceIndex >= Nodes.Num() || TargetIndex < 0 || TargetIndex >= Nodes.Num())
-        {
-            continue; // Skip if indices are out of bounds
-        }
-
-        FForceDirectedNode& Source = Nodes[SourceIndex];
-        FForceDirectedNode& Target = Nodes[TargetIndex];
-
-        float Dx = Target.Position.X - Source.Position.X;
-        float Dy = Target.Position.Y - Source.Position.Y;
+    Graph->ForEachEdge([this](IForceDirectedGraph*, FForceDirectedNode* Source, FForceDirectedNode* Target, int) {
+        float Dx = Target->Position.X - Source->Position.X;
+        float Dy = Target->Position.Y - Source->Position.Y;
         float Dist = FMath::Sqrt(Dx * Dx + Dy * Dy);
 
         if (Dist == 0)
         {
-            continue; // Avoid division by zero
+            return; // Avoid division by zero
         }
 
         // Hooke's Law: F = k * (current length - rest length)
@@ -222,18 +151,93 @@ void FForceDirectedSolver::CalculateEdgeForces(const TArray<FForceDirectedEdge>&
         float Fy1 = (Dy / Dist) * Force;
 
         // Apply spring forces
-        Source.Velocity.X += Fx1;
-        Source.Velocity.Y += Fy1;
-        Target.Velocity.X -= Fx1;
-        Target.Velocity.Y -= Fy1;
+        Source->Velocity.X += Fx1;
+        Source->Velocity.Y += Fy1;
+        Target->Velocity.X -= Fx1;
+        Target->Velocity.Y -= Fy1;
+    });
+}
+
+void FForceDirectedSolver::CalculateEdgeMidpointRepulsion(IForceDirectedGraph* Graph)
+{
+    const int32 EdgeNum = Graph->GetEdgeNum();
+    if (EdgeNum < 2)
+    {
+        return; // No need to calculate repulsion with less than 2 edges
+    }
+
+    // First, collect all edge midpoints and their endpoints
+    TArray<FVector2D> Midpoints;
+    TArray<TTuple<FForceDirectedNode*, FForceDirectedNode*>> EdgeEndpoints;
+    
+    Midpoints.Reserve(EdgeNum);
+    EdgeEndpoints.Reserve(EdgeNum);
+    
+    Graph->ForEachEdge([&](IForceDirectedGraph*, FForceDirectedNode* Source, FForceDirectedNode* Target, int) 
+    {
+        // Calculate midpoint
+        FVector2D Midpoint(
+            (Source->Position.X + Target->Position.X) * 0.5f,
+            (Source->Position.Y + Target->Position.Y) * 0.5f
+        );
+        
+        Midpoints.Add(Midpoint);
+        EdgeEndpoints.Emplace(Source, Target);
+    });
+
+    // Now calculate repulsion between midpoints
+    const int32 ValidEdgeNum = Midpoints.Num();
+    for (int32 i = 0; i < ValidEdgeNum; i++)
+    {
+        const FVector2D& MidpointA = Midpoints[i];
+        FForceDirectedNode* SourceA = EdgeEndpoints[i].Get<0>();
+        FForceDirectedNode* TargetA = EdgeEndpoints[i].Get<1>();
+        
+        for (int32 j = i + 1; j < ValidEdgeNum; j++)
+        {
+            const FVector2D& MidpointB = Midpoints[j];
+            
+            float Dx = MidpointA.X - MidpointB.X;
+            float Dy = MidpointA.Y - MidpointB.Y;
+            float DistSq = Dx * Dx + Dy * Dy;
+            
+            // Avoid division by zero
+            if (DistSq < 0.01f)
+            {
+                DistSq = 0.01f;
+            }
+            
+            float Dist = FMath::Sqrt(DistSq);
+            
+            // Repulsion force: inversely proportional to distance squared
+            float Force = Params.Repulsion * 0.5f / DistSq;
+            
+            // Calculate force components
+            float Fx = (Dx / Dist) * Force;
+            float Fy = (Dy / Dist) * Force;
+            
+            // Apply half of the force to each endpoint of edge A
+            SourceA->Velocity.X += Fx * 0.5f;
+            SourceA->Velocity.Y += Fy * 0.5f;
+            TargetA->Velocity.X += Fx * 0.5f;
+            TargetA->Velocity.Y += Fy * 0.5f;
+            
+            // Apply opposite force to endpoints of edge B
+            FForceDirectedNode* SourceB = EdgeEndpoints[j].Get<0>();
+            FForceDirectedNode* TargetB = EdgeEndpoints[j].Get<1>();
+            
+            SourceB->Velocity.X -= Fx * 0.5f;
+            SourceB->Velocity.Y -= Fy * 0.5f;
+            TargetB->Velocity.X -= Fx * 0.5f;
+            TargetB->Velocity.Y -= Fy * 0.5f;
+        }
     }
 }
 
-void FForceDirectedSolver::UpdatePositions(TArray<FForceDirectedNode>& Nodes, float DeltaTime)
+void FForceDirectedSolver::UpdatePositions(IForceDirectedGraph* Graph, float DeltaTime)
 {
-    for (FForceDirectedNode& Node : Nodes)
-    {
+    Graph->ForEachNode([DeltaTime](IForceDirectedGraph*, FForceDirectedNode* Node, int) {
         // Update position based on velocity
-        Node.Position += Node.Velocity * DeltaTime;
-    }
+        Node->Position += Node->Velocity * DeltaTime;
+    });
 }
