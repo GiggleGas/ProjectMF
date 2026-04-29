@@ -11,7 +11,6 @@ public:
     FWorldSimGraph(FWorldSimNodeManager& NodeManager) : Manager(NodeManager) {};
     ~FWorldSimGraph() {};
 
-    FWorldSimNodeManager& Manager;
 
     FString Id;
     int Index;
@@ -35,6 +34,7 @@ public:
 
     // 
     FForceDirectedNode FDNode;
+    FWorldSimNodeManager& Manager;
 
 
 

@@ -136,7 +136,7 @@ bool FWorldSimNodeManager::AddExternalLink(const FString& Node1Id, const FString
     FWorldSimGraph& Node1 = Nodes[Node1Index];
     FWorldSimGraph& Node2 = Nodes[Node2Index];
     
-    if(Node1.ParentIndex != Node2.ParentIndex)
+    if(Node1.ParentIndex == Node2.ParentIndex)
     {
         return false;
     }
