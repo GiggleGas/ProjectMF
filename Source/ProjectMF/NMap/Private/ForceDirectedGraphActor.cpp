@@ -25,6 +25,7 @@ void AForceDirectedGraphActor::BeginPlay()
     Params.SpringStrength = SpringStrength;
     Params.SpringLength = SpringLength;
     Params.Damping = Damping;
+    Params.EdgeRepulsion = EdgeRepulsion;
     WorldSim.SetForceDirectedParams(Params);
     
     // Set canvas size
@@ -55,7 +56,7 @@ void AForceDirectedGraphActor::Tick(float DeltaTime)
 
     // Update force-directed graphs using WorldSim
     FVector2D GraphPosition = FVector2D(CanvasWidth / 2.0f, CanvasHeight / 2.0f);
-    WorldSim.UpdateForceDirectedGraphs(DeltaTime, GraphPosition);
+    WorldSim.UpdateForceDirectedGraphs(DeltaTime, GraphPosition, UpdateMode);
     
     // Draw the graph to the render target
     DrawToRenderTarget();

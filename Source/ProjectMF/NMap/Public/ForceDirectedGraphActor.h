@@ -43,7 +43,13 @@ public:
     float Damping = 0.9f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Force Directed Graph")
+    float EdgeRepulsion = 1.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Force Directed Graph")
     float Scale = 1.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Force Directed Graph")
+    EWorldSimUpdateMode UpdateMode = EWorldSimUpdateMode::FullUpdate;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Force Directed Graph")
     UTextureRenderTarget2D* RenderTarget;

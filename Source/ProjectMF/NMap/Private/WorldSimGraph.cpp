@@ -136,7 +136,7 @@ bool FWorldSimNodeManager::AddExternalLink(const FString& Node1Id, const FString
     FWorldSimGraph& Node1 = Nodes[Node1Index];
     FWorldSimGraph& Node2 = Nodes[Node2Index];
     
-    if(Node1.ParentIndex == Node2.ParentIndex)
+    if(Node1.ParentIndex==-1|| Node2.ParentIndex==-1|| Node1.ParentIndex == Node2.ParentIndex)
     {
         return false;
     }
@@ -152,6 +152,8 @@ bool FWorldSimNodeManager::AddExternalLink(const FString& Node1Id, const FString
     Node1.ExternalLinksIndex.Add(Node2Index);
     Node2.ExternalLinksIndex.Add(Node1Index);
 
+    Nodes[Node1.ParentIndex].ChildrenExternalLinkCount++;
+    Nodes[Node2.ParentIndex].ChildrenExternalLinkCount++;
     return true;
 }
 
@@ -174,12 +176,15 @@ void FWorldSimNodeManager::ClearNodeLinks(const FString& NodeId)
     }
     Node.InternalLinksIndex.Empty();
 
+    if (Node.ParentIndex == -1|| Node.ExternalLinksIndex.IsEmpty()) return;
     // 清除该节点的所有外部链接
     for (int LinkedIndex : Node.ExternalLinksIndex)
     {
         // 从链接的节点中移除对当前节点的引用
         Nodes[LinkedIndex].ExternalLinksIndex.Remove(NodeIndex);
+        Nodes[Nodes[LinkedIndex].ParentIndex].ChildrenExternalLinkCount--;
     }
+    Nodes[Node.ParentIndex].ChildrenExternalLinkCount -= Node.ExternalLinksIndex.Num();
     Node.ExternalLinksIndex.Empty();
 }
 
@@ -240,52 +245,254 @@ const FForceDirectedNode* FWorldSimGraph::GetNodeAt(int NodeIndex) const
 }
 
 // IForceDirectedGraph interface implementation
-void FWorldSimGraph::ForEachNode(TFunction<void(IForceDirectedGraph*, FForceDirectedNode*, int)> Func)
-{
-    for (int i = 0; i < ChildrenIndex.Num(); i++)
-    {
-        FWorldSimGraph& Node =Manager.Nodes[ ChildrenIndex[i]];
-        Func(this, &Node.FDNode, i);
-    }
-}
-
-void FWorldSimGraph::ForEachNode(TFunction<void(const IForceDirectedGraph*, const FForceDirectedNode*, int)> Func) const
+void FWorldSimGraph::ForEachNode(TFunction<void(IForceDirectedGraph*, FForceDirectedNode*, const FForceDirectedNodeInfo&)> Func)
 {
     for (int i = 0; i < ChildrenIndex.Num(); i++)
     {
         FWorldSimGraph& Node = Manager.Nodes[ChildrenIndex[i]];
-        Func(this, &Node.FDNode, i);
+        FForceDirectedNodeInfo NodeInfo;
+        NodeInfo.NodeIndex = i;
+        if(Node.ChildrenIndex.Num()>0)
+        {
+            NodeInfo.CenterGravityScale = Node.ChildrenExternalLinkCount/3.f;
+        }
+        else
+        {
+            NodeInfo.CenterGravityScale = FMath::Max(0, Node.InternalLinksIndex.Num() - Node.ExternalLinksIndex.Num() / 2);
+        }
+        Func(this, &Node.FDNode, NodeInfo);
+    }
+}
+
+void FWorldSimGraph::ForEachNode(TFunction<void(const IForceDirectedGraph*, const FForceDirectedNode*, const FForceDirectedNodeInfo&)> Func) const
+{
+    for (int i = 0; i < ChildrenIndex.Num(); i++)
+    {
+        const FWorldSimGraph& Node = Manager.Nodes[ChildrenIndex[i]];
+        FForceDirectedNodeInfo NodeInfo;
+        NodeInfo.NodeIndex = i;
+        if (Node.ChildrenIndex.Num() > 0)
+        {
+            NodeInfo.CenterGravityScale = Node.ChildrenExternalLinkCount/3.f;
+        }
+        else
+        {
+            NodeInfo.CenterGravityScale = FMath::Max(0, Node.InternalLinksIndex.Num() - Node.ExternalLinksIndex.Num() / 2);
+        }
+        Func(this, &Node.FDNode, NodeInfo);
     }
 }
 
 // IForceDirectedGraph interface implementation
-void FWorldSimGraph::ForEachEdge(TFunction<void(IForceDirectedGraph*, FForceDirectedNode*, FForceDirectedNode*, int)> Func)
+void FWorldSimGraph::ForEachEdge(TFunction<void(IForceDirectedGraph*, FForceDirectedNode*, FForceDirectedNode*, const FForceDirectedEdgeInfo&)> Func)
 {
     int index = 0;
+    FForceDirectedEdgeInfo EdgeInfo;
 
     for (auto i : ChildrenIndex)
     {
         FWorldSimGraph& snode = Manager.Nodes[i];
+
+        // edge of self
+        EdgeInfo.EdgeStrength = 1.0f; // Default edge strength
+        EdgeInfo.EdgeLengthScale = 1.0f; // Default edge length scale
         for (auto j : snode.InternalLinksIndex)
         {
-            FWorldSimGraph&tnode= Manager.Nodes[j];
-            Func(this, &snode.FDNode, &tnode.FDNode, index);
+            FWorldSimGraph& tnode = Manager.Nodes[j];
+            EdgeInfo.EdgeIndex = index;
+            Func(this, &snode.FDNode, &tnode.FDNode, EdgeInfo);
             ++index;
+        }
+
+        // edge of ExternalLinks
+        EdgeInfo.EdgeStrength = 50.0f; // Default edge strength
+        EdgeInfo.EdgeLengthScale = 1.0f; // Default edge length scale
+        for(auto j : snode.ExternalLinksIndex)
+        {
+            FWorldSimGraph& tnode = Manager.Nodes[j];
+            EdgeInfo.EdgeIndex = index;
+            Func(this, &snode.FDNode, &tnode.FDNode, EdgeInfo);
+            ++index;
+        }
+
+        // edge for children's ExternalLinks
+        EdgeInfo.EdgeStrength = 5.0f; // Default edge strength
+        EdgeInfo.EdgeLengthScale = 5.0f; // Default edge length scale
+        for (auto c : snode.ChildrenIndex) // self->s->c
+        {
+            FWorldSimGraph& cnode = Manager.Nodes[c];
+            for (auto k : cnode.ExternalLinksIndex)
+            {
+                FWorldSimGraph& knode = Manager.Nodes[k]; // self->s->c .. k
+                if (ChildrenIndex.Find(knode.ParentIndex)) // self->s->c .. k<-xx<-self
+                {
+                    FWorldSimGraph& xnode = Manager.Nodes[knode.ParentIndex];
+                    EdgeInfo.EdgeIndex = index;
+                    Func(this, &snode.FDNode, &xnode.FDNode, EdgeInfo);
+                    ++index;
+                }
+            }
+        }
+
+    }
+}
+
+void FWorldSimGraph::ForEachEdge(TFunction<void(const IForceDirectedGraph*, const FForceDirectedNode*, const FForceDirectedNode*, const FForceDirectedEdgeInfo&)> Func) const
+{
+    int index = 0;
+    FForceDirectedEdgeInfo EdgeInfo;
+
+    for (auto i : ChildrenIndex)
+    {
+        const FWorldSimGraph& snode = Manager.Nodes[i];
+
+        // edge of self
+        EdgeInfo.EdgeStrength = 1.0f; // Default edge strength
+        EdgeInfo.EdgeLengthScale = 1.0f; // Default edge length scale
+        for (auto j : snode.InternalLinksIndex)
+        {
+            const FWorldSimGraph& tnode = Manager.Nodes[j];
+            EdgeInfo.EdgeIndex = index;
+            Func(this, &snode.FDNode, &tnode.FDNode, EdgeInfo);
+            ++index;
+        }
+
+        // edge of ExternalLinks
+        EdgeInfo.EdgeStrength = 50.0f; // Default edge strength
+        EdgeInfo.EdgeLengthScale = 1.0f; // Default edge length scale
+        for (auto j : snode.ExternalLinksIndex)
+        {
+            const FWorldSimGraph& tnode = Manager.Nodes[j];
+            EdgeInfo.EdgeIndex = index;
+            Func(this, &snode.FDNode, &tnode.FDNode, EdgeInfo);
+            ++index;
+        }
+
+        // edge for children's ExternalLinks
+        EdgeInfo.EdgeStrength = 1.0f; // Default edge strength
+        EdgeInfo.EdgeLengthScale = 5.0f; // Default edge length scale
+        for (auto c : snode.ChildrenIndex) // self->s->c
+        {
+            const FWorldSimGraph& cnode = Manager.Nodes[c];
+            for (auto k : cnode.ExternalLinksIndex)
+            {
+                const FWorldSimGraph& knode = Manager.Nodes[k]; // self->s->c .. k
+                if (ChildrenIndex.Find(knode.ParentIndex)) // self->s->c .. k<-xx<-self
+                {
+                    const FWorldSimGraph& xnode = Manager.Nodes[knode.ParentIndex];
+                    EdgeInfo.EdgeIndex = index;
+                    Func(this, &snode.FDNode, &xnode.FDNode, EdgeInfo);
+                    ++index;
+                }
+            }
         }
     }
 }
 
-void FWorldSimGraph::ForEachEdge(TFunction<void(const IForceDirectedGraph*, const FForceDirectedNode*, const FForceDirectedNode*, int)> Func) const
+// Iterate over all edges of a specific node
+void FWorldSimGraph::ForEachEdgeOfNode(int NodeIndex, TFunction<void(IForceDirectedGraph*, FForceDirectedNode*, FForceDirectedNode*, const FForceDirectedEdgeInfo&)> Func)
 {
-    int index = 0;
-    for (auto i : ChildrenIndex)
+    if (NodeIndex < 0 || NodeIndex >= ChildrenIndex.Num())
     {
-        FWorldSimGraph& snode = Manager.Nodes[i];
-        for (auto j : snode.InternalLinksIndex)
+        return;
+    }
+
+    int index = 0;
+    FForceDirectedEdgeInfo EdgeInfo;
+    FWorldSimGraph& snode = Manager.Nodes[ChildrenIndex[NodeIndex]];
+
+    // edge of self (InternalLinks)
+    EdgeInfo.EdgeStrength = 1.0f;
+    EdgeInfo.EdgeLengthScale = 1.0f;
+    for (auto j : snode.InternalLinksIndex)
+    {
+        FWorldSimGraph& tnode = Manager.Nodes[j];
+        EdgeInfo.EdgeIndex = index;
+        Func(this, &snode.FDNode, &tnode.FDNode, EdgeInfo);
+        ++index;
+    }
+
+    // edge of ExternalLinks
+    EdgeInfo.EdgeStrength = 5.0f;
+    EdgeInfo.EdgeLengthScale = 1.0f;
+    for (auto j : snode.ExternalLinksIndex)
+    {
+        FWorldSimGraph& tnode = Manager.Nodes[j];
+        EdgeInfo.EdgeIndex = index;
+        Func(this, &snode.FDNode, &tnode.FDNode, EdgeInfo);
+        ++index;
+    }
+
+    // edge for children's ExternalLinks
+    EdgeInfo.EdgeStrength = 5.0f;
+    EdgeInfo.EdgeLengthScale = 5.0f;
+    for (auto c : snode.ChildrenIndex)
+    {
+        FWorldSimGraph& cnode = Manager.Nodes[c];
+        for (auto k : cnode.ExternalLinksIndex)
         {
-            FWorldSimGraph&tnode= Manager.Nodes[j];
-            Func(this, &snode.FDNode, &tnode.FDNode, index);
-            ++index;
+            FWorldSimGraph& knode = Manager.Nodes[k];
+            if (ChildrenIndex.Find(knode.ParentIndex))
+            {
+                FWorldSimGraph& xnode = Manager.Nodes[knode.ParentIndex];
+                EdgeInfo.EdgeIndex = index;
+                Func(this, &snode.FDNode, &xnode.FDNode, EdgeInfo);
+                ++index;
+            }
+        }
+    }
+}
+
+// Const version
+void FWorldSimGraph::ForEachEdgeOfNode(int NodeIndex, TFunction<void(const IForceDirectedGraph*, const FForceDirectedNode*, const FForceDirectedNode*, const FForceDirectedEdgeInfo&)> Func) const
+{
+    if (NodeIndex < 0 || NodeIndex >= ChildrenIndex.Num())
+    {
+        return;
+    }
+
+    int index = 0;
+    FForceDirectedEdgeInfo EdgeInfo;
+    const FWorldSimGraph& snode = Manager.Nodes[ChildrenIndex[NodeIndex]];
+
+    // edge of self (InternalLinks)
+    EdgeInfo.EdgeStrength = 1.0f;
+    EdgeInfo.EdgeLengthScale = 1.0f;
+    for (auto j : snode.InternalLinksIndex)
+    {
+        const FWorldSimGraph& tnode = Manager.Nodes[j];
+        EdgeInfo.EdgeIndex = index;
+        Func(this, &snode.FDNode, &tnode.FDNode, EdgeInfo);
+        ++index;
+    }
+
+    // edge of ExternalLinks
+    EdgeInfo.EdgeStrength = 5.0f;
+    EdgeInfo.EdgeLengthScale = 1.0f;
+    for (auto j : snode.ExternalLinksIndex)
+    {
+        const FWorldSimGraph& tnode = Manager.Nodes[j];
+        EdgeInfo.EdgeIndex = index;
+        Func(this, &snode.FDNode, &tnode.FDNode, EdgeInfo);
+        ++index;
+    }
+
+    // edge for children's ExternalLinks
+    EdgeInfo.EdgeStrength = 5.0f;
+    EdgeInfo.EdgeLengthScale = 5.0f;
+    for (auto c : snode.ChildrenIndex)
+    {
+        const FWorldSimGraph& cnode = Manager.Nodes[c];
+        for (auto k : cnode.ExternalLinksIndex)
+        {
+            const FWorldSimGraph& knode = Manager.Nodes[k];
+            if (ChildrenIndex.Find(knode.ParentIndex))
+            {
+                const FWorldSimGraph& xnode = Manager.Nodes[knode.ParentIndex];
+                EdgeInfo.EdgeIndex = index;
+                Func(this, &snode.FDNode, &xnode.FDNode, EdgeInfo);
+                ++index;
+            }
         }
     }
 }

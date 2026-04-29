@@ -13,10 +13,10 @@ public:
 
 
     FString Id;
-    int Index;
+    int Index=0;
 
     // graph
-    int ParentIndex;
+    int ParentIndex=-1;
     TArray<int>ChildrenIndex;
 
     // data
@@ -28,7 +28,7 @@ public:
     //
     TArray<int> InternalLinksIndex;
     TArray<int> ExternalLinksIndex;
-
+    int ChildrenExternalLinkCount=0;
     // Returns total edge count (internal + external)
     int GetEdgeCount() const;
 
@@ -44,10 +44,12 @@ public:
     FForceDirectedNode* GetNodeAt(int NodeIndex) override;
     const FForceDirectedNode* GetNodeAt(int NodeIndex) const override;
     const int GetEdgeNumOfNodeAt(int NodeIndex) const override;
-    void ForEachNode(TFunction<void(IForceDirectedGraph*, FForceDirectedNode*, int)> Func) override;
-    void ForEachNode(TFunction<void(const IForceDirectedGraph*, const FForceDirectedNode*, int)> Func) const override;
-    void ForEachEdge(TFunction<void(IForceDirectedGraph*, FForceDirectedNode*, FForceDirectedNode*, int)> Func) override;
-    void ForEachEdge(TFunction<void(const IForceDirectedGraph*, const FForceDirectedNode*, const FForceDirectedNode*, int)> Func) const override;
+    void ForEachNode(TFunction<void(IForceDirectedGraph*, FForceDirectedNode*, const FForceDirectedNodeInfo&)> Func) override;
+    void ForEachNode(TFunction<void(const IForceDirectedGraph*, const FForceDirectedNode*, const FForceDirectedNodeInfo&)> Func) const override;
+    void ForEachEdge(TFunction<void(IForceDirectedGraph*, FForceDirectedNode*, FForceDirectedNode*, const FForceDirectedEdgeInfo&)> Func) override;
+    void ForEachEdge(TFunction<void(const IForceDirectedGraph*, const FForceDirectedNode*, const FForceDirectedNode*, const FForceDirectedEdgeInfo&)> Func) const override;
+    void ForEachEdgeOfNode(int NodeIndex, TFunction<void(IForceDirectedGraph*, FForceDirectedNode*, FForceDirectedNode*, const FForceDirectedEdgeInfo&)> Func) override;
+    void ForEachEdgeOfNode(int NodeIndex, TFunction<void(const IForceDirectedGraph*, const FForceDirectedNode*, const FForceDirectedNode*, const FForceDirectedEdgeInfo&)> Func) const override;
     
     // simnode
 

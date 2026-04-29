@@ -13,14 +13,20 @@ struct FForceDirectedNode
 };
 
 
-/*
-// Edge structure for the solver
-struct FForceDirectedEdge
+// Structure for ForEachNode callback parameters
+struct FForceDirectedNodeInfo
 {
-    int SourceId;
-    int TargetId;
+    int NodeIndex;
+    float CenterGravityScale;
 };
-*/
+
+// Structure for ForEachEdge callback parameters
+struct FForceDirectedEdgeInfo
+{
+    int EdgeIndex;
+    float EdgeStrength;
+    float EdgeLengthScale; // Scale factor for spring length calculation
+};
 
 class IForceDirectedGraph
 {
@@ -43,29 +49,34 @@ public:
     virtual const int GetEdgeNumOfNodeAt(int NodeIndex) const = 0;
     
     // Iterate over all nodes, calling the provided function for each node
-    // Function signature: void(IForceDirectedGraph*, FForceDirectedNode*, int)
-    virtual void ForEachNode(TFunction<void(IForceDirectedGraph*, FForceDirectedNode*, int)> Func) = 0;
+    virtual void ForEachNode(TFunction<void(IForceDirectedGraph*, FForceDirectedNode*, const FForceDirectedNodeInfo&)> Func) = 0;
     
     // Const version
-    virtual void ForEachNode(TFunction<void(const IForceDirectedGraph*, const FForceDirectedNode*, int)> Func) const = 0;
+    virtual void ForEachNode(TFunction<void(const IForceDirectedGraph*, const FForceDirectedNode*, const FForceDirectedNodeInfo&)> Func) const = 0;
     
     // Iterate over all edges, calling the provided function for each edge
-    // Function signature: void(IForceDirectedGraph*, FForceDirectedNode*, FForceDirectedNode*, int)
-    virtual void ForEachEdge(TFunction<void(IForceDirectedGraph*, FForceDirectedNode*, FForceDirectedNode*, int)> Func) = 0;
+    virtual void ForEachEdge(TFunction<void(IForceDirectedGraph*, FForceDirectedNode*, FForceDirectedNode*, const FForceDirectedEdgeInfo&)> Func) = 0;
     
     // Const version
-    virtual void ForEachEdge(TFunction<void(const IForceDirectedGraph*, const FForceDirectedNode*, const FForceDirectedNode*, int)> Func) const = 0;
+    virtual void ForEachEdge(TFunction<void(const IForceDirectedGraph*, const FForceDirectedNode*, const FForceDirectedNode*, const FForceDirectedEdgeInfo&)> Func) const = 0;
+    
+    // Iterate over all edges of a specific node, calling the provided function for each edge
+    virtual void ForEachEdgeOfNode(int NodeIndex, TFunction<void(IForceDirectedGraph*, FForceDirectedNode*, FForceDirectedNode*, const FForceDirectedEdgeInfo&)> Func) = 0;
+    
+    // Const version
+    virtual void ForEachEdgeOfNode(int NodeIndex, TFunction<void(const IForceDirectedGraph*, const FForceDirectedNode*, const FForceDirectedNode*, const FForceDirectedEdgeInfo&)> Func) const = 0;
 };
 
 
 // Force-directed parameters struct
 struct FForceDirectedParams
 {
-    float CenterPull;    // Strength of center gravity
-    float Repulsion;      // Strength of node repulsion
-    float SpringStrength; // Strength of spring force
-    float SpringLength;   // Desired edge length
-    float Damping;         // Damping factor
+    float CenterPull;        // Strength of center gravity
+    float Repulsion;          // Strength of node repulsion
+    float SpringStrength;     // Strength of spring force
+    float SpringLength;       // Desired edge length
+    float Damping;             // Damping factor
+    float EdgeRepulsion;       // Strength of edge repulsion (to spread out edges connected to the same node)
 
     // Constructor with default values
     FForceDirectedParams()
@@ -74,6 +85,7 @@ struct FForceDirectedParams
         , SpringStrength(0.01f)
         , SpringLength(100.0f)
         , Damping(0.9f)
+        , EdgeRepulsion(1.0f)
     {}
 };
 
@@ -101,14 +113,21 @@ public:
 
     // Update node positions based on forces
     void UpdatePositions(IForceDirectedGraph* Graph, float DeltaTime);
+
+    // Calculate center gravity for nodes
+    void CalculateCenterGravity(IForceDirectedGraph* Graph, const FVector2D& GraphPosition);
+
+    // Apply offset to all nodes' position and velocity
+    void ApplyNodeOffset(IForceDirectedGraph* Graph, const FVector2D& PositionOffset, const FVector2D& VelocityOffset);
+
+    // Calculate edge repulsion forces to spread out edges connected to the same node
+    void CalculateEdgeRepulsion(IForceDirectedGraph* Graph);
 private:
 
 
     // Calculate node forces (center gravity and repulsion)
     void CalculateNodeForces(IForceDirectedGraph* Graph);
     
-    // Calculate center gravity for nodes
-    void CalculateCenterGravity(IForceDirectedGraph* Graph, const FVector2D& GraphPosition);
 
     // Calculate edge forces (spring forces)
     void CalculateEdgeForces(IForceDirectedGraph* Graph);

@@ -24,38 +24,60 @@ FWorldSim::~FWorldSim()
     // Destructor
 }
 
-void FWorldSim::GenerateForceDirectedNodes()
+void FWorldSim::GenerateRandomGraphPositions()
 {
     if (Manager.Nodes.IsEmpty()) return;
 
     const float CenterX = CanvasWidth / 2.0f;
     const float CenterY = CanvasHeight / 2.0f;
     float MinCanvasSize = FMath::Min(CanvasWidth, CanvasHeight);
-    const float MinDistance = MinCanvasSize * 0.3f; // 最小距离中心
+    const float MinDistance = MinCanvasSize * 0.35f; // 最小距离中心
     const float MaxDistance = MinCanvasSize * 0.45f; // 最大距离中心
 
-    for(auto index:Manager.Nodes[0].ChildrenIndex)
+    // 为每个 graph 生成随机位置
+    for (auto index : Manager.Nodes[0].ChildrenIndex)
     {
-        FWorldSimGraph& Graph =Manager.Nodes[index];
+        FWorldSimGraph& Graph = Manager.Nodes[index];
+        FForceDirectedNode& FDNode = Graph.FDNode;
 
-        // Graph.FDNode.Position = { CenterX,CenterY };
+        // 随机角度和距离
+        const float Angle = FMath::FRandRange(0.0f, 2.0f * PI);
+        const float Distance = FMath::FRandRange(MinDistance, MaxDistance);
 
-        for(auto& NodeId : Graph.ChildrenIndex)
+        // 转换为笛卡尔坐标
+        const float X = CenterX + FMath::Cos(Angle) * Distance;
+        const float Y = CenterY + FMath::Sin(Angle) * Distance;
+
+        FDNode.Position = FVector2D(FMath::Clamp(X, 50.0f, CanvasWidth - 50.0f), FMath::Clamp(Y, 50.0f, CanvasHeight - 50.0f));
+        FDNode.Velocity = FVector2D(0, 0);
+        FDNode.Weight = 1.0f;
+    }
+}
+
+void FWorldSim::GenerateForceDirectedNodes()
+{
+    if (Manager.Nodes.IsEmpty()) return;
+
+    const float NodeSpread = 100.0f; // node 相对于 graph 的最大偏移距离
+
+    // 为每个 graph 的子节点生成相对于 graph 位置的随机坐标
+    for (auto index : Manager.Nodes[0].ChildrenIndex)
+    {
+        FWorldSimGraph& Graph = Manager.Nodes[index];
+        FVector2D GraphPosition = Graph.FDNode.Position;
+
+        for (auto& NodeId : Graph.ChildrenIndex)
         {
             FWorldSimGraph& Node = Manager.Nodes[NodeId];
-
             FForceDirectedNode& FDNode = Node.FDNode;
-            
-            // 远离中心的随机位置
-            
-            // 随机角度和距离
-            const float Angle = FMath::FRandRange(0.0f, 2.0f * PI);
-            const float Distance = FMath::FRandRange(MinDistance, MaxDistance);
-            
-            // 转换为笛卡尔坐标
-            const float X = CenterX + FMath::Cos(Angle) * Distance;
-            const float Y = CenterY + FMath::Sin(Angle) * Distance;
-            
+
+            // 在 graph 位置附近生成随机偏移
+            const float OffsetX = FMath::FRandRange(-NodeSpread, NodeSpread);
+            const float OffsetY = FMath::FRandRange(-NodeSpread, NodeSpread);
+
+            float X = GraphPosition.X + OffsetX;
+            float Y = GraphPosition.Y + OffsetY;
+
             FDNode.Position = FVector2D(FMath::Clamp(X, 50.0f, CanvasWidth - 50.0f), FMath::Clamp(Y, 50.0f, CanvasHeight - 50.0f));
             FDNode.Velocity = FVector2D(0, 0);
             FDNode.Weight = 1.0f;
@@ -66,7 +88,10 @@ void FWorldSim::GenerateForceDirectedNodes()
 
 void FWorldSim::GenerateForceDirectedData()
 {
-    // 生成 ForceDirectedNode 数组
+    // 先随机生成 graph 的坐标
+    GenerateRandomGraphPositions();
+    
+    // 再根据 graph 坐标生成 node 坐标
     GenerateForceDirectedNodes();
     
     // 初始化模拟graph数据的node数组
@@ -105,7 +130,7 @@ void FWorldSim::InitializeGraphNodes()
         }
 
         // 设置重量为所有node的和
-        FDNode.Weight = TotalWeight;
+        FDNode.Weight = TotalWeight/2;
     }
 }
 
@@ -149,45 +174,88 @@ void FWorldSim::SetCanvasSize(float Width, float Height)
     Solver.SetCanvasSize(Width, Height);
 }
 
-void FWorldSim::UpdateForceDirectedGraphs(float DeltaTime, const FVector2D& GraphPosition)
+void FWorldSim::UpdateForceDirectedGraphs(float DeltaTime, const FVector2D& GraphPosition, EWorldSimUpdateMode UpdateMode)
 {
-
-    // update graph nodes
-    //Solver.ResetNodeVelocities(GraphNodes);
-    //Solver.CalculateForces(GraphIds, GraphNodes, {}, GraphPosition);
-    //Solver.UpdatePositions(GraphNodes, DeltaTime);
-
-    // 重置节点速度
-
     if (Manager.Nodes.IsEmpty()) return;
-    for (auto index : Manager.Nodes[0].ChildrenIndex)
+
+    switch (UpdateMode)
     {
-        FWorldSimGraph& Graph = Manager.Nodes[index];
-        Solver.ResetNodeVelocities(  &Graph);
-    }
-    
-    // 遍历所有力导向图，计算力
-    for (int i=0;i<Manager.Nodes[0].ChildrenIndex.Num();++i)
+    case EWorldSimUpdateMode::FullUpdate:
     {
-        int index = Manager.Nodes[0].ChildrenIndex[i];
-        FWorldSimGraph& Graph = Manager.Nodes[index];
-        // 计算力
-        Solver.CalculateForces(&Graph, Graph.FDNode.Position);
-        // 计算 repulsion force ,from other graph nodes
-        Solver.CalculateRepulsionForces(&Graph, &Manager.Nodes[0], { i });
+        // FullUpdate: 同时更新 graph 和 node
+
+        // 更新 graph 层
+        Solver.ResetNodeVelocities(&Manager.Nodes[0]);
+        Solver.CalculateForces(&Manager.Nodes[0], GraphPosition);
+        Solver.UpdatePositions(&Manager.Nodes[0], DeltaTime);
+
+        // 将 graph 的速度传递给子节点
+        for (auto index : Manager.Nodes[0].ChildrenIndex)
+        {
+            FWorldSimGraph& Graph = Manager.Nodes[index];
+            Solver.ResetNodeVelocities(&Graph);
+        }
+
+        // 遍历所有力导向图，计算 node 层的力
+        for (int i = 0; i < Manager.Nodes[0].ChildrenIndex.Num(); ++i)
+        {
+            int index = Manager.Nodes[0].ChildrenIndex[i];
+            FWorldSimGraph& Graph = Manager.Nodes[index];
+            Solver.CalculateForces(&Graph, Graph.FDNode.Position);
+            Solver.CalculateRepulsionForces(&Graph, &Manager.Nodes[0], { i });
+        }
+
+        // 更新 node 层位置
+        for (auto index : Manager.Nodes[0].ChildrenIndex)
+        {
+            FWorldSimGraph& Graph = Manager.Nodes[index];
+            Solver.UpdatePositions(&Graph, DeltaTime);
+        }
+
+        // 更新 graph nodes 的位置（根据子节点平均位置）
+        UpdateGraphNodes();
+        break;
     }
-    
-    // 更新位置
-    if (Manager.Nodes.IsEmpty()) return;
-    for (auto index : Manager.Nodes[0].ChildrenIndex)
+    case EWorldSimUpdateMode::GraphOnly:
     {
-        FWorldSimGraph& Graph = Manager.Nodes[index];
-        Solver.UpdatePositions(&Graph, DeltaTime);
+        // GraphOnly: 只更新 graph，node 跟随 graph 移动
+
+        // 更新 graph 层
+        Solver.ResetNodeVelocities(&Manager.Nodes[0]);
+        Solver.CalculateForces(&Manager.Nodes[0], GraphPosition);
+        Solver.UpdatePositions(&Manager.Nodes[0], DeltaTime);
+
+        // 将 graph 的位移应用到子节点
+        for (auto index : Manager.Nodes[0].ChildrenIndex)
+        {
+            FWorldSimGraph& Graph = Manager.Nodes[index];
+            FVector2D Delta = Graph.FDNode.Velocity * DeltaTime;
+            
+            // 子节点跟随 graph 移动
+            Solver.ApplyNodeOffset(&Graph, Delta, {});
+        }
+        break;
     }
-    
-    // 更新graph nodes的位置
-    UpdateGraphNodes();
-    
+    case EWorldSimUpdateMode::NodeOnly:
+    {
+        // NodeOnly: 只更新 node，不更新 graph
+
+        // 遍历所有力导向图，计算 node 层的力
+        for (int i = 0; i < Manager.Nodes[0].ChildrenIndex.Num(); ++i)
+        {
+            int index = Manager.Nodes[0].ChildrenIndex[i];
+            FWorldSimGraph& Graph = Manager.Nodes[index];
+            Solver.ResetNodeVelocities(&Graph);
+            Solver.CalculateForces(&Graph, Graph.FDNode.Position);
+            Solver.CalculateRepulsionForces(&Graph, &Manager.Nodes[0], { i });
+            Solver.UpdatePositions(&Graph, DeltaTime);
+        }
+
+        // 更新 graph nodes 的位置（根据子节点平均位置）
+        // UpdateGraphNodes();
+        break;
+    }
+    }
 }
 
 bool FWorldSim::AddLink(const FString& Node1Id, const FString& Node2Id)

@@ -29,19 +29,22 @@ void FForceDirectedSolver::CalculateForces(IForceDirectedGraph* Graph, const FVe
     
     // Calculate edge midpoint repulsion
     CalculateEdgeMidpointRepulsion(Graph);
+
+    // Calculate edge repulsion forces
+    CalculateEdgeRepulsion(Graph);
 }
 
 
 void FForceDirectedSolver::CalculateRepulsionForces(IForceDirectedGraph* GraphA, IForceDirectedGraph* GraphB, const TArray<int>& IgnoreNodeIdsB)
 {
 
-    GraphA->ForEachNode([&](IForceDirectedGraph*, FForceDirectedNode* NodeA, int) 
+    GraphA->ForEachNode([&](IForceDirectedGraph*, FForceDirectedNode* NodeA, const FForceDirectedNodeInfo&) 
     {
         float Fx = 0;
         float Fy = 0;
-        GraphB->ForEachNode([&](IForceDirectedGraph*, FForceDirectedNode* NodeB, int NodeIndexB) 
+        GraphB->ForEachNode([&](IForceDirectedGraph*, FForceDirectedNode* NodeB, const FForceDirectedNodeInfo& NodeInfoB) 
         {
-            if (IgnoreNodeIdsB.Contains(NodeIndexB)) return; // Skip nodes in the ignore list
+            if (IgnoreNodeIdsB.Contains(NodeInfoB.NodeIndex)) return; // Skip nodes in the ignore list
 
             // Calculate distance between nodes
             float Dx = NodeA->Position.X - NodeB->Position.X;
@@ -73,7 +76,7 @@ void FForceDirectedSolver::CalculateRepulsionForces(IForceDirectedGraph* GraphA,
 void FForceDirectedSolver::ResetNodeVelocities(IForceDirectedGraph* Graph)
 {
     // Reset velocities (since we're directly modifying velocity in this implementation)
-    Graph->ForEachNode([this](IForceDirectedGraph*, FForceDirectedNode* Node, int) {
+    Graph->ForEachNode([this](IForceDirectedGraph*, FForceDirectedNode* Node, const FForceDirectedNodeInfo&) {
         // Apply damping to velocity
         Node->Velocity *= Params.Damping;
     });
@@ -82,10 +85,10 @@ void FForceDirectedSolver::ResetNodeVelocities(IForceDirectedGraph* Graph)
 void FForceDirectedSolver::CalculateCenterGravity(IForceDirectedGraph* Graph, const FVector2D& GraphPosition)
 {
     // Calculate center gravity for nodes
-    Graph->ForEachNode([this, &GraphPosition](IForceDirectedGraph*, FForceDirectedNode* Node, int) {
-        // Additional gravity toward the graph's position (stronger pull)
-        float Fx = (GraphPosition.X - Node->Position.X) * (Params.CenterPull * 2.0f);
-        float Fy = (GraphPosition.Y - Node->Position.Y) * (Params.CenterPull * 2.0f);
+    Graph->ForEachNode([this, &GraphPosition](IForceDirectedGraph*, FForceDirectedNode* Node, const FForceDirectedNodeInfo& NodeInfo) {
+        // Additional gravity toward the graph's position (stronger pull based on CenterGravityScale)
+        float Fx = (GraphPosition.X - Node->Position.X) * (Params.CenterPull * 2.0f) * NodeInfo.CenterGravityScale;
+        float Fy = (GraphPosition.Y - Node->Position.Y) * (Params.CenterPull * 2.0f) * NodeInfo.CenterGravityScale;
 
         // Apply forces to velocity
         Node->Velocity.X += Fx;
@@ -95,12 +98,12 @@ void FForceDirectedSolver::CalculateCenterGravity(IForceDirectedGraph* Graph, co
 
 void FForceDirectedSolver::CalculateNodeForces(IForceDirectedGraph* Graph)
 {
-    Graph->ForEachNode([&](IForceDirectedGraph*, FForceDirectedNode* Node, int) 
+    Graph->ForEachNode([&](IForceDirectedGraph*, FForceDirectedNode* Node, const FForceDirectedNodeInfo&) 
     {
         float Fx = 0;
         float Fy = 0;
 
-        Graph->ForEachNode([ &](IForceDirectedGraph*, FForceDirectedNode* OtherNode, int) {
+        Graph->ForEachNode([ &](IForceDirectedGraph*, FForceDirectedNode* OtherNode, const FForceDirectedNodeInfo&) {
             if (Node == OtherNode ) return;// Skip self-edges
             
             float Dx = Node->Position.X - OtherNode->Position.X;
@@ -133,7 +136,7 @@ void FForceDirectedSolver::CalculateNodeForces(IForceDirectedGraph* Graph)
 void FForceDirectedSolver::CalculateEdgeForces(IForceDirectedGraph* Graph)
 {
     // Calculate spring forces for edges
-    Graph->ForEachEdge([this](IForceDirectedGraph*, FForceDirectedNode* Source, FForceDirectedNode* Target, int) {
+    Graph->ForEachEdge([this](IForceDirectedGraph*, FForceDirectedNode* Source, FForceDirectedNode* Target, const FForceDirectedEdgeInfo& EdgeInfo) {
         float Dx = Target->Position.X - Source->Position.X;
         float Dy = Target->Position.Y - Source->Position.Y;
         float Dist = FMath::Sqrt(Dx * Dx + Dy * Dy);
@@ -144,7 +147,9 @@ void FForceDirectedSolver::CalculateEdgeForces(IForceDirectedGraph* Graph)
         }
 
         // Hooke's Law: F = k * (current length - rest length)
-        float Force = (Dist - Params.SpringLength) * Params.SpringStrength;
+        // Use EdgeLengthScale to scale the spring length for this edge
+        float ScaledSpringLength = Params.SpringLength * EdgeInfo.EdgeLengthScale;
+        float Force = (Dist - ScaledSpringLength) * Params.SpringStrength;
 
         // Calculate force components
         float Fx1 = (Dx / Dist) * Force;
@@ -173,7 +178,7 @@ void FForceDirectedSolver::CalculateEdgeMidpointRepulsion(IForceDirectedGraph* G
     Midpoints.Reserve(EdgeNum);
     EdgeEndpoints.Reserve(EdgeNum);
     
-    Graph->ForEachEdge([&](IForceDirectedGraph*, FForceDirectedNode* Source, FForceDirectedNode* Target, int) 
+    Graph->ForEachEdge([&](IForceDirectedGraph*, FForceDirectedNode* Source, FForceDirectedNode* Target, const FForceDirectedEdgeInfo&) 
     {
         // Calculate midpoint
         FVector2D Midpoint(
@@ -236,8 +241,116 @@ void FForceDirectedSolver::CalculateEdgeMidpointRepulsion(IForceDirectedGraph* G
 
 void FForceDirectedSolver::UpdatePositions(IForceDirectedGraph* Graph, float DeltaTime)
 {
-    Graph->ForEachNode([DeltaTime](IForceDirectedGraph*, FForceDirectedNode* Node, int) {
+    Graph->ForEachNode([DeltaTime](IForceDirectedGraph*, FForceDirectedNode* Node, const FForceDirectedNodeInfo&) {
         // Update position based on velocity
         Node->Position += Node->Velocity * DeltaTime;
     });
+}
+
+void FForceDirectedSolver::ApplyNodeOffset(IForceDirectedGraph* Graph, const FVector2D& PositionOffset, const FVector2D& VelocityOffset)
+{
+    Graph->ForEachNode([&](IForceDirectedGraph*, FForceDirectedNode* Node, const FForceDirectedNodeInfo&) {
+        // Apply offset to position
+        Node->Position += PositionOffset;
+        // Apply offset to velocity
+        Node->Velocity += VelocityOffset;
+    });
+}
+
+void FForceDirectedSolver::CalculateEdgeRepulsion(IForceDirectedGraph* Graph)
+{
+    // For each node, calculate forces to make edges tend towards 180 degrees apart
+    const int NodeNum = Graph->GetNodeNum();
+    
+    for (int NodeIndex = 0; NodeIndex < NodeNum; ++NodeIndex)
+    {
+        FForceDirectedNode* CenterNode = Graph->GetNodeAt(NodeIndex);
+        if (!CenterNode) continue;
+        
+        // Collect all edges connected to this node
+        TArray<TTuple<FForceDirectedNode*, FVector2D>> EdgeList;
+        
+        Graph->ForEachEdgeOfNode(NodeIndex, [&](IForceDirectedGraph*, FForceDirectedNode* Source, FForceDirectedNode* Target, const FForceDirectedEdgeInfo&) {
+            // Determine the direction from center node to the other endpoint
+            FVector2D Direction;
+            FForceDirectedNode* OtherNode;
+            
+            if (Source == CenterNode)
+            {
+                Direction = Target->Position - Source->Position;
+                OtherNode = Target;
+            }
+            else
+            {
+                Direction = Source->Position - Target->Position;
+                OtherNode = Source;
+            }
+            
+            // Normalize direction
+            float Length = Direction.Size();
+            if (Length > 0.0001f)
+            {
+                Direction /= Length;
+            }
+            
+            EdgeList.Add(MakeTuple(OtherNode, Direction));
+        });
+        
+        // Calculate forces between all pairs of edges to make them tend towards 180 degrees
+        const int EdgeCount = EdgeList.Num();
+        for (int i = 0; i < EdgeCount; ++i)
+        {
+            for (int j = i + 1; j < EdgeCount; ++j)
+            {
+                FForceDirectedNode* NodeA = EdgeList[i].Get<0>();
+                FVector2D DirA = EdgeList[i].Get<1>();
+                
+                FForceDirectedNode* NodeB = EdgeList[j].Get<0>();
+                FVector2D DirB = EdgeList[j].Get<1>();
+                
+                // Calculate dot product: DotProduct = cos(theta)
+                // When theta = 180 degrees, DotProduct = -1
+                // When theta = 0 degrees, DotProduct = 1
+                float DotProduct = FVector2D::DotProduct(DirA, DirB);
+               
+                // Calculate cross product to determine the relative orientation
+                float CrossProduct = FVector2D::CrossProduct(DirA, DirB);
+                
+                // We want edges to be 180 degrees apart (DotProduct = -1)
+                // Force is proportional to how far we are from the target (180 degrees)
+                // Target: DotProduct = -1, so error = DotProduct - (-1) = DotProduct + 1
+                // When edges are already 180 degrees apart, error = 0, no force
+                // When edges are parallel (0 degrees), error = 2, maximum force
+                float Error = DotProduct + 1.0f; // Range: 0 (at 180) to 2 (at 0)
+                
+                if (Error > 0.0001f)
+                {
+                    // Calculate the direction to rotate edges towards 180 degrees
+                    // The goal is to rotate edge A clockwise and edge B counter-clockwise (or vice versa)
+                    // so they become opposite directions
+                    
+                    // Determine rotation direction based on cross product
+                    float RotationDir = CrossProduct > 0 ? -1.0f : 1.0f;
+                    
+                    // Apply force perpendicular to each edge direction
+                    // This will rotate the edges around the center node
+                    FVector2D PerpA(-DirA.Y, DirA.X);  // Perpendicular to edge A
+                    FVector2D PerpB(-DirB.Y, DirB.X);  // Perpendicular to edge B
+                    
+                    // Rotate edge A and edge B in opposite directions to increase the angle between them
+                    // Edge A rotates clockwise, Edge B rotates counter-clockwise (or vice versa)
+
+                    // 固定大小为 EdgeRepulsion
+                    FVector2D ForceA = PerpA * Params.EdgeRepulsion * RotationDir;
+                    FVector2D ForceB = PerpB * Params.EdgeRepulsion * (-RotationDir);
+                    
+                    // Apply forces
+                    NodeA->Velocity.X += ForceA.X;
+                    NodeA->Velocity.Y += ForceA.Y;
+                    NodeB->Velocity.X += ForceB.X;
+                    NodeB->Velocity.Y += ForceB.Y;
+                }
+            }
+        }
+    }
 }
