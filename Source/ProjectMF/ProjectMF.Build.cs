@@ -21,7 +21,7 @@ public class ProjectMF : ModuleRules
 			// "MassEntity", "MassCommon", "MassActors", "MassRepresentation", "MassSignals"
 		});
 
-		PrivateDependencyModuleNames.AddRange(new string[] { "Voronoi","GeometryCore" ,"RHI", "RenderCore" });
+		PrivateDependencyModuleNames.AddRange(new string[] { "Voronoi","GeometryCore" ,"RHI", "RenderCore", "Json", "JsonUtilities" });
 
 		// Character
 		PublicIncludePaths.Add(Path.Combine(ModuleDirectory, "Character", "Public"));
