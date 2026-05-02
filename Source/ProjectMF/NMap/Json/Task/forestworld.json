@@ -1,0 +1,580 @@
+{
+  "tasks": [
+    {
+      "id": "Make a pick",
+      "locks": ["NONE"],
+      "keys_given": ["PICKAXE", "AXE", "GRASS", "WOOD", "TIER1"],
+      "region_id": "",
+      "entrance_room": "",
+      "entrance_room_chance": 1.0,
+      "room_choices": {
+        "Forest": 1,
+        "BarePlain": 1,
+        "Plain": 1,
+        "Clearing": 1
+      },
+      "room_bg": "GRASS",
+      "background_room": "BGGrass",
+      "colour": {
+        "r": 0,
+        "g": 1,
+        "b": 0,
+        "a": 1
+      }
+    },
+    {
+      "id": "Dig that rock",
+      "locks": ["ROCKS"],
+      "keys_given": ["TRINKETS", "STONE", "WOOD", "TIER1"],
+      "region_id": "",
+      "entrance_room": "",
+      "entrance_room_chance": 1.0,
+      "room_choices": {
+        "Graveyard": 1,
+        "Rocky": 1,
+        "CritterDen": 1,
+        "Forest": 0,
+        "Clearing": 0
+      },
+      "room_bg": "ROCKY",
+      "background_room": "BGNoise",
+      "colour": {
+        "r": 0,
+        "g": 0,
+        "b": 1,
+        "a": 1
+      }
+    },
+    {
+      "id": "Great Plains",
+      "locks": ["ROCKS", "BASIC_COMBAT", "TIER1"],
+      "keys_given": ["MEAT", "POOP", "WOOL", "GRASS", "TIER2"],
+      "region_id": "",
+      "entrance_room": "",
+      "entrance_room_chance": 1.0,
+      "room_choices": {
+        "BeefalowPlain": 1,
+        "Plain": 1,
+        "Clearing": 2
+      },
+      "room_bg": "SAVANNA",
+      "background_room": "BGSavanna",
+      "colour": {
+        "r": 0,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      }
+    },
+    {
+      "id": "Squeltch",
+      "locks": ["SPIDERDENS", "TIER2"],
+      "keys_given": ["MEAT", "SILK", "SPIDERS", "TIER3"],
+      "region_id": "",
+      "entrance_room": "",
+      "entrance_room_chance": 1.0,
+      "room_choices": {
+        "Marsh": 5,
+        "SlightlyMermySwamp": 1
+      },
+      "room_bg": "MARSH",
+      "background_room": "BGMarsh",
+      "colour": {
+        "r": 0.05,
+        "g": 0.05,
+        "b": 0.05,
+        "a": 1
+      }
+    },
+    {
+      "id": "Beeeees!",
+      "locks": ["BEEHIVE", "TIER1"],
+      "keys_given": ["HONEY", "TIER2"],
+      "region_id": "",
+      "entrance_room": "",
+      "entrance_room_chance": 1.0,
+      "room_choices": {
+        "BeeClearing": 1,
+        "BeeQueenBee": 1,
+        "FlowerPatch": 0
+      },
+      "room_bg": "GRASS",
+      "background_room": "BGGrass",
+      "colour": {
+        "r": 0,
+        "g": 1,
+        "b": 0.3,
+        "a": 1
+      }
+    },
+    {
+      "id": "Speak to the king",
+      "locks": ["PIGKING", "TIER2"],
+      "keys_given": ["PIGS", "GOLD", "TIER3"],
+      "region_id": "",
+      "entrance_room": "",
+      "entrance_room_chance": 1.0,
+      "room_choices": {
+        "PigKingdom": 1,
+        "MagicalDeciduous": 1,
+        "DeepDeciduous": 3
+      },
+      "room_bg": "GRASS",
+      "background_room": "BGDeciduous",
+      "colour": {
+        "r": 1,
+        "g": 1,
+        "b": 0,
+        "a": 1
+      }
+    },
+    {
+      "id": "Forest hunters",
+      "locks": ["ADVANCED_COMBAT", "MONSTERS_DEFEATED", "TIER3"],
+      "keys_given": ["WALRUS", "TIER4"],
+      "region_id": "",
+      "entrance_room": "",
+      "entrance_room_chance": 1.0,
+      "room_choices": {
+        "WalrusHut_Grassy": 1,
+        "Forest": 1,
+        "ForestMole": 2,
+        "DeepForest": 1,
+        "Clearing": 1,
+        "MoonbaseOne": 1
+      },
+      "room_bg": "FOREST",
+      "background_room": "BGForest",
+      "colour": {
+        "r": 0.15,
+        "g": 0.5,
+        "b": 0.05,
+        "a": 1
+      }
+    },
+    {
+      "id": "For a nice walk",
+      "locks": ["BASIC_COMBAT", "TIER2"],
+      "keys_given": ["POOP", "WOOL", "WOOD", "GRASS", "TIER2"],
+      "region_id": "",
+      "entrance_room": "",
+      "entrance_room_chance": 1.0,
+      "room_choices": {
+        "BeefalowPlain": 1,
+        "MandrakeHome": 1,
+        "DeepForest": 1,
+        "Forest": 0
+      },
+      "room_bg": "FOREST",
+      "background_room": "BGForest",
+      "colour": {
+        "r": 1,
+        "g": 0,
+        "b": 1,
+        "a": 1
+      }
+    },
+    {
+      "id": "Badlands",
+      "locks": ["ADVANCED_COMBAT", "MONSTERS_DEFEATED", "TIER4"],
+      "keys_given": ["HOUNDS", "TIER5", "ROCKS"],
+      "region_id": "",
+      "entrance_room": "",
+      "entrance_room_chance": 1.0,
+      "room_choices": {
+        "DragonflyArena": 1,
+        "Badlands": 2,
+        "HoundyBadlands": 1,
+        "BarePlain": 1,
+        "BuzzardyBadlands": 1
+      },
+      "room_bg": "DIRT",
+      "background_room": "BGBadlands",
+      "colour": {
+        "r": 1,
+        "g": 0.6,
+        "b": 1,
+        "a": 1
+      }
+    },
+    {
+      "id": "Lightning Bluff",
+      "locks": ["SPIDERS_DEFEATED"],
+      "keys_given": ["PICKAXE", "TIER2"],
+      "region_id": "",
+      "entrance_room": "",
+      "entrance_room_chance": 1.0,
+      "room_choices": {
+        "LightningBluffAntlion": 1,
+        "LightningBluffLightning": 1,
+        "LightningBluffOasis": 1,
+        "BGLightningBluff": 2
+      },
+      "room_bg": "DIRT",
+      "background_room": "BGLightningBluff",
+      "colour": {
+        "r": 0.05,
+        "g": 0.5,
+        "b": 0.05,
+        "a": 1
+      }
+    },
+    {
+      "id": "Befriend the pigs",
+      "locks": ["PIGGIFTS", "TIER1"],
+      "keys_given": ["PIGS", "MEAT", "GRASS", "WOOD", "TIER2"],
+      "region_id": "",
+      "entrance_room": "",
+      "entrance_room_chance": 1.0,
+      "room_choices": {
+        "PigVillage": 1,
+        "Forest": 1,
+        "Marsh": 0,
+        "DeepForest": 0,
+        "Clearing": 1
+      },
+      "room_bg": "FOREST",
+      "background_room": "BGForest",
+      "colour": {
+        "r": 1,
+        "g": 0,
+        "b": 0,
+        "a": 1
+      }
+    },
+    {
+      "id": "Kill the spiders",
+      "locks": ["SPIDERDENS", "MONSTERS_DEFEATED", "TIER3"],
+      "keys_given": ["SPIDERS", "TIER4"],
+      "region_id": "",
+      "entrance_room": "",
+      "entrance_room_chance": 1.0,
+      "room_choices": {
+        "SpiderVillage": 2,
+        "CrappyForest": 0,
+        "CrappyDeepForest": 0,
+        "Clearing": 1
+      },
+      "room_bg": "ROCKY",
+      "background_room": "BGRocky",
+      "colour": {
+        "r": 0.25,
+        "g": 0.4,
+        "b": 0.06,
+        "a": 1
+      }
+    },
+    {
+      "id": "Killer bees!",
+      "locks": ["KILLERBEES", "TIER3"],
+      "keys_given": ["HONEY", "TIER3"],
+      "region_id": "",
+      "entrance_room": "Waspnests",
+      "entrance_room_chance": 1.0,
+      "room_choices": {
+        "Waspnests": 0,
+        "Forest": 0,
+        "FlowerPatch": 0
+      },
+      "room_bg": "GRASS",
+      "background_room": "BGGrass",
+      "colour": {
+        "r": 1,
+        "g": 0.1,
+        "b": 0.1,
+        "a": 1
+      }
+    },
+    {
+      "id": "Make a Beehat",
+      "locks": ["SPIDERS_DEFEATED", "TIER1"],
+      "keys_given": ["BEEHAT", "GRASS", "TIER1"],
+      "region_id": "",
+      "entrance_room": "",
+      "entrance_room_chance": 1.0,
+      "room_choices": {
+        "Rocky": 0,
+        "FlowerPatch": 0
+      },
+      "room_bg": "GRASS",
+      "background_room": "BGGrass",
+      "colour": {
+        "r": 1,
+        "g": 1,
+        "b": 0.5,
+        "a": 1
+      }
+    },
+    {
+      "id": "The hunters",
+      "locks": ["ADVANCED_COMBAT", "MONSTERS_DEFEATED", "TIER4"],
+      "keys_given": ["WALRUS", "TIER5"],
+      "region_id": "",
+      "entrance_room": "",
+      "entrance_room_chance": 1.0,
+      "room_choices": {
+        "WalrusHut_Plains": 1,
+        "WalrusHut_Grassy": 1,
+        "WalrusHut_Rocky": 1,
+        "Clearing": 2,
+        "BGGrass": 2,
+        "BGRocky": 2
+      },
+      "room_bg": "SAVANNA",
+      "background_room": "BGSavanna",
+      "colour": {
+        "r": 0,
+        "g": 1,
+        "b": 0,
+        "a": 1
+      }
+    },
+    {
+      "id": "Magic meadow",
+      "locks": ["TIER1"],
+      "keys_given": ["GRASS", "MEAT", "TIER1"],
+      "region_id": "",
+      "entrance_room": "",
+      "entrance_room_chance": 1.0,
+      "room_choices": {
+        "Pondopolis": 2,
+        "Clearing": 2
+      },
+      "room_bg": "FOREST",
+      "background_room": "Clearing",
+      "colour": {
+        "r": 0,
+        "g": 1,
+        "b": 0,
+        "a": 1
+      }
+    },
+    {
+      "id": "Frogs and bugs",
+      "locks": ["BASIC_COMBAT", "TIER1"],
+      "keys_given": ["MEAT", "GRASS", "HONEY", "TIER2"],
+      "region_id": "",
+      "entrance_room": "",
+      "entrance_room_chance": 1.0,
+      "room_choices": {
+        "Pondopolis": 1,
+        "BeeClearing": 1,
+        "FlowerPatch": 1,
+        "Clearing": 2,
+        "GrassyMoleColony": 1
+      },
+      "room_bg": "GRASS",
+      "background_room": "BGGrass",
+      "colour": {
+        "r": 0,
+        "g": 1,
+        "b": 0,
+        "a": 1
+      }
+    },
+    {
+      "id": "Mole Colony Deciduous",
+      "locks": ["TIER1"],
+      "keys_given": ["TIER2"],
+      "region_id": "",
+      "entrance_room": "",
+      "entrance_room_chance": 1.0,
+      "room_choices": {
+        "MolesvilleDeciduous": 1,
+        "DeepDeciduous": 2,
+        "DeciduousMole": 2,
+        "DeciduousClearing": 1
+      },
+      "room_bg": "DECIDUOUS",
+      "background_room": "BGDeciduous",
+      "colour": {
+        "r": 0.15,
+        "g": 0.5,
+        "b": 0.05,
+        "a": 1
+      }
+    },
+    {
+      "id": "Mole Colony Rocks",
+      "locks": ["TIER1"],
+      "keys_given": ["ROCKS", "GOLD", "TIER2"],
+      "region_id": "",
+      "entrance_room": "",
+      "entrance_room_chance": 1.0,
+      "room_choices": {
+        "RockyBuzzards": 1,
+        "GenericRockyNoThreat": 2,
+        "MolesvilleRocky": 1
+      },
+      "room_bg": "ROCKY",
+      "background_room": "BGRocky",
+      "colour": {
+        "r": 1,
+        "g": 1,
+        "b": 0,
+        "a": 1
+      }
+    },
+    {
+      "id": "MooseBreedingTask",
+      "locks": ["TREES", "TIER2"],
+      "keys_given": ["PIGS", "WOOD", "MEAT", "TIER2"],
+      "region_id": "",
+      "entrance_room": "",
+      "entrance_room_chance": 1.0,
+      "room_choices": {
+        "MooseGooseBreedingGrounds": 1
+      },
+      "room_bg": "GRASS",
+      "background_room": "BGGrass",
+      "colour": {
+        "r": 1,
+        "g": 0.7,
+        "b": 1,
+        "a": 1
+      }
+    },
+    {
+      "id": "MoonIsland_IslandShards",
+      "locks": [],
+      "keys_given": ["ISLAND_TIER2"],
+      "region_id": "island1",
+      "entrance_room": "",
+      "entrance_room_chance": 1.0,
+      "room_tags": ["RoadPoison", "nohunt", "nohasslers", "lunacyarea", "not_mainland"],
+      "room_choices": {
+        "MoonIsland_IslandShard": 3,
+        "Empty_Cove": 2
+      },
+      "make_loop": true,
+      "crosslink_factor": 2,
+      "cove_room_chance": 1,
+      "cove_room_max_edges": 2,
+      "room_bg": "PEBBLEBEACH",
+      "background_room": "Empty_Cove",
+      "cove_room_name": "Blank",
+      "colour": {
+        "r": 0.6,
+        "g": 0.6,
+        "b": 0.0,
+        "a": 1
+      }
+    },
+    {
+      "id": "MoonIsland_Beach",
+      "locks": ["ISLAND_TIER2"],
+      "keys_given": ["ISLAND_TIER3"],
+      "region_id": "island1",
+      "entrance_room": "MoonIsland_Blank",
+      "entrance_room_chance": 1.0,
+      "room_tags": ["RoadPoison", "moonhunt", "nohasslers", "lunacyarea", "not_mainland"],
+      "room_choices": {
+        "MoonIsland_Beach": 2
+      },
+      "make_loop": true,
+      "cove_room_chance": 1,
+      "cove_room_max_edges": 2,
+      "room_bg": "PEBBLEBEACH",
+      "background_room": "Empty_Cove",
+      "cove_room_name": "Empty_Cove",
+      "colour": {
+        "r": 0.6,
+        "g": 0.6,
+        "b": 0.0,
+        "a": 1
+      }
+    },
+    {
+      "id": "MoonIsland_Forest",
+      "locks": ["ISLAND_TIER4"],
+      "keys_given": [],
+      "region_id": "island1",
+      "entrance_room": "",
+      "entrance_room_chance": 1.0,
+      "room_tags": ["RoadPoison", "moonhunt", "nohasslers", "lunacyarea", "not_mainland"],
+      "room_choices": {
+        "MoonIsland_Forest": 3
+      },
+      "crosslink_factor": 1,
+      "cove_room_chance": 1,
+      "cove_room_max_edges": 2,
+      "room_bg": "METEOR",
+      "background_room": "Empty_Cove",
+      "cove_room_name": "Empty_Cove",
+      "colour": {
+        "r": 0.6,
+        "g": 0.6,
+        "b": 0.0,
+        "a": 1
+      }
+    },
+    {
+      "id": "MoonIsland_Mine",
+      "locks": ["ISLAND_TIER4"],
+      "keys_given": [],
+      "region_id": "island1",
+      "entrance_room": "",
+      "entrance_room_chance": 1.0,
+      "room_tags": ["RoadPoison", "moonhunt", "nohasslers", "lunacyarea", "not_mainland"],
+      "room_choices": {
+        "MoonIsland_Mine": 3
+      },
+      "room_bg": "METEOR",
+      "background_room": "Empty_Cove",
+      "cove_room_name": "Empty_Cove",
+      "cove_room_chance": 1,
+      "cove_room_max_edges": 2,
+      "colour": {
+        "r": 0.05,
+        "g": 0.5,
+        "b": 0.05,
+        "a": 1
+      }
+    },
+    {
+      "id": "MoonIsland_Baths",
+      "locks": ["ISLAND_TIER3"],
+      "keys_given": ["ISLAND_TIER4"],
+      "region_id": "island1",
+      "entrance_room": "",
+      "entrance_room_chance": 1.0,
+      "room_tags": ["RoadPoison", "moonhunt", "nohasslers", "lunacyarea", "not_mainland"],
+      "room_choices": {
+        "MoonIsland_Baths": 2,
+        "MoonIsland_Meadows": 2
+      },
+      "cove_room_chance": 1,
+      "cove_room_max_edges": 2,
+      "required_prefabs": ["moon_fissure", "moon_fissure", "moon_altar_rock_glass", "moon_altar_rock_seed", "moon_altar_rock_idol", "junk_pile_big"],
+      "room_bg": "METEOR",
+      "background_room": "MoonIsland_Meadows",
+      "cove_room_name": "Empty_Cove",
+      "colour": {
+        "r": 0.6,
+        "g": 0.6,
+        "b": 0.0,
+        "a": 1
+      }
+    },
+    {
+      "id": "Speak to the king classic",
+      "locks": ["PIGKING", "TIER2"],
+      "keys_given": ["PIGS", "GOLD", "TIER3"],
+      "region_id": "",
+      "entrance_room": "",
+      "entrance_room_chance": 1.0,
+      "room_choices": {
+        "PigKingdom": 1,
+        "DeepForest": 3
+      },
+      "room_bg": "FOREST",
+      "background_room": "BGForest",
+      "colour": {
+        "r": 1,
+        "g": 1,
+        "b": 0,
+        "a": 1
+      }
+    }
+  ]
+}

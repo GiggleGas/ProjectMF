@@ -1,0 +1,26 @@
+{
+  "rooms": [
+    {
+      "id": "MermTown",
+      "colour": {
+        "r": 0.5,
+        "g": 0.18,
+        "b": 0.35,
+        "a": 0.5
+      },
+      "value": "WORLD_TILES.MARSH",
+      "contents": {
+        "countprefabs": {
+          "pighead": "function() return math.random(6) end"
+        },
+        "distributepercent": 0.1,
+        "distributeprefabs": {
+          "mermhouse": 1,
+          "tentacle": 1,
+          "reeds": 2,
+          "pond_mos": 0.5
+        }
+      }
+    }
+  ]
+}

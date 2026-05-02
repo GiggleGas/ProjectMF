@@ -1,0 +1,345 @@
+{
+  "lock_and_key_system": {
+    "keys": [
+      "NONE",
+      "PICKAXE",
+      "AXE",
+      "GRASS", 
+      "STONE",
+      "WOOD",
+      "MEAT",
+      "PIGS",
+      "FIRE",
+      "POOP",
+      "WOOL",
+      "FARM",
+      "HONEY",
+      "GOLD",
+      "BEEHAT",
+      "TRINKETS",
+      "HARD_WALRUS",
+      "HARD_SPIDERS", 
+      "HARD_HOUNDS",
+      "HARD_MERMS",
+      "HARD_TENTACLES",
+      "WALRUS",
+      "SPIDERS",
+      "HOUNDS",
+      "MERMS",
+      "GEARS",
+      "CHESSMEN",
+      "TENTACLES",
+      "TIER0",
+      "TIER1",
+      "TIER2", 
+      "TIER3",
+      "TIER4",
+      "TIER5",
+      "TIER6",
+      "LIGHT",
+      "FUNGUS",
+      "CAVE",
+      "LABYRINTH",
+      "WILDS",
+      "RUINS",
+      "SACRED",
+      "BADLANDS",
+      "ENTRANCE_INNER",
+      "ENTRANCE_OUTER",
+      "MUSHROOM", 
+      "RABBIT",
+      "PASSAGE",
+      "AREA",
+      "CAVERN",
+      "SINKHOLE",
+      "BATS",
+      "EASY",
+      "MEDIUM",
+      "HARD",
+      "BLUE",
+      "RED",
+      "GREEN",
+      "MOONMUSH",
+      "ARCHIVE",
+      "CENTIPEDE",
+      "QUAGMIRE_GATEWAY", 
+      "QUAGMIRE_PARK_L1",
+      "QUAGMIRE_FOOD_L1",
+      "QUAGMIRE_TRIBE",
+      "QUAGMIRE_GIANT",
+      "ISLAND_TIER1",
+      "ISLAND_TIER2",
+      "ISLAND_TIER3",
+      "ISLAND_TIER4"
+    ],
+    "locks": [
+      "NONE",
+      "PIGGIFTS",
+      "TREES",
+      "SPIDERDENS", 
+      "ROCKS",
+      "FARM",
+      "MEAT",
+      "BEEHIVE",
+      "KILLERBEES",
+      "PIGKING",
+      "MONSTERS_DEFEATED",
+      "HARD_MONSTERS_DEFEATED",
+      "SPIDERS_DEFEATED",
+      "BASIC_COMBAT",
+      "ADVANCED_COMBAT",
+      "ONLYTIER1",
+      "TIER0",
+      "TIER1", 
+      "TIER2",
+      "TIER3",
+      "TIER4",
+      "TIER5",
+      "TIER6",
+      "ANYTIER",
+      "INNERTIER",
+      "OUTERTIER",
+      "LIGHT",
+      "FUNGUS",
+      "CAVE",
+      "LABYRINTH",
+      "WILDS",
+      "RUINS",
+      "SACRED",
+      "BADLANDS",
+      "HOUNDS",
+      "ENTRANCE_INNER", 
+      "ENTRANCE_OUTER",
+      "MUSHROOM",
+      "RABBIT",
+      "PASSAGE",
+      "AREA",
+      "CAVERN",
+      "SINKHOLE",
+      "BATS",
+      "EASY",
+      "MEDIUM",
+      "HARD",
+      "BLUE",
+      "RED",
+      "GREEN",
+      "MOONMUSH",
+      "ARCHIVE",
+      "CENTIPEDE",
+      "QUAGMIRE_GATEWAY",
+      "QUAGMIRE_PARK_L1", 
+      "QUAGMIRE_FOOD_L1",
+      "QUAGMIRE_TRIBE",
+      "QUAGMIRE_GIANT",
+      "ISLAND_TIER1",
+      "ISLAND_TIER2",
+      "ISLAND_TIER3",
+      "ISLAND_TIER4"
+    ],
+    "locks_keys": {
+      "NONE": [],
+      "HARD_MONSTERS_DEFEATED": [
+        "HARD_WALRUS",
+        "HARD_SPIDERS",
+        "HARD_HOUNDS", 
+        "HARD_MERMS",
+        "HARD_TENTACLES",
+        "CHESSMEN"
+      ],
+      "MONSTERS_DEFEATED": [
+        "WALRUS",
+        "SPIDERS",
+        "HOUNDS",
+        "MERMS",
+        "TENTACLES",
+        "CHESSMEN"
+      ],
+      "SPIDERS_DEFEATED": [
+        "SPIDERS"
+      ],
+      "BASIC_COMBAT": [
+        "AXE",
+        "PIGS"
+      ],
+      "ADVANCED_COMBAT": [
+        "GOLD",
+        "HONEY"
+      ],
+      "ROCKS": [
+        "PICKAXE"
+      ],
+      "PIGGIFTS": [
+        "MEAT",
+        "AXE", 
+        "PICKAXE"
+      ],
+      "TREES": [
+        "AXE",
+        "FIRE"
+      ],
+      "BEEHIVE": [
+        "BEEHAT"
+      ],
+      "KILLERBEES": [
+        "BEEHAT"
+      ],
+      "PIGKING": [
+        "GOLD"
+      ],
+      "FARM": [
+        "FARM"
+      ],
+      "MEAT": [
+        "MEAT"
+      ],
+      "LIGHT": [
+        "FIRE"
+      ],
+      "CAVE": [
+        "FIRE"
+      ],
+      "LABYRINTH": [
+        "FIRE"
+      ],
+      "RUINS": [
+        "FIRE"
+      ],
+      "SACRED": [
+        "FIRE"
+      ],
+      "BADLANDS": [
+        "FIRE"
+      ],
+      "HOUNDS": [
+        "TIER1"
+      ],
+      "MUSHROOM": [
+        "FUNGUS"
+      ],
+      "CAVERN": [
+        "CAVE"
+      ],
+      "SINKHOLE": [
+        "CAVE"
+      ],
+      "BATS": [
+        "CAVE"
+      ],
+      "SPIDERDENS": [
+        "BASIC_COMBAT"
+      ],
+      "TIER1": [
+        "TIER0"
+      ],
+      "TIER2": [
+        "TIER1"
+      ],
+      "TIER3": [
+        "TIER2"
+      ],
+      "TIER4": [
+        "TIER3"
+      ],
+      "TIER5": [
+        "TIER4"
+      ],
+      "TIER6": [
+        "TIER5"
+      ],
+      "ONLYTIER1": [
+        "TIER1"
+      ],
+      "ANYTIER": [
+        "TIER1",
+        "TIER2",
+        "TIER3",
+        "TIER4",
+        "TIER5",
+        "TIER6"
+      ],
+      "INNERTIER": [
+        "TIER1",
+        "TIER2",
+        "TIER3"
+      ],
+      "OUTERTIER": [
+        "TIER3",
+        "TIER4",
+        "TIER5",
+        "TIER6"
+      ],
+      "FUNGUS": [
+        "CAVE"
+      ],
+      "WILDS": [
+        "TIER1"
+      ],
+      "ENTRANCE_INNER": [
+        "TIER1"
+      ],
+      "ENTRANCE_OUTER": [
+        "TIER3"
+      ],
+      "PASSAGE": [
+        "TIER2"
+      ],
+      "AREA": [
+        "TIER1"
+      ],
+      "EASY": [
+        "TIER1"
+      ],
+      "MEDIUM": [
+        "TIER2"
+      ],
+      "HARD": [
+        "TIER3"
+      ],
+      "BLUE": [
+        "TIER1"
+      ],
+      "RED": [
+        "TIER2"
+      ],
+      "GREEN": [
+        "TIER3"
+      ],
+      "MOONMUSH": [
+        "TIER2"
+      ],
+      "ARCHIVE": [
+        "TIER3"
+      ],
+      "CENTIPEDE": [
+        "TIER2"
+      ],
+      "QUAGMIRE_GATEWAY": [
+        "TIER2"
+      ],
+      "QUAGMIRE_PARK_L1": [
+        "TIER3"
+      ],
+      "QUAGMIRE_FOOD_L1": [
+        "TIER3"
+      ],
+      "QUAGMIRE_TRIBE": [
+        "TIER4"
+      ],
+      "QUAGMIRE_GIANT": [
+        "TIER5"
+      ],
+      "ISLAND_TIER1": [
+        "TIER1"
+      ],
+      "ISLAND_TIER2": [
+        "ISLAND_TIER1"
+      ],
+      "ISLAND_TIER3": [
+        "ISLAND_TIER2"
+      ],
+      "ISLAND_TIER4": [
+        "ISLAND_TIER3"
+      ]
+    }
+  }
+}

@@ -1,0 +1,72 @@
+{
+  "rooms": [
+    {
+      "id": "WalrusHut_Plains",
+      "colour": {
+        "r": 0.3,
+        "g": 0.2,
+        "b": 0.5,
+        "a": 0.5
+      },
+      "value": "WORLD_TILES.SAVANNA",
+      "contents": {
+        "countprefabs": {
+          "walrus_camp": 1
+        },
+        "distributepercent": 0.1,
+        "distributeprefabs": {
+          "grass": 0.09,
+          "flower": 0.003
+        }
+      }
+    },
+    {
+      "id": "WalrusHut_Grassy",
+      "colour": {
+        "r": 0.3,
+        "g": 0.2,
+        "b": 0.5,
+        "a": 0.5
+      },
+      "value": "WORLD_TILES.GRASS",
+      "contents": {
+        "countprefabs": {
+          "walrus_camp": 1
+        },
+        "distributepercent": 0.275,
+        "distributeprefabs": {
+          "flower": 0.112,
+          "grass": 0.2,
+          "carrot_planted": 0.05,
+          "flint": 0.05,
+          "sapling": 0.2,
+          "twiggytree": 0.08,
+          "evergreen": 0.3,
+          "pond": 0.005
+        }
+      }
+    },
+    {
+      "id": "WalrusHut_Rocky",
+      "colour": {
+        "r": 0.3,
+        "g": 0.2,
+        "b": 0.5,
+        "a": 0.5
+      },
+      "value": "WORLD_TILES.ROCKY",
+      "contents": {
+        "countprefabs": {
+          "walrus_camp": 1
+        },
+        "distributepercent": 0.1,
+        "distributeprefabs": {
+          "flint": 0.5,
+          "rock1": 1,
+          "rock2": 1,
+          "tallbirdnest": 0.3
+        }
+      }
+    }
+  ]
+}

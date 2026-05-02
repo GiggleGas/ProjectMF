@@ -1,0 +1,105 @@
+{
+  "rooms": [
+    {
+      "id": "BGMarsh",
+      "colour": {
+        "r": 0.6,
+        "g": 0.2,
+        "b": 0.8,
+        "a": 0.5
+      },
+      "value": "WORLD_TILES.MARSH",
+      "tags": ["ExitPiece", "Chester_Eyebone", "Astral_1", "CharlieStage_Spawner"],
+      "contents": {
+        "countstaticlayouts": {
+          "MushroomRingMedium": "function() if math.random(0,1000) > 985 then return 1 end return 0 end"
+        },
+        "distributepercent": 0.25,
+        "distributeprefabs": {
+          "spiderden": 0.003,
+          "sapling": 0.0001,
+          "twiggytree": 0.0001,
+          "ground_twigs": 0.00003,
+          "pond_mos": 0.005,
+          "reeds": 0.005,
+          "tentacle": 0.095,
+          "marsh_bush": 0.05,
+          "marsh_tree": 0.1,
+          "blue_mushroom": 0.01,
+          "mermhouse": 0.004
+        }
+      }
+    },
+    {
+      "id": "Marsh",
+      "colour": {
+        "r": 0.45,
+        "g": 0.75,
+        "b": 0.45,
+        "a": 0.5
+      },
+      "value": "WORLD_TILES.MARSH",
+      "tags": ["ExitPiece", "Chester_Eyebone", "Astral_2"],
+      "contents": {
+        "countstaticlayouts": {
+          "MushroomRingMedium": "function() if math.random(0,1000) > 985 then return 1 end return 0 end"
+        },
+        "distributepercent": 0.1,
+        "distributeprefabs": {
+          "evergreen": 1.0,
+          "tentacle": 3,
+          "pond_mos": 1,
+          "reeds": 4,
+          "spiderden": 0.01,
+          "blue_mushroom": 0.01,
+          "green_mushroom": 2.02
+        }
+      }
+    },
+    {
+      "id": "SpiderMarsh",
+      "colour": {
+        "r": 0.45,
+        "g": 0.75,
+        "b": 0.45,
+        "a": 0.5
+      },
+      "value": "WORLD_TILES.MARSH",
+      "tags": ["ExitPiece", "Chester_Eyebone", "Astral_1"],
+      "contents": {
+        "distributepercent": 0.1,
+        "distributeprefabs": {
+          "evergreen": 1.0,
+          "tentacle": 2,
+          "pond_mos": 0.1,
+          "blue_mushroom": 0.1,
+          "reeds": 4,
+          "spiderden": 3.15
+        },
+        "prefabdata": {
+          "spiderden": "function() if math.random() < 0.2 then return { growable={stage=2}} else return { growable={stage=1}} end end"
+        }
+      }
+    },
+    {
+      "id": "SlightlyMermySwamp",
+      "colour": {
+        "r": 0.5,
+        "g": 0.18,
+        "b": 0.35,
+        "a": 0.5
+      },
+      "value": "WORLD_TILES.MARSH",
+      "contents": {
+        "distributepercent": 0.1,
+        "distributeprefabs": {
+          "mermhouse": 0.1,
+          "pighead": 0.01,
+          "tentacle": 1,
+          "marsh_tree": 2,
+          "marsh_bush": 1.5
+        }
+      }
+    }
+  ]
+}
