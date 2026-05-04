@@ -11,6 +11,8 @@ public class ProjectMF : ModuleRules
 
 		PublicDependencyModuleNames.AddRange(new string[] {
 			"Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "Paper2D", "PaperZD",
+			// UI (UMG Widgets, WidgetComponent)
+			"UMG",
 			// AI 基础导航 (AIController, UPathFollowingComponent)
 			"AIModule", "NavigationSystem",
 			// GAS (Gameplay Ability System)
@@ -21,7 +23,7 @@ public class ProjectMF : ModuleRules
 			// "MassEntity", "MassCommon", "MassActors", "MassRepresentation", "MassSignals"
 		});
 
-		PrivateDependencyModuleNames.AddRange(new string[] { "Voronoi","GeometryCore" ,"RHI", "RenderCore", "Json", "JsonUtilities" });
+		PrivateDependencyModuleNames.AddRange(new string[] { "Voronoi","GeometryCore" ,"RHI", "RenderCore", "Json", "JsonUtilities", "Slate", "SlateCore" });
 
 		// Character
 		PublicIncludePaths.Add(Path.Combine(ModuleDirectory, "Character", "Public"));
@@ -52,5 +54,17 @@ public class ProjectMF : ModuleRules
         //
         PublicIncludePaths.Add(Path.Combine(ModuleDirectory, "NMap", "Public"));
         PrivateIncludePaths.Add(Path.Combine(ModuleDirectory, "Nmap", "Private"));
+
+        // Projectile (投射物子系统 + ISM 渲染)
+        PublicIncludePaths.Add(Path.Combine(ModuleDirectory, "Projectile", "Public"));
+        PrivateIncludePaths.Add(Path.Combine(ModuleDirectory, "Projectile", "Private"));
+
+		// GameLoop (游戏大循环：GameMode / GameLoopManager / Config)
+		PublicIncludePaths.Add(Path.Combine(ModuleDirectory, "GameLoop", "Public"));
+		PrivateIncludePaths.Add(Path.Combine(ModuleDirectory, "GameLoop", "Private"));
+
+		// UI (HUD, Overhead Widget, Game Result)
+		PublicIncludePaths.Add(Path.Combine(ModuleDirectory, "UI", "Public"));
+		PrivateIncludePaths.Add(Path.Combine(ModuleDirectory, "UI", "Private"));
     }
 }

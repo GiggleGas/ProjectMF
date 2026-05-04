@@ -91,4 +91,33 @@ namespace MFGameplayTags
 		"MF.AI.Perception.HasTarget",
 		"Indicates that the AI's radar has at least one valid perceived target. "
 		"Managed by the threat system; queried by StateTree to decide combat transitions.");
+
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
+		Ability_RangedAttack,
+		"MF.Ability.RangedAttack",
+		"Category tag shared by all ranged attack abilities. "
+		"Use specific child tags (ThrowProjectile / FallingBoulder) in StateTree nodes.");
+
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
+		Ability_ThrowProjectile,
+		"MF.Ability.ThrowProjectile",
+		"Identifies UGA_ThrowProjectile. Set in AbilityTags on BP_GA_ThrowProjectile. "
+		"Used as AbilityTag in STTask to activate the throw attack specifically.");
+
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
+		Ability_FallingBoulder,
+		"MF.Ability.FallingBoulder",
+		"Identifies UGA_FallingBoulder. Set in AbilityTags on BP_GA_FallingBoulder. "
+		"Used as AbilityTag in STTask to activate the boulder attack specifically.");
+
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
+		State_RangedAttacking,
+		"MF.Character.State.RangedAttacking",
+		"Granted to the ASC while any ranged attack ability is active. "
+		"Monitored as ActiveStateTag in STTask for both ThrowProjectile and FallingBoulder.");
+
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
+		Ability_BulletCurtain,
+		"MF.Ability.BulletCurtain",
+		"Identifies UGA_BulletCurtain. Fires multiple angled projectiles in rotating bursts.");
 }

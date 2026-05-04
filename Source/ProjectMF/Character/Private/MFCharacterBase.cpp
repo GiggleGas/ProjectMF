@@ -1,11 +1,13 @@
 // Copyright ProjectMF. All Rights Reserved.
 
 #include "MFCharacterBase.h"
+#include "MFHitReactInterface.h"
 #include "MFAnimInstanceBase.h"
 #include "MFAttributeSetBase.h"
 #include "MFCombatAttributeSet.h"
 #include "MFGameplayAbilityBase.h"
 #include "MFGameplayTags.h"
+#include "ProjectMF/UI/Public/MFOverheadWidget.h"
 #include "AbilitySystemComponent.h"
 #include "GameplayEffect.h"
 #include "PaperFlipbookComponent.h"
@@ -13,6 +15,7 @@
 #include "PaperFlipbook.h"
 #include "PaperSprite.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/WidgetComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "DrawDebugHelpers.h"
 #include "Engine/Engine.h"
@@ -60,6 +63,14 @@ AMFCharacterBase::AMFCharacterBase()
 	// Set the AnimBP class in the derived Blueprint.
 	AnimationComponent = CreateDefaultSubobject<UPaperZDAnimationComponent>(TEXT("AnimationComponent"));
 	AnimationComponent->InitRenderComponent(FlipbookComponent);
+
+	// --- Overhead Widget (Screen Space) ---
+	// Space and collision are fixed; Z position and widget class are configured per Blueprint.
+	OverheadWidgetComp = CreateDefaultSubobject<UWidgetComponent>(TEXT("OverheadWidget"));
+	OverheadWidgetComp->SetupAttachment(RootComponent);
+	OverheadWidgetComp->SetWidgetSpace(EWidgetSpace::Screen);
+	OverheadWidgetComp->SetDrawAtDesiredSize(true);
+	OverheadWidgetComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
 void AMFCharacterBase::BeginPlay()
@@ -71,11 +82,25 @@ void AMFCharacterBase::BeginPlay()
 	if (AttributeSet)
 	{
 		AttributeSet->OnDeath.AddUObject(this, &AMFCharacterBase::HandleDeath);
+		AttributeSet->OnHealthChanged.AddUObject(this, &AMFCharacterBase::OnHealthChangedCallback);
 	}
 
 	if (bAutoUpdateCollisionFromFlipbook)
 	{
 		UpdateCollisionFromFlipbook();
+	}
+
+	// 初始化头顶悬浮 Widget。
+	// Z 偏移在 BeginPlay 设置以尊重 Blueprint 配置的值（构造函数只有 CDO 默认值）。
+	OverheadWidgetComp->SetRelativeLocation(FVector(0.f, 0.f, OverheadWidgetZOffset));
+	if (OverheadWidgetClass)
+	{
+		OverheadWidgetComp->SetWidgetClass(OverheadWidgetClass);
+		OverheadWidgetComp->InitWidget();
+		if (UMFOverheadWidget* W = Cast<UMFOverheadWidget>(OverheadWidgetComp->GetUserWidgetObject()))
+		{
+			W->InitWithASC(AbilitySystemComponent);
+		}
 	}
 }
 
@@ -280,6 +305,38 @@ void AMFCharacterBase::UpdateCollisionFromFlipbook()
 	UE_LOG(LogTemp, Log,
 		TEXT("[%s] Collision sphere: Radius=%.1f  (sprite %.0f x %.0f px, PPU=%.2f, scale=%.2f)"),
 		*GetName(), NewRadius, SourceSize.X, SourceSize.Y, PixelsPerUnit, CollisionRadiusScale);
+}
+
+// ---------------------------------------------------------------------------
+// Hit React
+// ---------------------------------------------------------------------------
+
+void AMFCharacterBase::OnHealthChangedCallback(float OldHealth, float NewHealth)
+{
+	if (NewHealth < OldHealth)
+	{
+		ReactToHit_Implementation();
+	}
+}
+
+void AMFCharacterBase::ReactToHit_Implementation()
+{
+	if (!FlipbookComponent) return;
+
+	FlipbookComponent->SetSpriteColor(FLinearColor::Red);
+
+	GetWorldTimerManager().SetTimer(
+		HitFlashTimerHandle,
+		this, &AMFCharacterBase::ResetHitFlashColor,
+		HitFlashDuration, /*bLoop=*/false);
+}
+
+void AMFCharacterBase::ResetHitFlashColor()
+{
+	if (FlipbookComponent)
+	{
+		FlipbookComponent->SetSpriteColor(FLinearColor::White);
+	}
 }
 
 // ---------------------------------------------------------------------------

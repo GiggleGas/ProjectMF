@@ -114,6 +114,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Inventory|Pet")
 	TArray<FMFPetInstance> GetActivePets() const;
 
+	/** 返回当前在世界中存活的所有宠物 Actor（过滤已失效指针）。供 GameLoopManager 等系统使用。 */
+	TArray<AMFPetBase*> GetActivePetActors() const;
+
 private:
 	// -----------------------------------------------------------------------
 	// 运行时数据

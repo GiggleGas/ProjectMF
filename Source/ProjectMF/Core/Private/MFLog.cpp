@@ -13,6 +13,7 @@ DEFINE_LOG_CATEGORY(LogMFCharacter);
 DEFINE_LOG_CATEGORY(LogMFInventory);
 DEFINE_LOG_CATEGORY(LogMFSpawnAI);
 DEFINE_LOG_CATEGORY(LogMFAI);
+DEFINE_LOG_CATEGORY(LogMFGameLoop);
 
 // ============================================================
 // CVar: MF.Debug.ScreenLog

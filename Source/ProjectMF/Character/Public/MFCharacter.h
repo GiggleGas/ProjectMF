@@ -72,6 +72,13 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input|Demo")
 	TArray<TObjectPtr<UInputAction>> SummonSlotActions;
 
+	/**
+	 * 手动触发 Boss 战的按键（建议绑定 Tab 或 B）。
+	 * 仅在捕宠阶段且已持有足够宠物时生效（条件由 AMFGameLoopManager 判断）。
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<UInputAction> StartBossBattleAction;
+
 	// -----------------------------------------------------------------------
 	// Camera Components
 	// -----------------------------------------------------------------------
@@ -106,4 +113,6 @@ private:
 
 	// DEMO: 临时召唤绑定，由 GA_PetWheel 替换后删除
 	void HandleSummonSlot(int32 SlotIndex);
+
+	void HandleStartBossBattle();
 };
