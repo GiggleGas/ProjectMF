@@ -59,6 +59,9 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Voronoi")
     UTextureRenderTarget2D* RTBioronoi;
 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Voronoi")
+    UTextureRenderTarget2D* RTNode;
+
     // Generate test data
     UFUNCTION(BlueprintCallable, Category = "Kamada-Kawai Layout")
     void GenerateTestData();
@@ -74,6 +77,9 @@ public:
     // Draw Voronoi diagram
     UFUNCTION(BlueprintCallable, Category = "Voronoi")
     void BakeAndDrawVoronoiDiagram();
+
+    UFUNCTION(BlueprintCallable, Category = "Voronoi")
+    void DrawNodeInfo();
 
 private:
     // KKLayoutManager instance for data management
@@ -149,6 +155,7 @@ FVector2D GenerateBackgroundNodePosition(int GroupIndex, int TotalGroups);
     TArray<TArray<FVector2D>> GenerateCornerPoints(TArray<FVector2D>& InOutPoints, float Width, float Height, int LloydRelaxations);
 
     void DrawVoronoiDiagram();
+
     
 };
 

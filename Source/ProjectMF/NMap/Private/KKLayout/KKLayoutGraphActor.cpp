@@ -806,7 +806,6 @@ void AKKLayoutGraphActor::BakeAndDrawVoronoiDiagram()
     DrawVoronoiDiagram();
 }
 
-
 void AKKLayoutGraphActor::CreateVNGraphFromLayoutManager()
 {
     // Get the graph from LayoutManager
@@ -826,30 +825,125 @@ void AKKLayoutGraphActor::CreateVNGraphFromLayoutManager()
 
     // Step 1: Collect all node positions from LayoutManager
     TArray<FVector2D> Points;
-    Points.Reserve(NodeCount);
+    Points.Reserve(NodeCount_);
 
     Graph->ForEachKKNode([&](FKKGraph*, FKKNode& Node) {
         Points.Add(FVector2D(Node.Position.X, Node.Position.Y));
         return true;
-    });
+        });
 
     UE_LOG(LogTemp, Log, TEXT("CreateVNGraphFromLayoutManager: Collected %d node positions"), Points.Num());
 
-    // Step 2: Generate Voronoi corners using Delaunay triangulation
-    float MapWidth = CanvasWidth;
-    float MapHeight = CanvasHeight;
-    
-    TArray<TArray<FVector2D>> Corners = GenerateCornerPoints(Points, MapWidth, MapHeight, 0);
+    // Step 2: Calculate minimum bounding box of all points
+    FBox2D BoundingBox(Points);
+    /*
+    for (const FVector2D& Point : Points)
+    {
+        BoundingBox += Point;
+    }
+    */
+    UE_LOG(LogTemp, Log, TEXT("CreateVNGraphFromLayoutManager: Bounding box - Min: (%f, %f), Max: (%f, %f), Size: (%f, %f)"),
+        BoundingBox.Min.X, BoundingBox.Min.Y,
+        BoundingBox.Max.X, BoundingBox.Max.Y,
+        BoundingBox.GetSize().X, BoundingBox.GetSize().Y);
+
+    // Step 3: Translate and scale points to center and fit canvas
+    TArray<FVector2D> NormalizedPoints;
+    NormalizedPoints.Reserve(Points.Num());
+
+    if (BoundingBox.GetSize().X > 0 && BoundingBox.GetSize().Y > 0)
+    {
+        // Calculate bounding box center
+        FVector2D BoxCenter = BoundingBox.GetCenter();
+
+        // Calculate target area (0.1 to 0.9 of canvas size)
+        float TargetWidth = CanvasWidth * 0.8f;  // 0.9 - 0.1 = 0.8
+        float TargetHeight = CanvasHeight * 0.8f;
+        FVector2D TargetCenter(CanvasWidth * 0.5f, CanvasHeight * 0.5f);
+
+        // Calculate scaling factor to fit within target area
+        float ScaleX = TargetWidth / BoundingBox.GetSize().X;
+        float ScaleY = TargetHeight / BoundingBox.GetSize().Y;
+        float Scale_ = FMath::Min(ScaleX, ScaleY);
+
+        UE_LOG(LogTemp, Log, TEXT("CreateVNGraphFromLayoutManager: Scale: %f, Target center: (%f, %f)"),
+            Scale_, TargetCenter.X, TargetCenter.Y);
+
+        // Translate and scale each point
+        for (const FVector2D& Point : Points)
+        {
+            // Translate to origin (bounding box center)
+            FVector2D Translated = Point - BoxCenter;
+
+            // Scale
+            FVector2D Scaled = Translated * Scale_;
+
+            // Translate to target center
+            FVector2D Final = Scaled + TargetCenter;
+
+            NormalizedPoints.Add(Final);
+        }
+    }
+    else
+    {
+        // If all points are at the same position, distribute them within the target area
+        FVector2D TargetCenter(CanvasWidth * 0.5f, CanvasHeight * 0.5f);
+        for (int i = 0; i < Points.Num(); ++i)
+        {
+            float Angle = (i / (float)Points.Num()) * PI * 2;
+            float Radius = 50.0f + i * 10.0f;
+            NormalizedPoints.Add(TargetCenter + FVector2D(FMath::Cos(Angle) * Radius, FMath::Sin(Angle) * Radius));
+        }
+    }
+    // Step 4: Add boundary points - 5 points per edge
+    const int PointsPerEdge = 5;
+
+    // Top edge (y = CanvasHeight * 0.05)
+    float TopY = CanvasHeight * 0.05f;
+    for (int i = 0; i < PointsPerEdge; ++i)
+    {
+        float T = (i + 0.5f) / PointsPerEdge; // 0.05 to 0.95
+        NormalizedPoints.Add(FVector2D(CanvasWidth * (0.05f + T * 0.9f), TopY));
+    }
+
+    // Bottom edge (y = CanvasHeight * 0.95)
+    float BottomY = CanvasHeight * 0.95f;
+    for (int i = 0; i < PointsPerEdge; ++i)
+    {
+        float T = (i + 0.5f) / PointsPerEdge;
+        NormalizedPoints.Add(FVector2D(CanvasWidth * (0.05f + T * 0.9f), BottomY));
+    }
+
+    // Left edge (x = CanvasWidth * 0.05)
+    float LeftX = CanvasWidth * 0.05f;
+    for (int i = 0; i < PointsPerEdge; ++i)
+    {
+        float T = (i + 0.5f) / PointsPerEdge;
+        NormalizedPoints.Add(FVector2D(LeftX, CanvasHeight * (0.05f + T * 0.9f)));
+    }
+
+    // Right edge (x = CanvasWidth * 0.95)
+    float RightX = CanvasWidth * 0.95f;
+    for (int i = 0; i < PointsPerEdge; ++i)
+    {
+        float T = (i + 0.5f) / PointsPerEdge;
+        NormalizedPoints.Add(FVector2D(RightX, CanvasHeight * (0.05f + T * 0.9f)));
+    }
+
+    UE_LOG(LogTemp, Log, TEXT("CreateVNGraphFromLayoutManager: Added boundary points, total points: %d"), NormalizedPoints.Num());
+
+    // Step 5: Generate Voronoi corners using Delaunay triangulation
+    TArray<TArray<FVector2D>> Corners = GenerateCornerPoints(NormalizedPoints, CanvasWidth, CanvasHeight, 0);
 
     UE_LOG(LogTemp, Log, TEXT("CreateVNGraphFromLayoutManager: Generated %d corner sets"), Corners.Num());
 
-    // Step 3: Build VNGraph from points and corners
-    VNGraph = FVNGraph::BuildFromPointsAndCorners(Points, Corners);
+    // Step 6: Build VNGraph from normalized points and corners
+    VNGraph = FVNGraph::BuildFromPointsAndCorners(NormalizedPoints, Corners);
 
     if (VNGraph.IsValid())
     {
         UE_LOG(LogTemp, Log, TEXT("CreateVNGraphFromLayoutManager: Successfully created VNGraph with %d cells, %d corners, %d edges"),
-               VNGraph->Cells.Num(), VNGraph->Corners.Num(), VNGraph->Edges.Num());
+            VNGraph->Cells.Num(), VNGraph->Corners.Num(), VNGraph->Edges.Num());
     }
     else
     {
@@ -875,11 +969,83 @@ TArray<TArray<FVector2D>> AKKLayoutGraphActor::GenerateCornerPoints(TArray<FVect
     // Apply Lloyd relaxation if requested
     for (int32 i = 0; i < LloydRelaxations; ++i)
     {
-        // Implementation of Lloyd relaxation would go here
-        // For simplicity, we'll skip it for now
+        // border
+        for (int j = InOutPoints.Num()-20; j < InOutPoints.Num(); ++j)
+        {
+            if (OutCornerPoints[j].Num() > 0) {
+                InOutPoints[j].Set(0, 0);
+                for (auto& v : OutCornerPoints[j]) InOutPoints[j] += v;
+                InOutPoints[j] /= OutCornerPoints[j].Num();
+            }
+        }
+        Delaunay.Triangulate(InOutPoints);
+        OutCornerPoints = Delaunay.GetVoronoiCells(InOutPoints, true, Box);
+    }
+
+    // Apply Lloyd relaxation if requested
+    for (int32 i = 0; i < LloydRelaxations; ++i)
+    {
+        for (int j = InOutPoints.Num() - 20; j < InOutPoints.Num()-20; ++j)
+        {
+            if (OutCornerPoints[j].Num() > 0) {
+                InOutPoints[j].Set(0, 0);
+                for (auto& v : OutCornerPoints[j]) InOutPoints[j] += v;
+                InOutPoints[j] /= OutCornerPoints[j].Num();
+            }
+        }
+        Delaunay.Triangulate(InOutPoints);
+        OutCornerPoints = Delaunay.GetVoronoiCells(InOutPoints, true, Box);
     }
 
     return OutCornerPoints;
+}
+
+void AKKLayoutGraphActor::DrawNodeInfo()
+{
+    if (!VNGraph.IsValid())
+    {
+        UE_LOG(LogTemp, Error, TEXT("DrawVoronoiDiagram: No VNGraph to draw"));
+        return;
+    }
+
+    if (!RTNode)
+    {
+        UE_LOG(LogTemp, Error, TEXT("DrawNodeInfo: No RTNode"));
+        return;
+    }
+
+    {
+        FDrawToRenderTargetContext Context;
+        UCanvas* Canvas;
+        FVector2D Size;
+        UKismetRenderingLibrary::ClearRenderTarget2D(this, RTNode);
+        UKismetRenderingLibrary::BeginDrawCanvasToRenderTarget(this, RTNode, Canvas, Size, Context);
+        if (!Canvas) return;
+
+
+        LayoutManager.GetGraph()->ForEachKKNode([&](FKKGraph*, FKKNode& Node) {
+            const FVNCell& cen = VNGraph->Cells[Node.Index];
+            FCanvasUVTri tri{};
+            tri.V0_Pos = cen.Position;
+            tri.V0_Color = tri.V1_Color = tri.V2_Color = { Node.Index + 1.f, (float)cen.Position.X / CanvasWidth, (float)cen.Position.Y / CanvasHeight, 1.f };
+
+            TArray<FCanvasUVTri> CanvasUVTri;
+
+            for (int k = 0; k < cen.Corners.Num(); ++k)
+            {
+                int c1 = cen.Corners[k];
+                int c2 = cen.Corners[(k + 1) % cen.Corners.Num()];
+
+                tri.V1_Pos = VNGraph->Corners[c1].Position;
+                tri.V2_Pos = VNGraph->Corners[c2].Position;
+                CanvasUVTri.Add(tri);
+
+            }
+            Canvas->K2_DrawTriangle(nullptr, CanvasUVTri);
+            });
+
+        UKismetRenderingLibrary::EndDrawCanvasToRenderTarget(this, Context);
+    }
 }
 
 void AKKLayoutGraphActor::DrawVoronoiDiagram()
@@ -900,7 +1066,8 @@ void AKKLayoutGraphActor::DrawVoronoiDiagram()
 		FDrawToRenderTargetContext Context;
 		UCanvas* Canvas;
 		FVector2D Size;
-		
+        UKismetRenderingLibrary::ClearRenderTarget2D(this, RTBioronoi);
+
 		UKismetRenderingLibrary::BeginDrawCanvasToRenderTarget(this, RTBioronoi, Canvas, Size, Context);
 		if (!Canvas) return;
 		
@@ -924,7 +1091,8 @@ void AKKLayoutGraphActor::DrawVoronoiDiagram()
 
 			}
 			Canvas->K2_DrawTriangle(nullptr, CanvasUVTri);
-            Canvas->K2_DrawText(GEngine->GetSmallFont(), Node.Id, cen.Position, FVector2D{ 1.f }, Node.Color);
+            Canvas->K2_DrawBox(cen.Position - 2, FVector2D{ 4 }, 2, FLinearColor::Red);
+            // Canvas->K2_DrawText(GEngine->GetSmallFont(), Node.Id, cen.Position, FVector2D{ 1.f }, Node.Color);
         });
 
         for (auto& e :VNGraph-> Edges)
