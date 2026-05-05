@@ -4,6 +4,7 @@
 #include "MFCamera.h"
 #include "MFGameplayTags.h"
 #include "MFInventoryComponent.h"
+#include "MFGameMode.h"
 #include "MFLog.h"
 #include "Abilities/GameplayAbilityTypes.h"
 #include "AbilitySystemComponent.h"
@@ -82,6 +83,12 @@ void AMFCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 			}
 		}
 		// DEMO END
+
+		if (StartBossBattleAction)
+		{
+			EI->BindAction(StartBossBattleAction, ETriggerEvent::Started,
+				this, &AMFCharacter::HandleStartBossBattle);
+		}
 	}
 }
 
@@ -171,4 +178,12 @@ void AMFCharacter::HandleSummonSlot(int32 SlotIndex)
 	FGameplayEventData EventData;
 	EventData.EventMagnitude = static_cast<float>(SlotIndex);
 	AbilitySystemComponent->HandleGameplayEvent(MFGameplayTags::Ability_SummonPet, &EventData);
+}
+
+void AMFCharacter::HandleStartBossBattle()
+{
+	if (AMFGameMode* GM = Cast<AMFGameMode>(GetWorld()->GetAuthGameMode()))
+	{
+		GM->RequestBossPhase();
+	}
 }

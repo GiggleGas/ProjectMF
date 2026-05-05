@@ -54,10 +54,11 @@ void UMFAttributeSetBase::PostGameplayEffectExecute(const FGameplayEffectModCall
 
 	// 最终伤害至少为 1，防止防御力过高导致免疫
 	const float FinalDamage = FMath::Max(IncomingDamage - Defense, 1.f);
-	const float NewHealth   = FMath::Clamp(GetHealth() - FinalDamage, 0.f, GetMaxHealth());
+	const float OldHealth   = GetHealth();
+	const float NewHealth   = FMath::Clamp(OldHealth - FinalDamage, 0.f, GetMaxHealth());
 
 	SetHealth(NewHealth);
-	OnHealthChanged.Broadcast(NewHealth);
+	OnHealthChanged.Broadcast(OldHealth, NewHealth);
 
 	if (NewHealth <= 0.f)
 	{

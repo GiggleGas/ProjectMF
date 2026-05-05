@@ -1,0 +1,149 @@
+{
+  "rooms": [
+    {
+      "id": "BGChessRocky",
+      "colour": {
+        "r": 0.66,
+        "g": 0.66,
+        "b": 0.66,
+        "a": 0.5
+      },
+      "value": "WORLD_TILES.ROCKY",
+      "tags": ["ExitPiece", "Chester_Eyebone", "Astral_1"],
+      "contents": {
+        "countstaticlayouts": {
+          "ChessSpot1": "function() return math.random(0,3) end",
+          "ChessSpot2": "function() return math.random(0,3) end",
+          "ChessSpot3": "function() return math.random(0,3) end"
+        },
+        "distributepercent": 0.1,
+        "distributeprefabs": {
+          "flint": 0.5,
+          "rock1": 1,
+          "rock2": 1,
+          "tallbirdnest": 0.008
+        }
+      }
+    },
+    {
+      "id": "BGRocky",
+      "colour": {
+        "r": 0.66,
+        "g": 0.66,
+        "b": 0.66,
+        "a": 0.5
+      },
+      "value": "WORLD_TILES.ROCKY",
+      "tags": ["ExitPiece", "Chester_Eyebone", "Astral_2", "CharlieStage_Spawner"],
+      "contents": {
+        "distributepercent": 0.1,
+        "distributeprefabs": {
+          "flint": 0.5,
+          "rock1": 1,
+          "rock2": 1,
+          "rock_ice": 0.4,
+          "tallbirdnest": 0.008,
+          "grassgekko": 0.3
+        }
+      }
+    },
+    {
+      "id": "Rocky",
+      "colour": {
+        "r": 0.55,
+        "g": 0.75,
+        "b": 0.75,
+        "a": 0.5
+      },
+      "value": "WORLD_TILES.DIRT",
+      "tags": ["ExitPiece", "Chester_Eyebone", "Astral_1"],
+      "contents": {
+        "countprefabs": {
+          "meteorspawner": "function() return math.random(1,2) end",
+          "rock_moon": "function() return math.random(1,2) - 1 end",
+          "burntground_faded": "function() return math.random(3,5) end",
+          "tallbirdnest": 1
+        },
+        "distributepercent": 0.1,
+        "distributeprefabs": {
+          "rock1": 2,
+          "rock2": 2,
+          "rock_ice": 1,
+          "tallbirdnest": 0.1,
+          "spiderden": 0.01,
+          "blue_mushroom": 0.002,
+          "grassgekko": 0.3
+        }
+      }
+    },
+    {
+      "id": "RockyBuzzards",
+      "colour": {
+        "r": 0.55,
+        "g": 0.75,
+        "b": 0.75,
+        "a": 0.5
+      },
+      "value": "WORLD_TILES.ROCKY",
+      "tags": ["ExitPiece", "Chester_Eyebone", "Astral_2"],
+      "contents": {
+        "distributepercent": 0.1,
+        "distributeprefabs": {
+          "rock1": 2,
+          "rock2": 2,
+          "buzzardspawner": 0.1,
+          "blue_mushroom": 0.002
+        }
+      }
+    },
+    {
+      "id": "GenericRockyNoThreat",
+      "colour": {
+        "r": 0.55,
+        "g": 0.75,
+        "b": 0.75,
+        "a": 0.5
+      },
+      "value": "WORLD_TILES.ROCKY",
+      "tags": ["ExitPiece", "Chester_Eyebone", "Astral_1"],
+      "contents": {
+        "distributepercent": 0.1,
+        "distributeprefabs": {
+          "rock1": 2,
+          "rock2": 2,
+          "rock_ice": 0.75,
+          "rocks": 1,
+          "flint": 1,
+          "blue_mushroom": 0.002,
+          "green_mushroom": 0.002,
+          "red_mushroom": 0.002,
+          "grassgekko": 0.3
+        }
+      }
+    },
+    {
+      "id": "MolesvilleRocky",
+      "colour": {
+        "r": 0.55,
+        "g": 0.75,
+        "b": 0.75,
+        "a": 0.5
+      },
+      "value": "WORLD_TILES.ROCKY",
+      "contents": {
+        "distributepercent": 0.1,
+        "distributeprefabs": {
+          "marsh_bush": 0.2,
+          "rock1": 1,
+          "rock2": 1,
+          "rock_ice": 0.3,
+          "rocks": 0.5,
+          "flint": 0.1,
+          "grass": 0.1,
+          "molehill": 1,
+          "grassgekko": 0.3
+        }
+      }
+    }
+  ]
+}

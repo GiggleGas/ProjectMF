@@ -1,0 +1,23 @@
+{
+  "rooms": [
+    {
+      "id": "Graveyard",
+      "colour": {
+        "r": 0.01,
+        "g": 0.01,
+        "b": 0.1,
+        "a": 0.5
+      },
+      "value": "WORLD_TILES.FOREST",
+      "tags": ["Town", "Mist"],
+      "contents": {
+        "countprefabs": {
+          "evergreen": 3,
+          "goldnugget": "function() return math.random(5) end",
+          "gravestone": "function() return 4 + math.random(4) end",
+          "mound": "function() return 4 + math.random(4) end"
+        }
+      }
+    }
+  ]
+}

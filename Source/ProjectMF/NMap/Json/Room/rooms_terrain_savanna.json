@@ -1,0 +1,62 @@
+{
+  "rooms": [
+    {
+      "id": "BGSavanna",
+      "colour": {
+        "r": 0.8,
+        "g": 0.8,
+        "b": 0.2,
+        "a": 0.5
+      },
+      "value": "WORLD_TILES.SAVANNA",
+      "tags": ["ExitPiece", "Chester_Eyebone", "Astral_2", "CharlieStage_Spawner"],
+      "contents": {
+        "distributepercent": 0.1,
+        "distributeprefabs": {
+          "spiderden": 0.001,
+          "perma_grass": 0.09,
+          "rabbithole": 0.025,
+          "flower": 0.003
+        }
+      }
+    },
+    {
+      "id": "Plain",
+      "colour": {
+        "r": 0.8,
+        "g": 0.4,
+        "b": 0.4,
+        "a": 0.5
+      },
+      "value": "WORLD_TILES.SAVANNA",
+      "tags": ["ExitPiece", "Chester_Eyebone", "Astral_1"],
+      "contents": {
+        "distributepercent": 0.2,
+        "distributeprefabs": {
+          "rock1": 0.05,
+          "perma_grass": 0.5,
+          "rabbithole": 0.25,
+          "green_mushroom": 0.005
+        }
+      }
+    },
+    {
+      "id": "BarePlain",
+      "colour": {
+        "r": 0.5,
+        "g": 0.5,
+        "b": 0.45,
+        "a": 0.5
+      },
+      "value": "WORLD_TILES.SAVANNA",
+      "tags": ["ExitPiece", "Chester_Eyebone", "Astral_2"],
+      "contents": {
+        "distributepercent": 0.1,
+        "distributeprefabs": {
+          "perma_grass": 0.8,
+          "rabbithole": 0.4
+        }
+      }
+    }
+  ]
+}

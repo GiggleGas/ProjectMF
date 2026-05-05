@@ -1,0 +1,21 @@
+{
+  "rooms": [
+    {
+      "id": "BeefalowPlain",
+      "colour": {
+        "r": 0.45,
+        "g": 0.5,
+        "b": 0.85,
+        "a": 0.5
+      },
+      "value": "WORLD_TILES.SAVANNA",
+      "contents": {
+        "distributepercent": 0.05,
+        "distributeprefabs": {
+          "grass": 0.01,
+          "beefalo": 0.02
+        }
+      }
+    }
+  ]
+}

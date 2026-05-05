@@ -6,6 +6,7 @@
 #include "MFGameplayTags.h"
 #include "MFCharacterBase.h"
 #include "MFAICharacter.h"
+#include "MFCombatAttributeSet.h"
 
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemBlueprintLibrary.h"
@@ -282,17 +283,25 @@ void UGA_AIAttackBase::ApplyDamageToTarget_Implementation(AActor* Target)
 
 	if (!TargetASC || !SourceASC) return;
 
+	float AttackValue = 0.f;
+	if (const UMFCombatAttributeSet* CombatSet = SourceASC->GetSet<UMFCombatAttributeSet>())
+	{
+		AttackValue = CombatSet->GetAttack();
+	}
+
+	const float FinalMagnitude = AttackValue * AttackData->DamageMultiplier;
+
 	FGameplayEffectSpecHandle Spec =
 		MakeOutgoingGameplayEffectSpec(AttackData->DamageGameplayEffect, GetAbilityLevel());
 
 	Spec.Data->SetSetByCallerMagnitude(
 		MFGameplayTags::Attack_Data_Damage,
-		AttackData->DamageMultiplier);
+		FinalMagnitude);
 
 	SourceASC->ApplyGameplayEffectSpecToTarget(*Spec.Data.Get(), TargetASC);
 
-	MF_LOG(LogMFAbility, TEXT("[GA_AIAttackBase] Damage applied to %s (multiplier=%.2f)"),
-		*GetNameSafe(Target), AttackData->DamageMultiplier);
+	MF_LOG(LogMFAbility, TEXT("[GA_AIAttackBase] Damage applied to %s (attack=%.1f x multiplier=%.2f = %.1f)"),
+		*GetNameSafe(Target), AttackValue, AttackData->DamageMultiplier, FinalMagnitude);
 }
 
 void UGA_AIAttackBase::OnHitPhaseBegin_Implementation()

@@ -131,4 +131,29 @@ namespace MFGameplayTags
 	 * 注：RadarSensingComponent 本身不自动授予此 Tag，需要威胁系统来管理。
 	 */
 	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(AI_Perception_HasTarget);
+
+	// -----------------------------------------------------------------------
+	// Ranged Attack Tags
+	// -----------------------------------------------------------------------
+
+	/**
+	 * Category tag for all ranged attacks.
+	 * Assign to AbilityTags on every ranged GA so generic queries still work.
+	 * For StateTree targeting, prefer the specific child tags below.
+	 */
+	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_RangedAttack);
+
+	/** Identifies the throw-projectile ranged attack (UGA_ThrowProjectile).
+	 *  Use this in STTask AbilityTag to activate the throw ability specifically. */
+	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_ThrowProjectile);
+
+	/** Identifies the falling-boulder ranged attack (UGA_FallingBoulder).
+	 *  Use this in STTask AbilityTag to activate the boulder ability specifically. */
+	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_FallingBoulder);
+
+	/** Granted to the ASC while any ranged attack ability is active. */
+	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_RangedAttacking);
+
+	/** Identifies UGA_BulletCurtain. Fires multiple angled projectiles in rotating bursts. */
+	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_BulletCurtain);
 }

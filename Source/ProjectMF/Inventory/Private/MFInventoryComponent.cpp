@@ -353,3 +353,17 @@ TArray<FMFPetInstance> UMFInventoryComponent::GetActivePets() const
 	}
 	return Active;
 }
+
+TArray<AMFPetBase*> UMFInventoryComponent::GetActivePetActors() const
+{
+	TArray<AMFPetBase*> Result;
+	Result.Reserve(ActivePetActors.Num());
+	for (const auto& Pair : ActivePetActors)
+	{
+		if (Pair.Value.IsValid())
+		{
+			Result.Add(Pair.Value.Get());
+		}
+	}
+	return Result;
+}

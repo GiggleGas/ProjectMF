@@ -1,0 +1,23 @@
+{
+  "rooms": [
+    {
+      "id": "BGDirt",
+      "colour": {
+        "r": 1.0,
+        "g": 0.8,
+        "b": 0.66,
+        "a": 0.5
+      },
+      "value": "WORLD_TILES.DIRT",
+      "tags": ["ExitPiece", "Chester_Eyebone", "Astral_2"],
+      "contents": {
+        "distributepercent": 0.1,
+        "distributeprefabs": {
+          "rock1": 1,
+          "rock2": 1,
+          "rock_ice": 0.2
+        }
+      }
+    }
+  ]
+}

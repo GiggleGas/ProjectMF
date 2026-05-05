@@ -7,6 +7,7 @@
 #include "AbilitySystemInterface.h"
 #include "GameplayTagContainer.h"
 #include "MFCharacterTypes.h"
+#include "MFHitReactInterface.h"
 #include "MFCharacterBase.generated.h"
 
 class UPaperFlipbookComponent;
@@ -16,6 +17,8 @@ class UMFAttributeSetBase;
 class UMFCombatAttributeSet;
 class UMFGameplayAbilityBase;
 class UGameplayEffect;
+class UWidgetComponent;
+class UMFOverheadWidget;
 
 /**
  * Abstract base class for all MF characters (player and AI).
@@ -36,7 +39,9 @@ class UGameplayEffect;
  * Only AMFAICharacter implements that interface; this base stays input-agnostic.
  */
 UCLASS(Abstract)
-class PROJECTMF_API AMFCharacterBase : public ACharacter, public IAbilitySystemInterface
+class PROJECTMF_API AMFCharacterBase : public ACharacter,
+	public IAbilitySystemInterface,
+	public IMFHitReactInterface
 {
 	GENERATED_BODY()
 
@@ -116,6 +121,16 @@ protected:
 	virtual void HandleDeath();
 
 	// -----------------------------------------------------------------------
+	// Hit React (IMFHitReactInterface)
+	// -----------------------------------------------------------------------
+
+	/** Flipbook 闪红持续时间（秒）。在各角色蓝图 Defaults 里调整。*/
+	UPROPERTY(EditDefaultsOnly, Category = "Combat|HitReact", meta = (ClampMin = "0.05", ClampMax = "2.0"))
+	float HitFlashDuration = 0.25f;
+
+	virtual void ReactToHit_Implementation() override;
+
+	// -----------------------------------------------------------------------
 	// 2D Rendering Components
 	// -----------------------------------------------------------------------
 
@@ -126,6 +141,33 @@ protected:
 	/** PaperZD animation component: owns the AnimInstance and drives FlipbookComponent. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UPaperZDAnimationComponent> AnimationComponent;
+
+	// -----------------------------------------------------------------------
+	// Overhead UI (Screen Space Widget)
+	// -----------------------------------------------------------------------
+
+	/**
+	 * Screen-space widget projected from this component's world position.
+	 * Stays attached to the actor and always faces the screen (no billboard math needed).
+	 * Assign OverheadWidgetClass in each character's Blueprint to activate.
+	 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
+	TObjectPtr<UWidgetComponent> OverheadWidgetComp;
+
+	/**
+	 * Blueprint widget class to instantiate on this character's overhead slot.
+	 * Must inherit from UMFOverheadWidget. Leave null to disable the overhead bar.
+	 */
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	TSubclassOf<UMFOverheadWidget> OverheadWidgetClass;
+
+	/**
+	 * Z offset (relative to capsule center) for the overhead widget anchor.
+	 * Tune per Blueprint to sit just above the sprite's head.
+	 * Default 120 works for typical character sprites; pets may need a smaller value.
+	 */
+	UPROPERTY(EditDefaultsOnly, Category = "UI", meta = (ClampMin = "0.0", ClampMax = "500.0"))
+	float OverheadWidgetZOffset = 120.f;
 
 	// -----------------------------------------------------------------------
 	// Character State
@@ -234,4 +276,10 @@ protected:
 	 * Uses CharacterState.LastVelocityDir and GetCameraYawForDirectionality().
 	 */
 	FVector2D GetDirectionalInput() const;
+
+private:
+	FTimerHandle HitFlashTimerHandle;
+
+	void OnHealthChangedCallback(float OldHealth, float NewHealth);
+	void ResetHitFlashColor();
 };

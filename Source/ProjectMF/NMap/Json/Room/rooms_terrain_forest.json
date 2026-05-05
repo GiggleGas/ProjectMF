@@ -1,0 +1,421 @@
+{
+  "rooms": [
+    {
+      "id": "BGCrappyForest",
+      "colour": {
+        "r": 0.1,
+        "g": 0.8,
+        "b": 0.1,
+        "a": 0.5
+      },
+      "value": "WORLD_TILES.FOREST",
+      "tags": ["ExitPiece", "Chester_Eyebone", "StatueHarp_HedgeSpawner", "CharlieStage_Spawner"],
+      "contents": {
+        "distributepercent": 0.6,
+        "distributeprefabs": {
+          "gravestone": 0.01,
+          "pighouse": 0.015,
+          "spiderden": 0.04,
+          "grass": 0.0025,
+          "sapling": 0.15,
+          "twiggytree": 0.15,
+          "ground_twigs": 0.06,
+          "rock1": 0.008,
+          "rock2": 0.008,
+          "evergreen_sparse": 1.5,
+          "flower": 0.05,
+          "pond": 0.001,
+          "green_mushroom": 0.025,
+          "red_mushroom": 0.025
+        }
+      }
+    },
+    {
+      "id": "BGForest",
+      "colour": {
+        "r": 0.1,
+        "g": 0.8,
+        "b": 0.1,
+        "a": 0.5
+      },
+      "value": "WORLD_TILES.FOREST",
+      "tags": ["ExitPiece", "Chester_Eyebone", "StagehandGarden", "Terrarium_Spawner", "StatueHarp_HedgeSpawner", "CharlieStage_Spawner"],
+      "contents": {
+        "distributepercent": 0.6,
+        "distributeprefabs": {
+          "gravestone": 0.01,
+          "pighouse": 0.015,
+          "spiderden": 0.02,
+          "grass": 0.0025,
+          "sapling": 0.15,
+          "twiggytree": 0.15,
+          "ground_twigs": 0.06,
+          "berrybush": 0.005,
+          "berrybush_juicy": 0.0025,
+          "rock1": 0.004,
+          "rock2": 0.004,
+          "evergreen": 1.5,
+          "flower": 0.05,
+          "pond": 0.001,
+          "green_mushroom": 0.025,
+          "red_mushroom": 0.025
+        }
+      }
+    },
+    {
+      "id": "BGDeepForest",
+      "colour": {
+        "r": 0.1,
+        "g": 0.8,
+        "b": 0.1,
+        "a": 0.5
+      },
+      "value": "WORLD_TILES.FOREST",
+      "tags": ["ExitPiece", "Chester_Eyebone", "StatueHarp_HedgeSpawner", "CharlieStage_Spawner"],
+      "contents": {
+        "countstaticlayouts": {
+          "MushroomRingSmall": "function() if math.random(0,1000) > 985 then return 1 end return 0 end"
+        },
+        "distributepercent": 0.8,
+        "distributeprefabs": {
+          "spiderden": 0.05,
+          "rock1": 0.004,
+          "rock2": 0.004,
+          "evergreen": 4.5,
+          "fireflies": 0.1,
+          "blue_mushroom": 0.025,
+          "green_mushroom": 0.005,
+          "red_mushroom": 0.005
+        },
+        "prefabdata": {
+          "spiderden": "function() if math.random() < 0.1 then return { growable={stage=2}} else return { growable={stage=1}} end end"
+        }
+      }
+    },
+    {
+      "id": "BurntForest",
+      "colour": {
+        "r": 0.09,
+        "g": 0.1,
+        "b": 0.01,
+        "a": 0.5
+      },
+      "value": "WORLD_TILES.FOREST",
+      "tags": ["ExitPiece", "Chester_Eyebone"],
+      "contents": {
+        "distributepercent": 0.4,
+        "distributeprefabs": {
+          "evergreen": "function() return 3 + math.random(4) end"
+        },
+        "prefabdata": {
+          "evergreen": {
+            "burnt": true
+          }
+        }
+      }
+    },
+    {
+      "id": "CrappyDeepForest",
+      "colour": {
+        "r": 0,
+        "g": 0.9,
+        "b": 0,
+        "a": 0.5
+      },
+      "value": "WORLD_TILES.FOREST",
+      "tags": ["ExitPiece", "Chester_Eyebone"],
+      "contents": {
+        "distributepercent": 0.8,
+        "distributeprefabs": {
+          "fireflies": 0.1,
+          "evergreen_sparse": 6,
+          "spiderden": 0.01,
+          "grass": 0.05,
+          "sapling": 0.5,
+          "twiggytree": 0.16,
+          "ground_twigs": 0.06,
+          "berrybush": 0.02,
+          "berrybush_juicy": 0.01,
+          "blue_mushroom": 0.02
+        }
+      }
+    },
+    {
+      "id": "DeepForest",
+      "colour": {
+        "r": 0,
+        "g": 0.9,
+        "b": 0,
+        "a": 0.5
+      },
+      "value": "WORLD_TILES.FOREST",
+      "tags": ["ExitPiece", "Chester_Eyebone", "Junkyard_Spawner", "Balatro_Spawner"],
+      "contents": {
+        "countstaticlayouts": {
+          "LivingTree": "function() return (math.random() > TUNING.LIVINGTREE_CHANCE and 1) or 0 end"
+        },
+        "distributepercent": 0.8,
+        "distributeprefabs": {
+          "fireflies": 0.1,
+          "grass": 0.05,
+          "sapling": 0.5,
+          "twiggytree": 0.5,
+          "ground_twigs": 0.3,
+          "berrybush": 0.02,
+          "berrybush_juicy": 0.01,
+          "blue_mushroom": 0.02,
+          "trees": {
+            "weight": 6,
+            "prefabs": ["evergreen", "evergreen_sparse"]
+          }
+        }
+      }
+    },
+    {
+      "id": "Forest",
+      "colour": {
+        "r": 0.5,
+        "g": 0.6,
+        "b": 0.08,
+        "a": 0.1
+      },
+      "value": "WORLD_TILES.FOREST",
+      "tags": ["ExitPiece", "Chester_Eyebone", "Balatro_Spawner"],
+      "contents": {
+        "countprefabs": {
+          "spawnpoint_multiplayer": 1
+        },
+        "distributepercent": 0.3,
+        "distributeprefabs": {
+          "fireflies": 0.2,
+          "rock1": 0.05,
+          "grass": 0.05,
+          "sapling": 0.8,
+          "twiggytree": 0.8,
+          "ground_twigs": 0.06,
+          "berrybush": 0.03,
+          "berrybush_juicy": 0.015,
+          "red_mushroom": 0.03,
+          "green_mushroom": 0.02,
+          "trees": {
+            "weight": 6,
+            "prefabs": ["evergreen", "evergreen_sparse"]
+          }
+        }
+      }
+    },
+    {
+      "id": "CritterDen",
+      "colour": {
+        "r": 0.5,
+        "g": 0.6,
+        "b": 0.08,
+        "a": 0.1
+      },
+      "value": "WORLD_TILES.GROUND_NOISE",
+      "tags": ["Chester_Eyebone"],
+      "contents": {
+        "countprefabs": {
+          "critterlab": 1
+        },
+        "distributepercent": 0.5,
+        "distributeprefabs": {
+          "rock1": 0.8,
+          "rock2": 0.1,
+          "flint": 0.1,
+          "fireflies": 0.2,
+          "grass": 0.05,
+          "sapling": 0.8,
+          "twiggytree": 0.8,
+          "ground_twigs": 0.06,
+          "berrybush": 0.03,
+          "berrybush_juicy": 0.015,
+          "red_mushroom": 0.03,
+          "green_mushroom": 0.02,
+          "blue_mushroom": 0.002,
+          "trees": {
+            "weight": 6,
+            "prefabs": ["evergreen", "evergreen_sparse"]
+          },
+          "grassgekko": 0.3
+        }
+      }
+    },
+    {
+      "id": "ForestMole",
+      "colour": {
+        "r": 0.5,
+        "g": 0.6,
+        "b": 0.08,
+        "a": 0.1
+      },
+      "value": "WORLD_TILES.FOREST",
+      "tags": ["ExitPiece", "Chester_Eyebone"],
+      "contents": {
+        "distributepercent": 0.3,
+        "distributeprefabs": {
+          "fireflies": 0.2,
+          "rock1": 0.05,
+          "grass": 0.05,
+          "sapling": 0.8,
+          "twiggytree": 0.8,
+          "ground_twigs": 0.06,
+          "molehill": 0.3,
+          "berrybush": 0.03,
+          "berrybush_juicy": 0.015,
+          "red_mushroom": 0.03,
+          "green_mushroom": 0.02,
+          "trees": {
+            "weight": 6,
+            "prefabs": ["evergreen", "evergreen_sparse"]
+          }
+        }
+      }
+    },
+    {
+      "id": "CrappyForest",
+      "colour": {
+        "r": 0.5,
+        "g": 0.6,
+        "b": 0.08,
+        "a": 0.1
+      },
+      "value": "WORLD_TILES.FOREST",
+      "tags": ["ExitPiece", "Chester_Eyebone", "Balatro_Spawner"],
+      "contents": {
+        "countprefabs": {
+          "spawnpoint_multiplayer": 1
+        },
+        "distributepercent": 0.3,
+        "distributeprefabs": {
+          "fireflies": 0.2,
+          "evergreen_sparse": 6,
+          "rock1": 0.05,
+          "grass": 0.05,
+          "sapling": 0.8,
+          "twiggytree": 0.8,
+          "ground_twigs": 0.06,
+          "molehill": 0.05,
+          "berrybush": 0.03,
+          "berrybush_juicy": 0.015,
+          "red_mushroom": 0.03,
+          "green_mushroom": 0.02
+        }
+      }
+    },
+    {
+      "id": "SpiderForest",
+      "colour": {
+        "r": 0.8,
+        "g": 0.34,
+        "b": 0.8,
+        "a": 0.5
+      },
+      "value": "WORLD_TILES.FOREST",
+      "tags": ["ExitPiece", "Chester_Eyebone"],
+      "contents": {
+        "distributepercent": 0.2,
+        "distributeprefabs": {
+          "evergreen_sparse": 6,
+          "rock1": 0.05,
+          "sapling": 0.05,
+          "twiggytree": 0.05,
+          "ground_twigs": 0.03,
+          "spiderden": 1
+        },
+        "prefabdata": {
+          "spiderden": "function() if math.random() < 0.2 then return { growable={stage=2}} else return { growable={stage=1}} end end"
+        }
+      }
+    },
+    {
+      "id": "BurntClearing",
+      "colour": {
+        "r": 0.8,
+        "g": 0.5,
+        "b": 0.7,
+        "a": 0.5
+      },
+      "value": "WORLD_TILES.FOREST",
+      "tags": ["ExitPiece", "Chester_Eyebone"],
+      "contents": {
+        "distributepercent": 0.1,
+        "distributeprefabs": {
+          "evergreen": 0.15,
+          "grass": 0.1,
+          "sapling": 0.2,
+          "twiggytree": 0.2,
+          "ground_twigs": 0.06
+        },
+        "prefabdata": {
+          "evergreen": {
+            "burnt": true
+          }
+        }
+      }
+    },
+    {
+      "id": "Clearing",
+      "colour": {
+        "r": 0.8,
+        "g": 0.5,
+        "b": 0.6,
+        "a": 0.5
+      },
+      "value": "WORLD_TILES.FOREST",
+      "tags": ["ExitPiece", "Chester_Eyebone", "StagehandGarden", "Balatro_Spawner"],
+      "contents": {
+        "countprefabs": {
+          "spawnpoint_multiplayer": 1
+        },
+        "countstaticlayouts": {
+          "MushroomRingLarge": "function() if math.random(0,1000) > 985 then return 1 end return 0 end"
+        },
+        "distributepercent": 0.1,
+        "distributeprefabs": {
+          "pighouse": 0.015,
+          "fireflies": 1,
+          "evergreen": 1.5,
+          "grass": 0.1,
+          "sapling": 0.8,
+          "twiggytree": 0.8,
+          "ground_twigs": 0.06,
+          "berrybush": 0.1,
+          "berrybush_juicy": 0.05,
+          "beehive": 0.05,
+          "red_mushroom": 0.01,
+          "green_mushroom": 0.02
+        }
+      }
+    },
+    {
+      "id": "MoonbaseOne",
+      "colour": {
+        "r": 0.8,
+        "g": 0.5,
+        "b": 0.6,
+        "a": 0.5
+      },
+      "value": "WORLD_TILES.FOREST",
+      "tags": ["RoadPoison"],
+      "contents": {
+        "countprefabs": {},
+        "countstaticlayouts": {
+          "MoonbaseOne": 1
+        },
+        "distributepercent": 0.8,
+        "distributeprefabs": {
+          "evergreen": 6,
+          "fireflies": 0.5,
+          "blue_mushroom": 0.05,
+          "green_mushroom": 0.05,
+          "grass": 0.1,
+          "sapling": 0.8,
+          "twiggytree": 0.8,
+          "ground_twigs": 0.06,
+          "berrybush_juicy": 0.05
+        }
+      }
+    }
+  ]
+}

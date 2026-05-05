@@ -20,8 +20,8 @@
 // Damage event delegates (broadcast from PostGameplayEffectExecute)
 // -----------------------------------------------------------------------
 
-/** 角色血量变化时广播（NewHealth 已夹紧到 [0, MaxHealth]）。 */
-DECLARE_MULTICAST_DELEGATE_OneParam(FMFOnHealthChanged, float /*NewHealth*/);
+/** 角色血量变化时广播（OldHealth/NewHealth 均已夹紧到 [0, MaxHealth]）。 */
+DECLARE_MULTICAST_DELEGATE_TwoParams(FMFOnHealthChanged, float /*OldHealth*/, float /*NewHealth*/);
 
 /** 角色 HP 归零时广播。只广播一次（由 PostGE 保证）。 */
 DECLARE_MULTICAST_DELEGATE(FMFOnDeath);
