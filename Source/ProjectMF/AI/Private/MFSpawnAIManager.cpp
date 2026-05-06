@@ -3,8 +3,6 @@
 #include "MFSpawnAIManager.h"
 #include "MFPetBase.h"
 #include "MFPetAIController.h"
-#include "MFRadarSensingComponent.h"
-#include "MFThreatComponent.h"
 #include "MFLog.h"
 #include "NavigationSystem.h"
 #include "EnvironmentQuery/EnvQueryManager.h"
@@ -50,12 +48,12 @@ void AMFSpawnAIManager::ProcessEntry(const FMFSpawnEntry& Entry)
 {
 	if (!IsValid(Entry.Config))
 	{
-		MF_LOG_WARNING(LogMFSpawnAI, TEXT("%s: Entry has no Config, skipping."), *GetName());
+		MF_LOG_WARNING(LogMFSpawnAI, TEXT("%s: Entry has no PetConfig, skipping."), *GetName());
 		return;
 	}
 	if (!Entry.Config->PetClass)
 	{
-		MF_LOG_WARNING(LogMFSpawnAI, TEXT("%s: Config '%s' has no PetClass, skipping."),
+		MF_LOG_WARNING(LogMFSpawnAI, TEXT("%s: PetConfig '%s' has no PetClass, skipping."),
 		               *GetName(), *Entry.Config->GetName());
 		return;
 	}
@@ -112,7 +110,7 @@ void AMFSpawnAIManager::SpawnGroup(const FMFSpawnEntry& Entry, TArray<FVector>& 
 
 void AMFSpawnAIManager::SpawnSinglePet(const FMFSpawnEntry& Entry, const FVector& SpawnLocation)
 {
-	const UMFSpawnAIConfig* Config = Entry.Config;
+	const UMFPetConfig* PetConfig = Entry.Config;
 
 	// 1. Spawn Pet
 	//    AutoPossessAI = PlacedInWorldOrSpawned（AMFAICharacter 设置）会触发自动 Possess，
@@ -122,7 +120,7 @@ void AMFSpawnAIManager::SpawnSinglePet(const FMFSpawnEntry& Entry, const FVector
 	    ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 
 	AMFPetBase* Pet = GetWorld()->SpawnActor<AMFPetBase>(
-	    Config->PetClass, SpawnLocation, FRotator::ZeroRotator, PetParams);
+	    PetConfig->PetClass, SpawnLocation, FRotator::ZeroRotator, PetParams);
 
 	if (!IsValid(Pet))
 	{
@@ -133,7 +131,7 @@ void AMFSpawnAIManager::SpawnSinglePet(const FMFSpawnEntry& Entry, const FVector
 
 	// 2. 确认 Controller
 	//    AutoPossess 已完成，取出当前 Controller 并转型。
-	//    若 Config 指定了不同的子类，则替换掉自动生成的那个。
+	//    若 PetConfig 指定了不同的子类，则替换掉自动生成的那个。
 	AMFPetAIController* Controller = Cast<AMFPetAIController>(Pet->GetController());
 
 	if (!Controller)
@@ -147,9 +145,9 @@ void AMFSpawnAIManager::SpawnSinglePet(const FMFSpawnEntry& Entry, const FVector
 
 		// StaticClass() 返回 UClass*，与 TSubclassOf 的三目运算符有歧义，改用 if-else。
 		TSubclassOf<AMFPetAIController> CtrlClass = AMFPetAIController::StaticClass();
-		if (Config->ControllerClass)
+		if (PetConfig->ControllerClass)
 		{
-			CtrlClass = Config->ControllerClass;
+			CtrlClass = PetConfig->ControllerClass;
 		}
 
 		FActorSpawnParameters CtrlParams;
@@ -162,9 +160,9 @@ void AMFSpawnAIManager::SpawnSinglePet(const FMFSpawnEntry& Entry, const FVector
 			Controller->Possess(Pet);
 		}
 	}
-	else if (Config->ControllerClass && !Controller->IsA(Config->ControllerClass))
+	else if (PetConfig->ControllerClass && !Controller->IsA(PetConfig->ControllerClass))
 	{
-		// Config 要求特定子类，但自动 Possess 给的是基类，替换之
+		// PetConfig 要求特定子类，但自动 Possess 给的是基类，替换之
 		Controller->UnPossess();
 		Controller->Destroy();
 		Controller = nullptr;
@@ -172,7 +170,7 @@ void AMFSpawnAIManager::SpawnSinglePet(const FMFSpawnEntry& Entry, const FVector
 		FActorSpawnParameters CtrlParams;
 		CtrlParams.Owner = Pet;
 		Controller = GetWorld()->SpawnActor<AMFPetAIController>(
-		    Config->ControllerClass, SpawnLocation, FRotator::ZeroRotator, CtrlParams);
+		    PetConfig->ControllerClass, SpawnLocation, FRotator::ZeroRotator, CtrlParams);
 
 		if (Controller)
 		{
@@ -188,25 +186,12 @@ void AMFSpawnAIManager::SpawnSinglePet(const FMFSpawnEntry& Entry, const FVector
 		return;
 	}
 
-	// 3. 启动 StateTree
-	Controller->RunStateTree(Config->StateTreeAsset);
+	// 3. 将 PetConfig 全部配置写入宠物（身份 / GAS / 感知），顺序：先于 StateTree 启动
+	Pet->ApplyPetConfig(PetConfig);
 
-	// 4. 初始化雷达感知配置（先于索敌配置写入）
-	//    RadarConfig → SensingRadius / TargetTags / ScanInterval 写入组件。
-	if (UMFRadarSensingComponent* RadarComp =
-		Pet->FindComponentByClass<UMFRadarSensingComponent>())
-	{
-		RadarComp->ApplyConfig(Config->RadarConfig);
-	}
+	// 4. 启动 StateTree（依赖 ApplyPetConfig 已完成感知组件初始化）
+	Controller->RunStateTree(PetConfig->StateTreeAsset);
 
-	// 5. 初始化索敌配置（依赖 RadarConfig 已写入，内部校验 EngagementRadius <= SensingRadius）
-	if (UMFThreatComponent* ThreatComp =
-		Pet->FindComponentByClass<UMFThreatComponent>())
-	{
-		ThreatComp->ApplyConfig(Config->ThreatConfig);
-	}
-
-	// 7. 记录
 	SpawnedPets.Add(Pet);
 
 	MF_LOG(LogMFSpawnAI, TEXT("%s: Spawned '%s' with controller '%s' at %s."),

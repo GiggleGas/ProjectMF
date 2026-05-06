@@ -59,7 +59,7 @@ enum class EMFThreatState : uint8
 // ============================================================
 
 /**
- * FMFThreatConfig — 索敌系统运行时配置，存入 UMFSpawnAIConfig DataAsset。
+ * FMFThreatConfig — 索敌系统运行时配置，存入 UMFPetConfig DataAsset。
  */
 USTRUCT(BlueprintType)
 struct PROJECTMF_API FMFThreatConfig

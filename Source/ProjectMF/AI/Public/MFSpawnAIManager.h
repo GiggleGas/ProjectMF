@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "EnvironmentQuery/EnvQueryTypes.h"
-#include "MFSpawnAIConfig.h"
+#include "MFPetConfig.h"
 #include "MFSpawnAIManager.generated.h"
 
 class AMFPetBase;
@@ -51,9 +51,9 @@ struct FMFSpawnEntry
 	// 生什么（引用 DataAsset）
 	// ----------------------------------------------------------------
 
-	/** 宠物配置资产（PetClass + StateTree + ControllerClass）。 */
+	/** 宠物配置资产（PetClass / StateTree / 感知 / GAS 等完整配置）。 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawn")
-	TObjectPtr<UMFSpawnAIConfig> Config;
+	TObjectPtr<UMFPetConfig> Config;
 
 	// ----------------------------------------------------------------
 	// 生多少
@@ -113,7 +113,7 @@ struct FMFSpawnEntry
  * 使用方式：
  *   1. 在关卡中放置 BP_SpawnAIManager（继承本类的蓝图）。
  *   2. 在 Details 面板的 SpawnEntries 中添加若干条 FMFSpawnEntry。
- *      每条 Entry 引用一个 UMFSpawnAIConfig（决定"生什么"），
+ *      每条 Entry 引用一个 UMFPetConfig（决定"生什么"），
  *      并自行配置数量和选点规则。
  *   3. Play → BeginPlay 自动执行所有 Entry 的生成流程。
  *

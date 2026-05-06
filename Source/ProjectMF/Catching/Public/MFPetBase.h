@@ -10,6 +10,7 @@
 // MFItemTypes.h 不在此处 include（会循环），用前向声明 + 引用参数规避。
 // MFPetBase.cpp 中 include MFItemTypes.h 获取完整定义。
 struct FMFPetInstance;
+class UMFPetConfig;
 
 /**
  * AMFPetBase — 可被玩家抓取的宠物 AI 基类。
@@ -83,6 +84,23 @@ public:
 	 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Pet|Data")
 	FName PetItemID;
+
+	// -----------------------------------------------------------------------
+	// 配置注入
+	// -----------------------------------------------------------------------
+
+	/**
+	 * 将 UMFPetConfig 中的所有配置写入本宠物 Actor。
+	 * 由 AMFSpawnAIManager 在 Spawn + Possess 完成后、RunStateTree 之前调用。
+	 *
+	 * 写入顺序：
+	 *   1. 身份（PetItemID）
+	 *   2. GAS（Abilities / InitEffect / OwnedTags）
+	 *   3. 感知（RadarConfig → ThreatConfig，顺序不可颠倒）
+	 *
+	 * Config 为 nullptr 时安全跳过，不影响蓝图 CDO 中已有的配置。
+	 */
+	void ApplyPetConfig(const UMFPetConfig* Config);
 
 	// -----------------------------------------------------------------------
 	// 序列化接口

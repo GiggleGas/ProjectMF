@@ -16,10 +16,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMFRadarTargetEvent, AActor*, Target
 /**
  * FMFRadarSensingConfig — 雷达感知的运行时配置。
  *
- * 存储在 UMFSpawnAIConfig DataAsset 中，由 AMFSpawnAIManager 在
- * SpawnSinglePet 阶段调用 UMFRadarSensingComponent::ApplyConfig() 写入。
- * 这样每种宠物类型可以有独立的感知半径和目标过滤标签，
- * 无需修改蓝图 CDO。
+ * 存储在 UMFPetConfig DataAsset 中，由 AMFPetBase::ApplyPetConfig() 写入。
+ * 每种宠物类型可以有独立的感知半径和目标过滤标签，无需修改蓝图 CDO。
  */
 USTRUCT(BlueprintType)
 struct PROJECTMF_API FMFRadarSensingConfig

@@ -1,11 +1,17 @@
 // Copyright ProjectMF. All Rights Reserved.
 
 #include "MFPetBase.h"
+#include "MFPetConfig.h"
 #include "MFItemTypes.h"
 #include "MFAttributeSetBase.h"
 #include "MFPetAIController.h"
+#include "MFRadarSensingComponent.h"
+#include "MFThreatComponent.h"
 #include "MFLog.h"
 #include "AbilitySystemComponent.h"
+#include "GameplayEffect.h"
+#include "MFGameplayAbilityBase.h"
+#include "PaperZDAnimationComponent.h"
 
 // ============================================================
 // 构造
@@ -19,6 +25,63 @@ AMFPetBase::AMFPetBase()
 	// 设置默认 Controller 类，使 AutoPossessAI 自动 Possess AMFPetAIController。
 	// AMFSpawnAIManager 之后调用 RunStateTree() 绑定具体资产。
 	AIControllerClass = AMFPetAIController::StaticClass();
+}
+
+// ============================================================
+// 配置注入
+// ============================================================
+
+void AMFPetBase::ApplyPetConfig(const UMFPetConfig* Config)
+{
+	if (!Config)
+	{
+		return;
+	}
+
+	// 1. 动画（最先执行，让后续 StateTree 启动时 AnimInstance 已就位）
+	if (Config->AnimInstanceClass && AnimationComponent)
+	{
+		AnimationComponent->SetAnimInstanceClass(Config->AnimInstanceClass);
+	}
+
+	// 2. 身份
+	if (!Config->PetItemID.IsNone())
+	{
+		PetItemID = Config->PetItemID;
+	}
+
+	// 3. GAS
+	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
+	{
+		for (const TSubclassOf<UMFGameplayAbilityBase>& AbilityClass : Config->DefaultAbilities)
+		{
+			if (AbilityClass)
+			{
+				ASC->GiveAbility(FGameplayAbilitySpec(AbilityClass, 1));
+			}
+		}
+
+		if (Config->DefaultInitEffect)
+		{
+			const UGameplayEffect* GE = Config->DefaultInitEffect->GetDefaultObject<UGameplayEffect>();
+			ASC->ApplyGameplayEffectToSelf(GE, 1.f, ASC->MakeEffectContext());
+		}
+
+		if (!Config->DefaultOwnedTags.IsEmpty())
+		{
+			ASC->AddLooseGameplayTags(Config->DefaultOwnedTags);
+		}
+	}
+
+	// 4. 感知（Radar 须先于 Threat 写入，Threat 内部校验 EngagementRadius <= SensingRadius）
+	if (UMFRadarSensingComponent* MyRadarComp = FindComponentByClass<UMFRadarSensingComponent>())
+	{
+		MyRadarComp->ApplyConfig(Config->RadarConfig);
+	}
+	if (UMFThreatComponent* MyThreatComp = FindComponentByClass<UMFThreatComponent>())
+	{
+		MyThreatComp->ApplyConfig(Config->ThreatConfig);
+	}
 }
 
 // ============================================================
