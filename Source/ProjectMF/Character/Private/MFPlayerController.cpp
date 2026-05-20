@@ -1,8 +1,11 @@
 // Copyright ProjectMF. All Rights Reserved.
 
 #include "MFPlayerController.h"
+#include "MFPlayerConfig.h"
+#include "MFMainHUDWidget.h"
+#include "MFCharacter.h"
 #include "EnhancedInputSubsystems.h"
-#include "InputMappingContext.h"
+#include "Blueprint/UserWidget.h"
 
 AMFPlayerController::AMFPlayerController()
 {
@@ -13,6 +16,16 @@ void AMFPlayerController::BeginPlay()
 	Super::BeginPlay();
 
 	AddInputMappingContext();
+
+	if (PlayerConfig && PlayerConfig->MainHUDClass)
+	{
+		MainHUDInstance = CreateWidget<UMFMainHUDWidget>(this, PlayerConfig->MainHUDClass);
+		if (MainHUDInstance)
+		{
+			MainHUDInstance->AddToViewport();
+			MainHUDInstance->InitPlayerHUD(Cast<AMFCharacter>(GetPawn()));
+		}
+	}
 }
 
 void AMFPlayerController::OnPossess(APawn* InPawn)
@@ -31,7 +44,7 @@ void AMFPlayerController::OnUnPossess()
 
 void AMFPlayerController::AddInputMappingContext()
 {
-	if (!DefaultMappingContext)
+	if (!PlayerConfig || !PlayerConfig->DefaultMappingContext)
 	{
 		return;
 	}
@@ -39,13 +52,13 @@ void AMFPlayerController::AddInputMappingContext()
 	if (UEnhancedInputLocalPlayerSubsystem* Subsystem =
 		ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
 	{
-		Subsystem->AddMappingContext(DefaultMappingContext, DefaultMappingPriority);
+		Subsystem->AddMappingContext(PlayerConfig->DefaultMappingContext, PlayerConfig->DefaultMappingPriority);
 	}
 }
 
 void AMFPlayerController::RemoveInputMappingContext()
 {
-	if (!DefaultMappingContext)
+	if (!PlayerConfig || !PlayerConfig->DefaultMappingContext)
 	{
 		return;
 	}
@@ -53,6 +66,6 @@ void AMFPlayerController::RemoveInputMappingContext()
 	if (UEnhancedInputLocalPlayerSubsystem* Subsystem =
 		ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
 	{
-		Subsystem->RemoveMappingContext(DefaultMappingContext);
+		Subsystem->RemoveMappingContext(PlayerConfig->DefaultMappingContext);
 	}
 }

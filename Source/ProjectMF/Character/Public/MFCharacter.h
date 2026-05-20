@@ -11,6 +11,7 @@ class USpringArmComponent;
 class UCameraComponent;
 class UMFCameraController;
 class UMFInventoryComponent;
+class UMFPlayerConfig;
 struct FInputActionValue;
 
 /**
@@ -42,42 +43,16 @@ protected:
 	virtual float GetCameraYawForDirectionality() const override;
 
 	// -----------------------------------------------------------------------
-	// Input Actions
+	// Player Config
 	// -----------------------------------------------------------------------
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
-	TObjectPtr<UInputAction> MoveAction;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
-	TObjectPtr<UInputAction> PickAction;
-
-	/** 1D axis: +1 = snap CW (E key), -1 = snap CCW (Q key). */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
-	TObjectPtr<UInputAction> RotateCameraAction;
-
 	/**
-	 * 抓宠键（建议绑定 F 或 E）。
-	 * 触发器类型：Released（按下松开后激活技能，避免与移动键冲突）。
-	 * 在 GAS 中激活 MF.Ability.CatchPet。
+	 * 玩家专属配置资产（DataAsset）。
+	 * 汇总输入绑定、UI 类、GAS 初始化和战斗参数。
+	 * BP_MFCharacter 和 BP_PlayerController 引用同一个资产实例。
 	 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
-	TObjectPtr<UInputAction> CatchPetAction;
-
-	/**
-	 * DEMO: 召唤宠物 slot 1-5 的临时按键绑定。
-	 * 元素 0 = slot 1，元素 4 = slot 5。
-	 * 每个按键触发时向 GAS 发送 MF.Ability.SummonPet 事件（Magnitude = slot 序号）。
-	 * 待 GA_PetWheel（轮盘选择）实现后，此数组及绑定代码可整体删除。
-	 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input|Demo")
-	TArray<TObjectPtr<UInputAction>> SummonSlotActions;
-
-	/**
-	 * 手动触发 Boss 战的按键（建议绑定 Tab 或 B）。
-	 * 仅在捕宠阶段且已持有足够宠物时生效（条件由 AMFGameLoopManager 判断）。
-	 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
-	TObjectPtr<UInputAction> StartBossBattleAction;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Player")
+	TObjectPtr<UMFPlayerConfig> PlayerConfig;
 
 	// -----------------------------------------------------------------------
 	// Camera Components

@@ -6,11 +6,13 @@
 #include "MFInventoryComponent.h"
 #include "MFGameMode.h"
 #include "MFLog.h"
+#include "MFPlayerConfig.h"
 #include "Abilities/GameplayAbilityTypes.h"
 #include "AbilitySystemComponent.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "EnhancedInputComponent.h"
+#include "InputAction.h"
 #include "InputActionValue.h"
 
 AMFCharacter::AMFCharacter()
@@ -40,6 +42,18 @@ AMFCharacter::AMFCharacter()
 
 void AMFCharacter::BeginPlay()
 {
+	// 在 Super::BeginPlay 之前将 Config 值写入基类属性，
+	// 这样 InitAbilitySystemComponent() 和头顶 Widget 初始化能正确读取。
+	if (PlayerConfig)
+	{
+		DefaultAbilities      = PlayerConfig->DefaultAbilities;
+		DefaultOwnedTags      = PlayerConfig->DefaultOwnedTags;
+		DefaultInitEffect     = PlayerConfig->DefaultInitEffect;
+		HitFlashDuration      = PlayerConfig->HitFlashDuration;
+		OverheadWidgetClass   = PlayerConfig->OverheadWidgetClass;
+		OverheadWidgetZOffset = PlayerConfig->OverheadWidgetZOffset;
+	}
+
 	Super::BeginPlay();
 }
 
@@ -47,46 +61,51 @@ void AMFCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
+	if (!PlayerConfig)
+	{
+		MF_LOG_WARNING(LogMFCharacter, TEXT("AMFCharacter: PlayerConfig is not set — no input bindings applied."));
+		return;
+	}
+
 	if (UEnhancedInputComponent* EI = Cast<UEnhancedInputComponent>(PlayerInputComponent))
 	{
-		if (MoveAction)
+		if (PlayerConfig->MoveAction)
 		{
-			EI->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AMFCharacter::HandleMove);
+			EI->BindAction(PlayerConfig->MoveAction, ETriggerEvent::Triggered, this, &AMFCharacter::HandleMove);
 		}
-		if (PickAction)
+		if (PlayerConfig->PickAction)
 		{
-			EI->BindAction(PickAction, ETriggerEvent::Started,   this, &AMFCharacter::HandlePickStarted);
-			EI->BindAction(PickAction, ETriggerEvent::Completed, this, &AMFCharacter::HandlePickCompleted);
+			EI->BindAction(PlayerConfig->PickAction, ETriggerEvent::Started,   this, &AMFCharacter::HandlePickStarted);
+			EI->BindAction(PlayerConfig->PickAction, ETriggerEvent::Completed, this, &AMFCharacter::HandlePickCompleted);
 		}
-		if (RotateCameraAction)
+		if (PlayerConfig->RotateCameraAction)
 		{
-			EI->BindAction(RotateCameraAction, ETriggerEvent::Started, this, &AMFCharacter::HandleCameraRotate);
+			EI->BindAction(PlayerConfig->RotateCameraAction, ETriggerEvent::Started, this, &AMFCharacter::HandleCameraRotate);
 		}
-		if (CatchPetAction)
+		if (PlayerConfig->CatchPetAction)
 		{
-			// Completed = 按键松开后触发，确保不与长按走路等操作冲突
-			EI->BindAction(CatchPetAction, ETriggerEvent::Completed, this, &AMFCharacter::HandleCatchPet);
+			EI->BindAction(PlayerConfig->CatchPetAction, ETriggerEvent::Completed, this, &AMFCharacter::HandleCatchPet);
 		}
 		else
 		{
-			MF_LOG_WARNING(LogMFCharacter, TEXT("AMFCharacter: CatchPetAction is not set — catch ability cannot be activated via input."));
+			MF_LOG_WARNING(LogMFCharacter, TEXT("AMFCharacter: PlayerConfig->CatchPetAction is not set — catch ability cannot be activated via input."));
 		}
 
 		// DEMO BEGIN — 召唤按键临时绑定（1-5 对应 slot 1-5）
 		// TODO: GA_PetWheel 完成后，删除此段并改为激活轮盘 Ability
-		for (int32 i = 0; i < SummonSlotActions.Num() && i < 5; ++i)
+		for (int32 i = 0; i < PlayerConfig->SummonSlotActions.Num() && i < 5; ++i)
 		{
-			if (SummonSlotActions[i])
+			if (PlayerConfig->SummonSlotActions[i])
 			{
-				EI->BindAction(SummonSlotActions[i], ETriggerEvent::Started,
+				EI->BindAction(PlayerConfig->SummonSlotActions[i], ETriggerEvent::Started,
 					this, &AMFCharacter::HandleSummonSlot, i + 1);
 			}
 		}
 		// DEMO END
 
-		if (StartBossBattleAction)
+		if (PlayerConfig->StartBossBattleAction)
 		{
-			EI->BindAction(StartBossBattleAction, ETriggerEvent::Started,
+			EI->BindAction(PlayerConfig->StartBossBattleAction, ETriggerEvent::Started,
 				this, &AMFCharacter::HandleStartBossBattle);
 		}
 	}
