@@ -14,7 +14,6 @@ class UMFOverheadWidget;
 class UMFPetSlotWidget;
 class AMFCharacter;
 class UMFInventoryComponent;
-class UMFItemDatabase;
 
 /**
  * C++ base class for the player's main HUD.
@@ -108,5 +107,4 @@ private:
 
 	UPROPERTY() TWeakObjectPtr<AMFGameMode>           BoundGameMode;
 	UPROPERTY() TWeakObjectPtr<UMFInventoryComponent> BoundInventory;
-	UPROPERTY() TObjectPtr<UMFItemDatabase>           CachedItemDatabase;
 };

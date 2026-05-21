@@ -5,7 +5,6 @@
 #include "MFOverheadWidget.h"
 #include "MFCharacter.h"
 #include "MFInventoryComponent.h"
-#include "MFItemDatabase.h"
 #include "MFGameLoopConfig.h"
 #include "MFPetBase.h"
 #include "AbilitySystemComponent.h"
@@ -72,8 +71,7 @@ void UMFMainHUDWidget::InitPlayerHUD(AMFCharacter* Player)
 	UMFInventoryComponent* Inv = Player->GetInventoryComponent();
 	if (Inv)
 	{
-		BoundInventory    = Inv;
-		CachedItemDatabase = Inv->ItemDatabase;
+		BoundInventory = Inv;
 		Inv->OnPetRosterChanged.AddDynamic(this, &UMFMainHUDWidget::OnPetRosterChanged);
 		RefreshPetSlots();
 	}
@@ -142,7 +140,7 @@ void UMFMainHUDWidget::RefreshPetSlots()
 		UMFPetSlotWidget* MFPetSlot = CreateWidget<UMFPetSlotWidget>(this, PetSlotClass);
 		if (MFPetSlot)
 		{
-			MFPetSlot->InitWithPetActor(Pet, CachedItemDatabase);
+			MFPetSlot->InitWithPetActor(Pet);
 			PetSlotList->AddChild(MFPetSlot);
 		}
 	}

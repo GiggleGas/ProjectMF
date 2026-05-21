@@ -25,13 +25,13 @@ enum class EMFItemType : uint8
 // ============================================================
 
 /**
- * FMFItemDef — 物品静态定义，存储在 UMFItemDatabase DataAsset 中。
+ * FMFItemDef — 可叠加资源类物品的静态定义，存储在 UMFItemDatabase DataAsset 中。
  *
  * 命名规范（ItemID）：
  *   资源  →  Item.Resource.Wood / Item.Resource.Stone
- *   宠物  →  Item.Pet.SlimeCat / Item.Pet.FireFox
  *   装备  →  Item.Equipment.Sword
  *
+ * 注意：宠物类物品不再经过 ItemDatabase，改由 DT_AIRegistry + UMFPetConfig 统一管理。
  * 运行时只读，不随游戏状态变化。
  */
 USTRUCT(BlueprintType)
@@ -54,20 +54,13 @@ struct PROJECTMF_API FMFItemDef
 
 	/**
 	 * 单格最大叠加数量。
-	 * Pet / Equipment 固定应设为 1（不叠加）。
+	 * Equipment 固定应设为 1（不叠加）。
 	 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item", meta = (ClampMin = 1))
 	int32 MaxStackSize = 99;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
 	FText Description;
-
-	/**
-	 * 仅 ItemType == Pet 时有效：对应的宠物 Actor 类。
-	 * 用于从背包召唤宠物（预留）。
-	 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Pet")
-	TSubclassOf<AMFPetBase> PetClass;
 };
 
 // ============================================================
@@ -104,7 +97,7 @@ struct PROJECTMF_API FMFInventorySlot
  * FMFPetInstance — 宠物运行时实例数据。
  *
  * 每只捕获的宠物对应一个独立实例：
- *   - PetItemID 指向 DA 中的静态定义（基础模板）
+ *   - AIConfigID 对应 DT_AIRegistry DataTable 的 RowKey（全局 AI 类型 ID）
  *   - 其余字段为该宠物个体的成长数据
  */
 USTRUCT(BlueprintType)
@@ -116,11 +109,14 @@ struct PROJECTMF_API FMFPetInstance
 	UPROPERTY(BlueprintReadOnly, Category = "Pet")
 	FGuid InstanceID;
 
-	/** 对应 UMFItemDatabase 中的宠物物品定义 ID（静态模板）。 */
+	/**
+	 * AI 类型 ID，对应 DT_AIRegistry DataTable 的 RowKey（如 "Pet_SlimeCat"）。
+	 * 召唤时通过此 ID 从 DT 查找 UMFPetConfig，重新 ApplyPetConfig + RunStateTree。
+	 */
 	UPROPERTY(BlueprintReadOnly, Category = "Pet")
-	FName PetItemID;
+	FName AIConfigID;
 
-	/** 玩家自定义昵称，默认使用 DisplayName。 */
+	/** 玩家自定义昵称，默认使用 UMFPetConfig::DisplayName。 */
 	UPROPERTY(BlueprintReadWrite, Category = "Pet")
 	FString PetName;
 
@@ -138,12 +134,12 @@ struct PROJECTMF_API FMFPetInstance
 	UPROPERTY()
 	TMap<FName, float> AttributeSnapshot;
 
-	bool IsValid() const { return InstanceID.IsValid() && !PetItemID.IsNone(); }
+	bool IsValid() const { return InstanceID.IsValid() && !AIConfigID.IsNone(); }
 
 	FString GetDebugString() const
 	{
 		return FString::Printf(TEXT("[Pet] %s  Lv.%d  (%s)  [%s]"),
-			*PetName, Level, *PetItemID.ToString(),
+			*PetName, Level, *AIConfigID.ToString(),
 			bIsActive ? TEXT("Active") : TEXT("Stored"));
 	}
 };

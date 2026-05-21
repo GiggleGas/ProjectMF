@@ -14,11 +14,8 @@ class UPaperFlipbookComponent;
 class UPaperZDAnimationComponent;
 class UAbilitySystemComponent;
 class UMFAttributeSetBase;
-class UMFCombatAttributeSet;
 class UMFGameplayAbilityBase;
 class UGameplayEffect;
-class UWidgetComponent;
-class UMFOverheadWidget;
 
 /**
  * Abstract base class for all MF characters (player and AI).
@@ -70,10 +67,6 @@ protected:
 	/** Base attribute set: Health, MaxHealth, MoveSpeed, Damage. Owned by this actor. */
 	UPROPERTY()
 	TObjectPtr<UMFAttributeSetBase> AttributeSet;
-
-	/** Combat attribute set: Attack, Defense, FleeThreshold. Owned by this actor. */
-	UPROPERTY()
-	TObjectPtr<UMFCombatAttributeSet> CombatAttributeSet;
 
 	/**
 	 * Abilities granted at BeginPlay.
@@ -141,33 +134,6 @@ protected:
 	/** PaperZD animation component: owns the AnimInstance and drives FlipbookComponent. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UPaperZDAnimationComponent> AnimationComponent;
-
-	// -----------------------------------------------------------------------
-	// Overhead UI (Screen Space Widget)
-	// -----------------------------------------------------------------------
-
-	/**
-	 * Screen-space widget projected from this component's world position.
-	 * Stays attached to the actor and always faces the screen (no billboard math needed).
-	 * Assign OverheadWidgetClass in each character's Blueprint to activate.
-	 */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
-	TObjectPtr<UWidgetComponent> OverheadWidgetComp;
-
-	/**
-	 * Blueprint widget class to instantiate on this character's overhead slot.
-	 * Must inherit from UMFOverheadWidget. Leave null to disable the overhead bar.
-	 */
-	UPROPERTY(EditDefaultsOnly, Category = "UI")
-	TSubclassOf<UMFOverheadWidget> OverheadWidgetClass;
-
-	/**
-	 * Z offset (relative to capsule center) for the overhead widget anchor.
-	 * Tune per Blueprint to sit just above the sprite's head.
-	 * Default 120 works for typical character sprites; pets may need a smaller value.
-	 */
-	UPROPERTY(EditDefaultsOnly, Category = "UI", meta = (ClampMin = "0.0", ClampMax = "500.0"))
-	float OverheadWidgetZOffset = 120.f;
 
 	// -----------------------------------------------------------------------
 	// Character State

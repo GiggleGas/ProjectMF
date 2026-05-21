@@ -9,8 +9,6 @@
 #include "MFThreatComponent.h"
 #include "MFLog.h"
 #include "AbilitySystemComponent.h"
-#include "GameplayEffect.h"
-#include "MFGameplayAbilityBase.h"
 #include "PaperZDAnimationComponent.h"
 
 // ============================================================
@@ -38,39 +36,21 @@ void AMFPetBase::ApplyPetConfig(const UMFPetConfig* Config)
 		return;
 	}
 
-	// 1. 动画（最先执行，让后续 StateTree 启动时 AnimInstance 已就位）
+	CachedPetConfig = Config;
+
+	// 1. 通用 AI 配置（GAS / OverheadWidget / HitFlash）— 由基类统一处理
+	ApplyAIConfig(Config);
+
+	// 2. 动画（最先执行，让后续 StateTree 启动时 AnimInstance 已就位）
 	if (Config->AnimInstanceClass && AnimationComponent)
 	{
 		AnimationComponent->SetAnimInstanceClass(Config->AnimInstanceClass);
 	}
 
-	// 2. 身份
-	if (!Config->PetItemID.IsNone())
+	// 3. 身份
+	if (!Config->AIConfigID.IsNone())
 	{
-		PetItemID = Config->PetItemID;
-	}
-
-	// 3. GAS
-	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
-	{
-		for (const TSubclassOf<UMFGameplayAbilityBase>& AbilityClass : Config->DefaultAbilities)
-		{
-			if (AbilityClass)
-			{
-				ASC->GiveAbility(FGameplayAbilitySpec(AbilityClass, 1));
-			}
-		}
-
-		if (Config->DefaultInitEffect)
-		{
-			const UGameplayEffect* GE = Config->DefaultInitEffect->GetDefaultObject<UGameplayEffect>();
-			ASC->ApplyGameplayEffectToSelf(GE, 1.f, ASC->MakeEffectContext());
-		}
-
-		if (!Config->DefaultOwnedTags.IsEmpty())
-		{
-			ASC->AddLooseGameplayTags(Config->DefaultOwnedTags);
-		}
+		AIConfigID = Config->AIConfigID;
 	}
 
 	// 4. 感知（Radar 须先于 Threat 写入，Threat 内部校验 EngagementRadius <= SensingRadius）
@@ -125,7 +105,7 @@ void AMFPetBase::OnCaught_Implementation(AActor* Catcher)
 
 void AMFPetBase::SerializeToInstance(FMFPetInstance& InOutInstance) const
 {
-	InOutInstance.PetItemID = PetItemID;
+	InOutInstance.AIConfigID = AIConfigID;
 
 	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
 	if (!ASC)

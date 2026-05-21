@@ -9,6 +9,11 @@
 #include "MFThreatComponent.h"
 #include "MFAICharacter.generated.h"
 
+class UWidgetComponent;
+class UMFOverheadWidget;
+class UMFCombatAttributeSet;
+class UMFAIConfig;
+
 /**
  * Base class for all AI-controlled characters in ProjectMF.
  *
@@ -48,6 +53,24 @@ public:
 	virtual void OnMassEntityUnlinked_Implementation() override;
 
 	// -----------------------------------------------------------------------
+	// Runtime config injection (called post-spawn by manager or subclasses)
+	// -----------------------------------------------------------------------
+
+	/**
+	 * 将 UMFAIConfig 中的配置写入本角色，post-BeginPlay 安全调用。
+	 *
+	 * 写入内容：
+	 *   - GAS：追加授予 DefaultAbilities，应用 DefaultInitEffect，添加 DefaultOwnedTags
+	 *   - HitFlashDuration
+	 *   - OverheadWidget：设置 WidgetClass 并初始化
+	 *
+	 * 由 AMFSpawnAIManager 通过 ApplyPetConfig（→ 内部调用本函数）驱动。
+	 * 关卡直接摆放的 AI 也可在 Blueprint AIConfig 属性中配置，由 BeginPlay 处理。
+	 * Config 为 nullptr 时安全跳过。
+	 */
+	void ApplyAIConfig(const UMFAIConfig* Config);
+
+	// -----------------------------------------------------------------------
 	// State accessors (read-only from Blueprints / other systems)
 	// -----------------------------------------------------------------------
 
@@ -77,6 +100,50 @@ protected:
 	 * Keeps directional sprites consistent across player and AI characters.
 	 */
 	virtual float GetCameraYawForDirectionality() const override;
+
+	// -----------------------------------------------------------------------
+	// AI Config
+	// -----------------------------------------------------------------------
+
+	/**
+	 * AI 通用配置资产（DataAsset）。
+	 * 汇总 GAS 初始化、头顶 Widget 和战斗参数。
+	 * BeginPlay 会将 Config 值复制到对应成员属性，后续流程无感知。
+	 * 留空则使用各属性的编辑器默认值。
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI")
+	TObjectPtr<UMFAIConfig> AIConfig;
+
+	// -----------------------------------------------------------------------
+	// GAS — Combat attributes (AI-only)
+	// -----------------------------------------------------------------------
+
+	/** Combat attribute set: Attack, Defense, FleeThreshold. AI characters only. */
+	UPROPERTY()
+	TObjectPtr<UMFCombatAttributeSet> CombatAttributeSet;
+
+	// -----------------------------------------------------------------------
+	// Overhead UI (Screen Space Widget)
+	// -----------------------------------------------------------------------
+
+	/** Screen-space widget projected from this component's world position. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
+	TObjectPtr<UWidgetComponent> OverheadWidgetComp;
+
+	/** Blueprint widget class (must inherit UMFOverheadWidget). Leave null to disable. */
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	TSubclassOf<UMFOverheadWidget> OverheadWidgetClass;
+
+	/** Z offset (relative to capsule center) for the overhead widget anchor. */
+	UPROPERTY(EditDefaultsOnly, Category = "UI", meta = (ClampMin = "0.0", ClampMax = "500.0"))
+	float OverheadWidgetZOffset = 120.f;
+
+	// -----------------------------------------------------------------------
+	// Debug
+	// -----------------------------------------------------------------------
+
+	/** Extends base DrawDebug with combat attribute display (ATK/DEF/Flee). */
+	virtual void DrawDebug() const override;
 
 	// -----------------------------------------------------------------------
 	// Radar Sensing

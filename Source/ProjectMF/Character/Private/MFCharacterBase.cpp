@@ -4,10 +4,8 @@
 #include "MFHitReactInterface.h"
 #include "MFAnimInstanceBase.h"
 #include "MFAttributeSetBase.h"
-#include "MFCombatAttributeSet.h"
 #include "MFGameplayAbilityBase.h"
 #include "MFGameplayTags.h"
-#include "ProjectMF/UI/Public/MFOverheadWidget.h"
 #include "AbilitySystemComponent.h"
 #include "GameplayEffect.h"
 #include "PaperFlipbookComponent.h"
@@ -15,7 +13,6 @@
 #include "PaperFlipbook.h"
 #include "PaperSprite.h"
 #include "Components/CapsuleComponent.h"
-#include "Components/WidgetComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "DrawDebugHelpers.h"
 #include "Engine/Engine.h"
@@ -34,7 +31,8 @@ static FAutoConsoleVariableRef CVarCharacterBaseDebug(
 	ECVF_Default
 );
 
-static int32 GAttributeDebug = 0;
+// Non-static so AMFAICharacter can extern-reference it for combat attribute debug rendering.
+int32 GAttributeDebug = 0;
 static FAutoConsoleVariableRef CVarAttributeDebug(
 	TEXT("MF.Char.AttributeDebug"),
 	GAttributeDebug,
@@ -53,7 +51,6 @@ AMFCharacterBase::AMFCharacterBase()
 	// --- GAS ---
 	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
 	AttributeSet           = CreateDefaultSubobject<UMFAttributeSetBase>(TEXT("AttributeSet"));
-	CombatAttributeSet     = CreateDefaultSubobject<UMFCombatAttributeSet>(TEXT("CombatAttributeSet"));
 
 	// --- Flipbook (render target driven by PaperZD) ---
 	FlipbookComponent = CreateDefaultSubobject<UPaperFlipbookComponent>(TEXT("FlipbookComponent"));
@@ -63,14 +60,6 @@ AMFCharacterBase::AMFCharacterBase()
 	// Set the AnimBP class in the derived Blueprint.
 	AnimationComponent = CreateDefaultSubobject<UPaperZDAnimationComponent>(TEXT("AnimationComponent"));
 	AnimationComponent->InitRenderComponent(FlipbookComponent);
-
-	// --- Overhead Widget (Screen Space) ---
-	// Space and collision are fixed; Z position and widget class are configured per Blueprint.
-	OverheadWidgetComp = CreateDefaultSubobject<UWidgetComponent>(TEXT("OverheadWidget"));
-	OverheadWidgetComp->SetupAttachment(RootComponent);
-	OverheadWidgetComp->SetWidgetSpace(EWidgetSpace::Screen);
-	OverheadWidgetComp->SetDrawAtDesiredSize(true);
-	OverheadWidgetComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
 void AMFCharacterBase::BeginPlay()
@@ -88,19 +77,6 @@ void AMFCharacterBase::BeginPlay()
 	if (bAutoUpdateCollisionFromFlipbook)
 	{
 		UpdateCollisionFromFlipbook();
-	}
-
-	// 初始化头顶悬浮 Widget。
-	// Z 偏移在 BeginPlay 设置以尊重 Blueprint 配置的值（构造函数只有 CDO 默认值）。
-	OverheadWidgetComp->SetRelativeLocation(FVector(0.f, 0.f, OverheadWidgetZOffset));
-	if (OverheadWidgetClass)
-	{
-		OverheadWidgetComp->SetWidgetClass(OverheadWidgetClass);
-		OverheadWidgetComp->InitWidget();
-		if (UMFOverheadWidget* W = Cast<UMFOverheadWidget>(OverheadWidgetComp->GetUserWidgetObject()))
-		{
-			W->InitWithASC(AbilitySystemComponent);
-		}
 	}
 }
 
@@ -382,18 +358,6 @@ void AMFCharacterBase::DrawAttributeDebug() const
 
 	// --- MoveSpeed ---
 	DrawLine(FString::Printf(TEXT("SPD %.0f"), AttributeSet->GetMoveSpeed()), FColor::White);
-
-	// --- Combat 属性（CombatAttributeSet 挂载时显示）---
-	if (CombatAttributeSet)
-	{
-		const FColor OrangeColor(255, 165, 0);
-		DrawLine(FString::Printf(TEXT("ATK %.0f  DEF %.0f"),
-			CombatAttributeSet->GetAttack(),
-			CombatAttributeSet->GetDefense()), OrangeColor);
-
-		DrawLine(FString::Printf(TEXT("Flee %.0f%%"),
-			CombatAttributeSet->GetFleeThreshold() * 100.f), FColor::White);
-	}
 
 	// --- 状态 Tag ---
 	if (AbilitySystemComponent)

@@ -12,6 +12,7 @@ class UCameraComponent;
 class UMFCameraController;
 class UMFInventoryComponent;
 class UMFPlayerConfig;
+class UMFPlayerAttributeSet;
 struct FInputActionValue;
 
 /**
@@ -69,6 +70,10 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UMFInventoryComponent> InventoryComponent;
+
+	/** Player-only attribute set. Extension point for player-specific GAS attributes. */
+	UPROPERTY()
+	TObjectPtr<UMFPlayerAttributeSet> PlayerAttributeSet;
 
 public:
 	UFUNCTION(BlueprintPure, Category = "Inventory")

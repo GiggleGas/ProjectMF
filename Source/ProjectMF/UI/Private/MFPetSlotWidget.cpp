@@ -3,24 +3,23 @@
 #include "MFPetSlotWidget.h"
 #include "MFOverheadWidget.h"
 #include "MFPetBase.h"
-#include "MFItemDatabase.h"
-#include "MFItemTypes.h"
+#include "MFPetConfig.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemInterface.h"
 #include "Components/Image.h"
 
-void UMFPetSlotWidget::InitWithPetActor(AMFPetBase* Pet, UMFItemDatabase* Database)
+void UMFPetSlotWidget::InitWithPetActor(AMFPetBase* Pet)
 {
 	if (!Pet) return;
 
-	// --- 头像 ---
-	if (Portrait && Database)
+	// --- 头像：从 CachedPetConfig 取 Icon（软引用，LoadSynchronous 同步加载）---
+	if (Portrait)
 	{
-		if (const FMFItemDef* Def = Database->FindItem(Pet->PetItemID))
+		if (const UMFPetConfig* Config = Pet->GetCachedPetConfig())
 		{
-			if (Def->Icon)
+			if (UTexture2D* Icon = Config->Icon.LoadSynchronous())
 			{
-				Portrait->SetBrushFromTexture(Def->Icon);
+				Portrait->SetBrushFromTexture(Icon);
 			}
 		}
 	}

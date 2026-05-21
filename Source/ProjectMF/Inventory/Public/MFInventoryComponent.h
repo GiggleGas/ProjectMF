@@ -8,6 +8,7 @@
 #include "MFInventoryComponent.generated.h"
 
 class UMFItemDatabase;
+class UDataTable;
 class AMFPetBase;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInventoryChanged);
@@ -34,19 +35,19 @@ public:
 	UMFInventoryComponent();
 
 	// -----------------------------------------------------------------------
-	// 配置
+	// 配置（由 AMFCharacter::BeginPlay 从 PlayerConfig 注入，勿在此处直接设置）
 	// -----------------------------------------------------------------------
 
-	/** 全局物品数据库，在 BP_MFCharacter 的组件 Details 中赋值。 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Config")
+	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Config")
 	TObjectPtr<UMFItemDatabase> ItemDatabase;
 
-	/** 资源格子上限（0 = 不限制）。 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Config", meta = (ClampMin = 0))
+	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Config")
+	TObjectPtr<UDataTable> AIRegistry;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Config")
 	int32 MaxResourceSlots = 0;
 
-	/** 宠物携带上限（0 = 不限制）。 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Config", meta = (ClampMin = 0))
+	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Config")
 	int32 MaxPetSlots = 0;
 
 	// -----------------------------------------------------------------------

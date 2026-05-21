@@ -397,13 +397,13 @@ void UGA_CatchPet::EndCatch(bool bSuccess)
 						if (NewID.IsValid())
 						{
 							MF_LOG(LogMFAbility, TEXT("GA_CatchPet: '%s' registered, InstanceID=%s."),
-								*PetBase->PetItemID.ToString(), *NewID.ToString());
+								*PetBase->AIConfigID.ToString(), *NewID.ToString());
 						}
 						else
 						{
 							MF_LOG_WARNING(LogMFAbility,
 								TEXT("GA_CatchPet: RegisterCaughtPet failed for '%s'."),
-								*PetBase->PetItemID.ToString());
+								*PetBase->AIConfigID.ToString());
 						}
 					}
 				}

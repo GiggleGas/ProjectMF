@@ -11,8 +11,9 @@ class UInputMappingContext;
 class UInputAction;
 class UMFGameplayAbilityBase;
 class UGameplayEffect;
-class UMFOverheadWidget;
 class UMFMainHUDWidget;
+class UMFItemDatabase;
+class UDataTable;
 
 /**
  * UMFPlayerConfig — 玩家专属配置（DataAsset）。
@@ -80,15 +81,6 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI")
 	TSubclassOf<UMFMainHUDWidget> MainHUDClass;
 
-	/** 头顶血条 Widget 类（必须继承 UMFOverheadWidget）。留空则不显示血条。 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI")
-	TSubclassOf<UMFOverheadWidget> OverheadWidgetClass;
-
-	/** 头顶血条锚点相对于胶囊中心的 Z 偏移（cm）。 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI",
-		meta = (ClampMin = "0.0", ClampMax = "500.0"))
-	float OverheadWidgetZOffset = 120.f;
-
 	// -----------------------------------------------------------------------
 	// GAS — 技能系统初始化
 	// -----------------------------------------------------------------------
@@ -116,4 +108,28 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat",
 		meta = (ClampMin = "0.05", ClampMax = "2.0"))
 	float HitFlashDuration = 0.25f;
+
+	// -----------------------------------------------------------------------
+	// Inventory — 背包配置
+	// -----------------------------------------------------------------------
+
+	/** 全局资源物品数据库（资源类物品的 MaxStackSize / 校验用）。 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
+	TObjectPtr<UMFItemDatabase> ItemDatabase;
+
+	/**
+	 * AI 全局注册表 DataTable（行结构 FMFAIRegistryRow）。
+	 * RowKey = AIConfigID（如 "Pet_SlimeCat"），值 = TSoftObjectPtr<UMFPetConfig>。
+	 * 赋值 DT_AIRegistry。
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
+	TObjectPtr<UDataTable> AIRegistry;
+
+	/** 资源格子上限（0 = 不限制）。 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory", meta = (ClampMin = 0))
+	int32 MaxResourceSlots = 0;
+
+	/** 宠物携带上限（0 = 不限制）。 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory", meta = (ClampMin = 0))
+	int32 MaxPetSlots = 0;
 };

@@ -79,11 +79,12 @@ public:
 	// -----------------------------------------------------------------------
 
 	/**
-	 * 对应 UMFItemDatabase 中的物品 ID（如 "Item.Pet.SlimeCat"）。
-	 * 在 Blueprint CDO 中赋值，捕获成功后 InventoryComponent 用此 ID 注册宠物实例。
+	 * 对应 DT_AIRegistry DataTable 的 RowKey（如 "Pet_SlimeCat"）。
+	 * 由 UMFPetConfig::AIConfigID 写入（ApplyPetConfig 调用时）。
+	 * 捕获成功后 InventoryComponent 用此 ID 注册宠物实例并做 DT 查询。
 	 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Pet|Data")
-	FName PetItemID;
+	FName AIConfigID;
 
 	// -----------------------------------------------------------------------
 	// 配置注入
@@ -94,7 +95,7 @@ public:
 	 * 由 AMFSpawnAIManager 在 Spawn + Possess 完成后、RunStateTree 之前调用。
 	 *
 	 * 写入顺序：
-	 *   1. 身份（PetItemID）
+	 *   1. 身份（AIConfigID）
 	 *   2. GAS（Abilities / InitEffect / OwnedTags）
 	 *   3. 感知（RadarConfig → ThreatConfig，顺序不可颠倒）
 	 *
@@ -102,13 +103,16 @@ public:
 	 */
 	void ApplyPetConfig(const UMFPetConfig* Config);
 
+	/** 返回最近一次 ApplyPetConfig 时写入的配置（供序列化使用）。 */
+	const UMFPetConfig* GetCachedPetConfig() const { return CachedPetConfig.Get(); }
+
 	// -----------------------------------------------------------------------
 	// 序列化接口
 	// -----------------------------------------------------------------------
 
 	/**
 	 * 将当前 Actor 的关键状态写入 InOutInstance。
-	 * - 捕获时：填充 PetItemID + AttributeSnapshot（由 GA_CatchPet 调用）
+	 * - 捕获时：填充 AIConfigID + AttributeSnapshot（由 GA_CatchPet 调用）
 	 * - 召回时：仅刷新 AttributeSnapshot（由 InventoryComponent::RecallPet 调用）
 	 * 子类可 Super:: 后追加自定义字段。
 	 */
@@ -132,4 +136,8 @@ protected:
 	 */
 	UPROPERTY(BlueprintReadOnly, Category = "Pet|Catch")
 	bool bIsCaught = false;
+
+	/** ApplyPetConfig 时缓存，供 SerializeToInstance 写入快照使用。 */
+	UPROPERTY()
+	TObjectPtr<const UMFPetConfig> CachedPetConfig;
 };

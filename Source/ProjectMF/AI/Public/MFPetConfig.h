@@ -3,8 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Engine/DataAsset.h"
-#include "GameplayTagContainer.h"
+#include "MFAIConfig.h"
 #include "MFRadarSensingComponent.h"
 #include "MFThreatComponent.h"
 #include "MFAIAnimInstance.h"
@@ -13,24 +12,22 @@
 class AMFPetBase;
 class AMFPetAIController;
 class UStateTree;
-class UMFGameplayAbilityBase;
-class UGameplayEffect;
 
 /**
  * UMFPetConfig — 单种宠物的完整配置（DataAsset）。
  *
- * 将宠物的所有可配置项集中到一处：
+ * 继承 UMFAIConfig，获得 GAS / OverheadWidget / HitFlash 通用配置。
+ * 本类只添加宠物专属字段：
  *   - 生成：蓝图类 / AIController 类 / StateTree
  *   - 感知：雷达配置 / 索敌配置
- *   - 身份：PetItemID
- *   - GAS：初始技能 / 初始属性 GE / 默认标签
+ *   - 动画：AnimInstance 类
+ *   - 身份：AIConfigID / DisplayName / Icon / Description
  *
  * 生成后通过 AMFPetBase::ApplyPetConfig() 将所有配置写入宠物 Actor。
  * 同一份 Config 可被多个 SpawnAIManager / FMFSpawnEntry 复用。
- * 多种外形相似的宠物只需共用同一个蓝图类，Config 决定其差异。
  */
 UCLASS(BlueprintType)
-class PROJECTMF_API UMFPetConfig : public UDataAsset
+class PROJECTMF_API UMFPetConfig : public UMFAIConfig
 {
 	GENERATED_BODY()
 
@@ -95,42 +92,28 @@ public:
 	TSubclassOf<UMFAIAnimInstance> AnimInstanceClass;
 
 	// ----------------------------------------------------------------
-	// 身份
+	// 身份 & 显示
 	// ----------------------------------------------------------------
 
 	/**
-	 * 对应 UMFItemDatabase 中的物品 ID（如 "Item.Pet.SlimeCat"）。
-	 * 写入宠物的 PetItemID，供捕获后序列化到 FMFPetInstance 使用。
+	 * 全局唯一 AI 配置 ID，对应 DT_AIRegistry DataTable 的 RowKey（如 "Pet_SlimeCat"）。
+	 * 写入宠物的 AIConfigID，供捕获后序列化到 FMFPetInstance 使用。
 	 * 留空（NAME_None）则保留蓝图 CDO 上的默认值。
 	 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Identity")
-	FName PetItemID;
+	FName AIConfigID;
 
-	// ----------------------------------------------------------------
-	// GAS
-	// ----------------------------------------------------------------
+	/** 宠物显示名称（UI / 背包 / 头顶标签使用）。 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Identity")
+	FText DisplayName;
 
-	/**
-	 * Spawn 后追加授予的技能列表。
-	 * 与角色蓝图 CDO 上的 DefaultAbilities 叠加（不替换）。
-	 * 共用蓝图时，CDO 保持空列表，全部技能在此处配置。
-	 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAS")
-	TArray<TSubclassOf<UMFGameplayAbilityBase>> DefaultAbilities;
+	/** 宠物头像图标（背包卡槽 / HUD 使用）。 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Identity")
+	TSoftObjectPtr<UTexture2D> Icon;
 
-	/**
-	 * Spawn 后应用的初始属性 GameplayEffect（Health / MoveSpeed / Attack 等）。
-	 * 共用蓝图时，CDO 的 DefaultInitEffect 留空，属性初始化完全由此处驱动。
-	 * 注意：与 CDO 上的 GE 是叠加应用，请勿重复配置同一属性。
-	 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAS")
-	TSubclassOf<UGameplayEffect> DefaultInitEffect;
+	/** 宠物描述文本（图鉴 / Tooltip 使用）。可选。 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Identity")
+	FText Description;
 
-	/**
-	 * Spawn 后添加的 Loose GameplayTag（阵营 / 类型等固有标签）。
-	 * 与 CDO 上的 DefaultOwnedTags 叠加（不替换）。
-	 * 示例：MF.Team.Enemy、MF.Pet.Type.Slime。
-	 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAS")
-	FGameplayTagContainer DefaultOwnedTags;
+	// GAS、OverheadWidget、HitFlashDuration 均继承自 UMFAIConfig。
 };

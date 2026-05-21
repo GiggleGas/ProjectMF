@@ -2,9 +2,13 @@
 
 #include "MFInventoryComponent.h"
 #include "MFItemDatabase.h"
+#include "MFAIRegistry.h"
+#include "MFPetConfig.h"
 #include "MFPetBase.h"
+#include "MFPetAIController.h"
 #include "MFLog.h"
 #include "MFCharacter.h"
+#include "Engine/DataTable.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "GameFramework/PlayerController.h"
@@ -197,10 +201,10 @@ int32 UMFInventoryComponent::FindResourceSlotIndex(FName ItemID) const
 
 FGuid UMFInventoryComponent::RegisterCaughtPet(const FMFPetInstance& Snapshot)
 {
-	if (Snapshot.PetItemID.IsNone())
+	if (Snapshot.AIConfigID.IsNone())
 	{
 		MF_LOG_WARNING(LogMFInventory,
-			TEXT("RegisterCaughtPet: PetItemID is None. 请在宠物 Blueprint CDO 中设置 PetItemID。"));
+			TEXT("RegisterCaughtPet: AIConfigID is None. 请在 UMFPetConfig 中设置 AIConfigID。"));
 		return FGuid();
 	}
 
@@ -211,29 +215,33 @@ FGuid UMFInventoryComponent::RegisterCaughtPet(const FMFPetInstance& Snapshot)
 		return FGuid();
 	}
 
-	FMFPetInstance NewInstance    = Snapshot;   // 复制快照（含 PetItemID + AttributeSnapshot）
-	NewInstance.InstanceID        = FGuid::NewGuid();
-	NewInstance.Level             = 1;
-	NewInstance.Experience        = 0;
-	NewInstance.bIsActive         = false;
+	FMFPetInstance NewInstance = Snapshot;   // 复制快照（含 AIConfigID + AttributeSnapshot）
+	NewInstance.InstanceID     = FGuid::NewGuid();
+	NewInstance.Level          = 1;
+	NewInstance.Experience     = 0;
+	NewInstance.bIsActive      = false;
 
-	// 默认昵称从 DA 读取
-	if (NewInstance.PetName.IsEmpty() && ItemDatabase)
+	// 默认昵称从 AIRegistry 读取
+	if (NewInstance.PetName.IsEmpty() && AIRegistry)
 	{
-		if (const FMFItemDef* Def = ItemDatabase->FindItem(Snapshot.PetItemID))
+		if (const FMFAIRegistryRow* Row = AIRegistry->FindRow<FMFAIRegistryRow>(
+				Snapshot.AIConfigID, TEXT("RegisterCaughtPet")))
 		{
-			NewInstance.PetName = Def->DisplayName.ToString();
+			if (UMFPetConfig* Config = Row->Config.LoadSynchronous())
+			{
+				NewInstance.PetName = Config->DisplayName.ToString();
+			}
 		}
 	}
 	if (NewInstance.PetName.IsEmpty())
 	{
-		NewInstance.PetName = Snapshot.PetItemID.ToString();
+		NewInstance.PetName = Snapshot.AIConfigID.ToString();
 	}
 
 	PetSlots.Add(NewInstance);
 
 	MF_LOG(LogMFInventory, TEXT("RegisterCaughtPet: '%s' (%s) registered. Total: %d."),
-		*NewInstance.PetName, *Snapshot.PetItemID.ToString(), PetSlots.Num());
+		*NewInstance.PetName, *Snapshot.AIConfigID.ToString(), PetSlots.Num());
 	OnPetRosterChanged.Broadcast();
 
 	return NewInstance.InstanceID;
@@ -252,17 +260,26 @@ AMFPetBase* UMFInventoryComponent::SummonPet(FGuid InstanceID, FVector Location)
 		return nullptr;
 	}
 
-	if (!ItemDatabase)
+	if (!AIRegistry)
 	{
-		MF_LOG_ERROR(LogMFInventory, TEXT("SummonPet: ItemDatabase not set."));
+		MF_LOG_ERROR(LogMFInventory, TEXT("SummonPet: AIRegistry not set. 请在 BP_MFCharacter 的 InventoryComponent 中赋值 DT_AIRegistry。"));
 		return nullptr;
 	}
 
-	const FMFItemDef* Def = ItemDatabase->FindItem(InstancePtr->PetItemID);
-	if (!Def || !Def->PetClass)
+	const FMFAIRegistryRow* Row = AIRegistry->FindRow<FMFAIRegistryRow>(
+		InstancePtr->AIConfigID, TEXT("SummonPet"));
+	if (!Row)
 	{
-		MF_LOG_ERROR(LogMFInventory, TEXT("SummonPet: No PetClass set for '%s'."),
-			*InstancePtr->PetItemID.ToString());
+		MF_LOG_ERROR(LogMFInventory, TEXT("SummonPet: AIConfigID '%s' not found in AIRegistry."),
+			*InstancePtr->AIConfigID.ToString());
+		return nullptr;
+	}
+
+	UMFPetConfig* Config = Row->Config.LoadSynchronous();
+	if (!Config || !Config->PetClass)
+	{
+		MF_LOG_ERROR(LogMFInventory, TEXT("SummonPet: Config or PetClass missing for '%s'."),
+			*InstancePtr->AIConfigID.ToString());
 		return nullptr;
 	}
 
@@ -273,24 +290,36 @@ AMFPetBase* UMFInventoryComponent::SummonPet(FGuid InstanceID, FVector Location)
 	SpawnParams.SpawnCollisionHandlingOverride =
 		ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 
-	// BeginPlay 在 SpawnActor 内部同步调用完毕，之后立即可访问 ASC
 	AMFPetBase* SpawnedPet = World->SpawnActor<AMFPetBase>(
-		Def->PetClass, Location, FRotator::ZeroRotator, SpawnParams);
+		Config->PetClass, Location, FRotator::ZeroRotator, SpawnParams);
 
 	if (!SpawnedPet)
 	{
 		MF_LOG_ERROR(LogMFInventory, TEXT("SummonPet: SpawnActor failed for '%s'."),
-			*InstancePtr->PetItemID.ToString());
+			*InstancePtr->AIConfigID.ToString());
 		return nullptr;
 	}
 
+	// 先恢复属性快照，再 ApplyPetConfig（顺序：属性 → 技能/标签/感知/动画 → AI）
 	SpawnedPet->RestoreFromInstance(*InstancePtr);
+	SpawnedPet->ApplyPetConfig(Config);
+
+	if (AMFPetAIController* AIC = Cast<AMFPetAIController>(SpawnedPet->GetController()))
+	{
+		AIC->RunStateTree(Config->StateTreeAsset);
+	}
+	else
+	{
+		MF_LOG_WARNING(LogMFInventory,
+			TEXT("SummonPet: '%s' has no AMFPetAIController — StateTree not started."),
+			*InstancePtr->PetName);
+	}
 
 	ActivePetActors.Add(InstanceID, SpawnedPet);
 	InstancePtr->bIsActive = true;
 
-	MF_LOG(LogMFInventory, TEXT("SummonPet: '%s' spawned at %s."),
-		*InstancePtr->PetName, *Location.ToString());
+	MF_LOG(LogMFInventory, TEXT("SummonPet: '%s' (%s) spawned at %s."),
+		*InstancePtr->PetName, *InstancePtr->AIConfigID.ToString(), *Location.ToString());
 	OnPetRosterChanged.Broadcast();
 
 	return SpawnedPet;

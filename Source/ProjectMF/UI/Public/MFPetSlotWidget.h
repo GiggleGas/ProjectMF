@@ -9,7 +9,6 @@
 class UImage;
 class UMFOverheadWidget;
 class AMFPetBase;
-class UMFItemDatabase;
 
 /**
  * C++ base class for a single pet card in the CatchingPanel.
@@ -33,10 +32,10 @@ class PROJECTMF_API UMFPetSlotWidget : public UUserWidget
 
 public:
 	/**
-	 * Populate portrait from the item database and bind PetHPBar to the pet's ASC.
+	 * Populate portrait from the pet's CachedPetConfig and bind PetHPBar to the pet's ASC.
 	 * Called by UMFMainHUDWidget::RefreshPetSlots after CreateWidget.
 	 */
-	void InitWithPetActor(AMFPetBase* Pet, UMFItemDatabase* Database);
+	void InitWithPetActor(AMFPetBase* Pet);
 
 	// -----------------------------------------------------------------------
 	// Widget Bindings — name Designer widgets to match exactly

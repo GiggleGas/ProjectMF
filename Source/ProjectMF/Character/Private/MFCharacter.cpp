@@ -7,6 +7,7 @@
 #include "MFGameMode.h"
 #include "MFLog.h"
 #include "MFPlayerConfig.h"
+#include "MFPlayerAttributeSet.h"
 #include "Abilities/GameplayAbilityTypes.h"
 #include "AbilitySystemComponent.h"
 #include "Camera/CameraComponent.h"
@@ -38,6 +39,9 @@ AMFCharacter::AMFCharacter()
 
 	// --- Inventory ---
 	InventoryComponent = CreateDefaultSubobject<UMFInventoryComponent>(TEXT("InventoryComponent"));
+
+	// --- Player-only AttributeSet ---
+	PlayerAttributeSet = CreateDefaultSubobject<UMFPlayerAttributeSet>(TEXT("PlayerAttributeSet"));
 }
 
 void AMFCharacter::BeginPlay()
@@ -46,12 +50,18 @@ void AMFCharacter::BeginPlay()
 	// 这样 InitAbilitySystemComponent() 和头顶 Widget 初始化能正确读取。
 	if (PlayerConfig)
 	{
-		DefaultAbilities      = PlayerConfig->DefaultAbilities;
-		DefaultOwnedTags      = PlayerConfig->DefaultOwnedTags;
-		DefaultInitEffect     = PlayerConfig->DefaultInitEffect;
-		HitFlashDuration      = PlayerConfig->HitFlashDuration;
-		OverheadWidgetClass   = PlayerConfig->OverheadWidgetClass;
-		OverheadWidgetZOffset = PlayerConfig->OverheadWidgetZOffset;
+		DefaultAbilities  = PlayerConfig->DefaultAbilities;
+		DefaultOwnedTags  = PlayerConfig->DefaultOwnedTags;
+		DefaultInitEffect = PlayerConfig->DefaultInitEffect;
+		HitFlashDuration  = PlayerConfig->HitFlashDuration;
+
+		if (InventoryComponent)
+		{
+			InventoryComponent->ItemDatabase      = PlayerConfig->ItemDatabase;
+			InventoryComponent->AIRegistry        = PlayerConfig->AIRegistry;
+			InventoryComponent->MaxResourceSlots  = PlayerConfig->MaxResourceSlots;
+			InventoryComponent->MaxPetSlots       = PlayerConfig->MaxPetSlots;
+		}
 	}
 
 	Super::BeginPlay();
