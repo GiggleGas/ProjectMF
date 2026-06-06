@@ -57,10 +57,12 @@ void AMFCharacter::BeginPlay()
 
 		if (InventoryComponent)
 		{
-			InventoryComponent->ItemDatabase      = PlayerConfig->ItemDatabase;
-			InventoryComponent->AIRegistry        = PlayerConfig->AIRegistry;
-			InventoryComponent->MaxResourceSlots  = PlayerConfig->MaxResourceSlots;
-			InventoryComponent->MaxPetSlots       = PlayerConfig->MaxPetSlots;
+			InventoryComponent->ItemDatabase          = PlayerConfig->ItemDatabase;
+			InventoryComponent->AIRegistry            = PlayerConfig->AIRegistry;
+			InventoryComponent->MaxResourceSlots      = PlayerConfig->MaxResourceSlots;
+			InventoryComponent->MaxPetSlots           = PlayerConfig->MaxPetSlots;
+			InventoryComponent->SummonedPetTeamTags   = PlayerConfig->SummonedPetTeamTags;
+			InventoryComponent->SummonedPetTargetTags = PlayerConfig->SummonedPetTargetTags;
 		}
 	}
 

@@ -101,6 +101,18 @@ public:
 	TSubclassOf<UGameplayEffect> DefaultInitEffect;
 
 	// -----------------------------------------------------------------------
+	// 召唤宠物阵营 — 召唤时写入，覆盖宠物自带的中立/野生配置
+	// -----------------------------------------------------------------------
+
+	/** 召唤宠物的出生阵营标签。通常为 MF.Team.Player。SummonPet 时通过 SetFaction 写入宠物 ASC。 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAS|SummonedPet")
+	FGameplayTagContainer SummonedPetTeamTags;
+
+	/** 召唤宠物的索敌阵营标签（写入雷达 TargetTags）。通常为 MF.Team.Boss + MF.Team.Enemy。 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAS|SummonedPet")
+	FGameplayTagContainer SummonedPetTargetTags;
+
+	// -----------------------------------------------------------------------
 	// Combat — 战斗参数
 	// -----------------------------------------------------------------------
 

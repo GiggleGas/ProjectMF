@@ -130,6 +130,17 @@ struct PROJECTMF_API FMFPetInstance
 	UPROPERTY(BlueprintReadOnly, Category = "Pet")
 	bool bIsActive = false;
 
+	/**
+	 * 是否处于阵亡复活倒计时中。
+	 * true 期间宠物已从战场移除、不可召唤；ReviveTimeRemaining 归零后清除并回满血。
+	 */
+	UPROPERTY(BlueprintReadOnly, Category = "Pet")
+	bool bIsDead = false;
+
+	/** 复活剩余秒数（仅 bIsDead 为 true 时有效，供 UI 读秒显示）。 */
+	UPROPERTY(BlueprintReadOnly, Category = "Pet")
+	float ReviveTimeRemaining = 0.f;
+
 	/** 捕获时快照的关键属性值。Key = 属性名，Value = 捕获瞬间的值。 */
 	UPROPERTY()
 	TMap<FName, float> AttributeSnapshot;
@@ -138,6 +149,11 @@ struct PROJECTMF_API FMFPetInstance
 
 	FString GetDebugString() const
 	{
+		if (bIsDead)
+		{
+			return FString::Printf(TEXT("[Pet] %s  Lv.%d  (%s)  [Reviving %.0fs]"),
+				*PetName, Level, *AIConfigID.ToString(), ReviveTimeRemaining);
+		}
 		return FString::Printf(TEXT("[Pet] %s  Lv.%d  (%s)  [%s]"),
 			*PetName, Level, *AIConfigID.ToString(),
 			bIsActive ? TEXT("Active") : TEXT("Stored"));

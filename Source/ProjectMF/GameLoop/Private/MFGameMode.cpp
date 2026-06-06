@@ -9,11 +9,16 @@
 #include "MFAttributeSetBase.h"
 #include "MFRadarSensingComponent.h"
 #include "MFThreatComponent.h"
+#include "MFFactionStatics.h"
 #include "MFLog.h"
 #include "AbilitySystemComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "GameFramework/PlayerController.h"
 #include "TimerManager.h"
 #include "Engine/Engine.h"
+#if !UE_BUILD_SHIPPING
+#include "Kismet/KismetSystemLibrary.h"
+#endif
 
 // ============================================================
 // AGameModeBase 生命周期
@@ -46,6 +51,23 @@ void AMFGameMode::RequestBossPhase()
 	M1_StartBossPhase();
 }
 
+void AMFGameMode::RestartGame()
+{
+#if !UE_BUILD_SHIPPING
+	// 重新加载当前关卡（最简实现，整局状态全部重置）。
+	const FString LevelName = UGameplayStatics::GetCurrentLevelName(this);
+	UGameplayStatics::OpenLevel(this, FName(*LevelName));
+#endif
+}
+
+void AMFGameMode::QuitGame()
+{
+#if !UE_BUILD_SHIPPING
+	APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0);
+	UKismetSystemLibrary::QuitGame(this, PC, EQuitPreference::Quit, /*bIgnorePlatformRestrictions=*/false);
+#endif
+}
+
 // ========================================================================
 // M1 Game Loop — 最小可玩循环（捕宠 → Boss战 → 胜负判定）
 // ========================================================================
@@ -69,7 +91,15 @@ void AMFGameMode::M1_StartCatchingPhase()
 	}
 
 	M1_CachedPlayer = Player;
+
+	// 注入宠物复活读秒时长（宠物阵亡→回背包→读秒→变回可召唤，由背包自行驱动）。
+	if (UMFInventoryComponent* Inv = Player->GetInventoryComponent())
+	{
+		Inv->SetPetReviveDuration(GameLoopConfig->PetReviveDuration);
+	}
+
 	M1_SubscribeToInventoryChanges(Player);
+	M1_SubscribeToPlayerDeath(Player);   // 全阶段监听玩家死亡（捕宠期死亡同样判负）
 
 	TimeRemaining = GameLoopConfig->CatchingPhaseDuration;
 	M1_SetPhase(EMFGamePhase::Catching);
@@ -115,9 +145,7 @@ void AMFGameMode::M1_StartBossPhase()
 	}
 
 	M1_SpawnedBoss = Boss;
-	M1_SubscribeToPlayerDeath(Player);
-	M1_SubscribeToBossDeath(Boss);
-	M1_ReconfigureSummonedPets();
+	M1_SubscribeToBossDeath(Boss);   // 玩家死亡已在 Catching 阶段订阅，此处仅订阅 Boss
 
 	MF_LOG(LogMFGameLoop, TEXT("AMFGameMode [M1]: Boss phase started."));
 }
@@ -220,34 +248,15 @@ AMFAICharacter* AMFGameMode::M1_SpawnBoss(const FVector& PlayerLocation)
 	if (auto* Threat = Boss->FindComponentByClass<UMFThreatComponent>())
 		Threat->ApplyConfig(BossCfg.ThreatConfig);
 
+	// 出生阵营：Boss 默认中立，在此写入 Boss 阵营标签（通常 MF.Team.Boss）。
+	if (UAbilitySystemComponent* BossASC = Boss->GetAbilitySystemComponent())
+		UMFFactionStatics::SetFaction(BossASC, BossCfg.BossTeamTags);
+
 	MF_LOG(LogMFGameLoop,
 		TEXT("AMFGameMode [M1]: Boss '%s' spawned at %s."),
 		*Boss->GetName(), *Boss->GetActorLocation().ToString());
 
 	return Boss;
-}
-
-void AMFGameMode::M1_ReconfigureSummonedPets()
-{
-	AMFCharacter* Player = M1_CachedPlayer.Get();
-	if (!Player || !GameLoopConfig) return;
-
-	UMFInventoryComponent* Inv = Player->GetInventoryComponent();
-	if (!Inv) return;
-
-	int32 Count = 0;
-	for (AMFPetBase* Pet : Inv->GetActivePetActors())
-	{
-		if (!IsValid(Pet)) continue;
-		if (auto* Radar = Pet->FindComponentByClass<UMFRadarSensingComponent>())
-		{
-			Radar->ApplyConfig(GameLoopConfig->SummonedPetBossRadarConfig);
-			++Count;
-		}
-	}
-
-	MF_LOG(LogMFGameLoop,
-		TEXT("AMFGameMode [M1]: Reconfigured radar on %d summoned pet(s)."), Count);
 }
 
 void AMFGameMode::M1_HandleVictory()
@@ -409,7 +418,23 @@ void AMFGameMode::M1_OnPetRosterChanged()
 
 void AMFGameMode::M1_OnPlayerDied()
 {
-	if (CurrentPhase == EMFGamePhase::Boss) M1_HandleDefeat();
+	// 已结算则忽略（OnDeath 只广播一次，这里再防一层重入）。
+	if (CurrentPhase == EMFGamePhase::Victory || CurrentPhase == EMFGamePhase::Defeat)
+	{
+		return;
+	}
+
+	// 任何进行中的阶段（捕宠 / Boss）玩家死亡都判负：禁用输入，保留 Pawn 不销毁。
+	if (AMFCharacter* Player = M1_CachedPlayer.Get())
+	{
+		if (APlayerController* PC = Cast<APlayerController>(Player->GetController()))
+		{
+			Player->DisableInput(PC);
+		}
+	}
+
+	// 进入失败结算（结算 UI 由 OnGameResult / OnPhaseChanged 驱动显示）。
+	M1_HandleDefeat();
 }
 
 void AMFGameMode::M1_OnBossDied()

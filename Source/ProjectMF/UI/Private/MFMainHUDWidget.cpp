@@ -48,6 +48,7 @@ void UMFMainHUDWidget::NativeDestruct()
 	if (UMFInventoryComponent* Inv = BoundInventory.Get())
 	{
 		Inv->OnPetRosterChanged.RemoveDynamic(this, &UMFMainHUDWidget::OnPetRosterChanged);
+		Inv->OnPetReviveTick.RemoveDynamic(this,    &UMFMainHUDWidget::OnPetReviveTick);
 	}
 
 	Super::NativeDestruct();
@@ -73,6 +74,7 @@ void UMFMainHUDWidget::InitPlayerHUD(AMFCharacter* Player)
 	{
 		BoundInventory = Inv;
 		Inv->OnPetRosterChanged.AddDynamic(this, &UMFMainHUDWidget::OnPetRosterChanged);
+		Inv->OnPetReviveTick.AddDynamic(this,    &UMFMainHUDWidget::OnPetReviveTick);
 		RefreshPetSlots();
 	}
 }
@@ -123,6 +125,26 @@ void UMFMainHUDWidget::OnPetRosterChanged()
 	RefreshPetSlots();
 }
 
+void UMFMainHUDWidget::OnPetReviveTick()
+{
+	// 仅刷新读秒数字，不重建卡片（避免每秒重载头像/闪烁）。
+	UMFInventoryComponent* Inv = BoundInventory.Get();
+	if (!Inv) return;
+
+	for (const FMFPetInstance& Pet : Inv->GetAllPets())
+	{
+		if (!Pet.bIsDead) continue;
+
+		if (TObjectPtr<UMFPetSlotWidget>* SlotPtr = SlotWidgets.Find(Pet.InstanceID))
+		{
+			if (*SlotPtr)
+			{
+				(*SlotPtr)->UpdateReviveRemaining(Pet.ReviveTimeRemaining);
+			}
+		}
+	}
+}
+
 void UMFMainHUDWidget::RefreshPetSlots()
 {
 	if (!PetSlotList || !PetSlotClass) return;
@@ -131,18 +153,19 @@ void UMFMainHUDWidget::RefreshPetSlots()
 	if (!Inv) return;
 
 	PetSlotList->ClearChildren();
+	SlotWidgets.Reset();
 
-	TArray<AMFPetBase*> ActiveActors = Inv->GetActivePetActors();
-	for (AMFPetBase* Pet : ActiveActors)
+	// 整张花名册：出战 / 待命 / 复活读秒 各一张卡片
+	const TArray<FMFPetInstance>& Pets = Inv->GetAllPets();
+	for (const FMFPetInstance& Pet : Pets)
 	{
-		if (!Pet) continue;
-
 		UMFPetSlotWidget* MFPetSlot = CreateWidget<UMFPetSlotWidget>(this, PetSlotClass);
-		if (MFPetSlot)
-		{
-			MFPetSlot->InitWithPetActor(Pet);
-			PetSlotList->AddChild(MFPetSlot);
-		}
+		if (!MFPetSlot) continue;
+
+		AMFPetBase* LiveActor = Pet.bIsActive ? Inv->GetActivePetActor(Pet.InstanceID) : nullptr;
+		MFPetSlot->InitWithPet(Pet, LiveActor, Inv->AIRegistry);
+		PetSlotList->AddChild(MFPetSlot);
+		SlotWidgets.Add(Pet.InstanceID, MFPetSlot);
 	}
 
 	// 更新宠物计数文本
@@ -156,8 +179,7 @@ void UMFMainHUDWidget::RefreshPetSlots()
 				Required = GM->GameLoopConfig->PetsRequiredForEarlyTrigger;
 			}
 		}
-		const int32 Count = Inv->GetAllPets().Num();
 		PetCountText->SetText(FText::FromString(
-			FString::Printf(TEXT("%d / %d 只"), Count, Required)));
+			FString::Printf(TEXT("%d / %d 只"), Pets.Num(), Required)));
 	}
 }

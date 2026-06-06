@@ -99,6 +99,10 @@ private:
 	// -----------------------------------------------------------------------
 
 	UFUNCTION() void OnPetRosterChanged();
+
+	/** 复活读秒每秒推进时回调，仅刷新各卡片的读秒数字，不重建。 */
+	UFUNCTION() void OnPetReviveTick();
+
 	void RefreshPetSlots();
 
 	// -----------------------------------------------------------------------
@@ -107,4 +111,7 @@ private:
 
 	UPROPERTY() TWeakObjectPtr<AMFGameMode>           BoundGameMode;
 	UPROPERTY() TWeakObjectPtr<UMFInventoryComponent> BoundInventory;
+
+	/** InstanceID → 卡片，供 OnPetReviveTick 定位卡片刷新读秒。RefreshPetSlots 重建时重填。 */
+	UPROPERTY() TMap<FGuid, TObjectPtr<UMFPetSlotWidget>> SlotWidgets;
 };

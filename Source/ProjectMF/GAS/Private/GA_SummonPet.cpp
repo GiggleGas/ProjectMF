@@ -81,6 +81,16 @@ void UGA_SummonPet::ActivateAbility(
 
 	const FMFPetInstance& Pet = Pets[ArrayIndex];
 
+	// --- 复活读秒中不可召唤 ---
+	if (Pet.bIsDead)
+	{
+		MF_LOG_WARNING(LogMFAbility,
+			TEXT("GA_SummonPet: '%s' (slot %d) is reviving (%.0fs left) — cannot summon."),
+			*Pet.PetName, SlotIndex, Pet.ReviveTimeRemaining);
+		EndAbility(Handle, ActorInfo, ActivationInfo, true, false);
+		return;
+	}
+
 	// --- 召回 or 召唤 ---
 	if (Pet.bIsActive)
 	{

@@ -70,6 +70,20 @@ public:
 	void RequestBossPhase();
 
 	// -----------------------------------------------------------------------
+	// 调试便捷接口。供结算 UI 的"重开 / 退出"按钮调用。
+	// 函数体用 !UE_BUILD_SHIPPING 包裹：非 Shipping 正常工作，Shipping 下为空操作。
+	// （UFUNCTION 声明不能放进预处理块，故声明常驻、仅函数体按构建裁剪。）
+	// -----------------------------------------------------------------------
+
+	/** 重开本局：重新加载当前关卡。 */
+	UFUNCTION(BlueprintCallable, Category = "GameLoop|Debug")
+	void RestartGame();
+
+	/** 退出游戏（PIE 下结束运行）。 */
+	UFUNCTION(BlueprintCallable, Category = "GameLoop|Debug")
+	void QuitGame();
+
+	// -----------------------------------------------------------------------
 	// 状态查询（UI 轮询 / 条件判断）
 	// -----------------------------------------------------------------------
 
@@ -113,7 +127,6 @@ private:
 	void M1_StartBossPhase();
 	void M1_SpawnArenaBarriers(const FVector& Center);
 	AMFAICharacter* M1_SpawnBoss(const FVector& PlayerLocation);
-	void M1_ReconfigureSummonedPets();
 	void M1_HandleVictory();
 	void M1_HandleDefeat();
 	void M1_SetPhase(EMFGamePhase NewPhase);

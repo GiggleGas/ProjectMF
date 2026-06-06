@@ -66,14 +66,24 @@ namespace MFGameplayTags
 		"Sent when the catch attempt fails (QTE timeout or other failure).");
 
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
+		Team,
+		"MF.Team",
+		"Parent category for faction tags. Enumerated by UMFFactionStatics to read a character's team membership.");
+
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
 		Team_Player,
 		"MF.Team.Player",
-		"Owned by player-faction characters. Used by UGA_AIAttackBase::FilterTarget for enemy/ally detection.");
+		"Owned by player-faction characters. Used by UMFFactionStatics::AreSameTeam for damage filtering.");
 
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
 		Team_Enemy,
 		"MF.Team.Enemy",
-		"Owned by enemy/AI-faction characters. Used by UGA_AIAttackBase::FilterTarget for enemy/ally detection.");
+		"Owned by enemy/AI-faction characters. Used by UMFFactionStatics::AreSameTeam for damage filtering.");
+
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
+		Team_Boss,
+		"MF.Team.Boss",
+		"Owned by Boss-faction characters. Separate faction from Team_Enemy; assigned at spawn by M1_SpawnBoss.");
 
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
 		Attack_Data_Damage,

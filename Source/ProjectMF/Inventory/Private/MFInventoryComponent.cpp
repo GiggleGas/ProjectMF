@@ -6,12 +6,17 @@
 #include "MFPetConfig.h"
 #include "MFPetBase.h"
 #include "MFPetAIController.h"
+#include "MFAttributeSetBase.h"
+#include "MFFactionStatics.h"
+#include "MFRadarSensingComponent.h"
 #include "MFLog.h"
 #include "MFCharacter.h"
+#include "AbilitySystemComponent.h"
 #include "Engine/DataTable.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "GameFramework/PlayerController.h"
+#include "TimerManager.h"
 
 // ============================================================
 // Debug Console Command: MF.Inventory.Debug
@@ -260,6 +265,14 @@ AMFPetBase* UMFInventoryComponent::SummonPet(FGuid InstanceID, FVector Location)
 		return nullptr;
 	}
 
+	if (InstancePtr->bIsDead)
+	{
+		MF_LOG_WARNING(LogMFInventory,
+			TEXT("SummonPet: '%s' is reviving (%.0fs left) — cannot summon."),
+			*InstancePtr->PetName, InstancePtr->ReviveTimeRemaining);
+		return nullptr;
+	}
+
 	if (!AIRegistry)
 	{
 		MF_LOG_ERROR(LogMFInventory, TEXT("SummonPet: AIRegistry not set. 请在 BP_MFCharacter 的 InventoryComponent 中赋值 DT_AIRegistry。"));
@@ -304,6 +317,17 @@ AMFPetBase* UMFInventoryComponent::SummonPet(FGuid InstanceID, FVector Location)
 	SpawnedPet->RestoreFromInstance(*InstancePtr);
 	SpawnedPet->ApplyPetConfig(Config);
 
+	// 阵营 + 索敌：宠物 DataAsset 默认是中立/野生配置；召唤宠在此翻转为玩家阵营并改索敌目标。
+	if (UAbilitySystemComponent* PetASC = SpawnedPet->GetAbilitySystemComponent())
+	{
+		UMFFactionStatics::SetFaction(PetASC, SummonedPetTeamTags);
+	}
+	if (UMFRadarSensingComponent* Radar = SpawnedPet->FindComponentByClass<UMFRadarSensingComponent>())
+	{
+		Radar->TargetTags = SummonedPetTargetTags;
+		Radar->ForceScan();
+	}
+
 	if (AMFPetAIController* AIC = Cast<AMFPetAIController>(SpawnedPet->GetController()))
 	{
 		AIC->RunStateTree(Config->StateTreeAsset);
@@ -317,6 +341,17 @@ AMFPetBase* UMFInventoryComponent::SummonPet(FGuid InstanceID, FVector Location)
 
 	ActivePetActors.Add(InstanceID, SpawnedPet);
 	InstancePtr->bIsActive = true;
+
+	// 订阅该宠物阵亡，附带 InstanceID 以便回调定位实例。
+	// AttributeSet 随 Actor 销毁而失效，因此召回/阵亡销毁 Actor 时绑定自动失效，无需手动解绑。
+	if (UAbilitySystemComponent* PetASC = SpawnedPet->GetAbilitySystemComponent())
+	{
+		if (const UMFAttributeSetBase* Set = PetASC->GetSet<UMFAttributeSetBase>())
+		{
+			const_cast<UMFAttributeSetBase*>(Set)->OnDeath.AddUObject(
+				this, &UMFInventoryComponent::HandlePetDied, InstanceID);
+		}
+	}
 
 	MF_LOG(LogMFInventory, TEXT("SummonPet: '%s' (%s) spawned at %s."),
 		*InstancePtr->PetName, *InstancePtr->AIConfigID.ToString(), *Location.ToString());
@@ -349,6 +384,126 @@ void UMFInventoryComponent::RecallPet(FGuid InstanceID)
 
 	MF_LOG(LogMFInventory, TEXT("RecallPet: Pet recalled and snapshot updated."));
 	OnPetRosterChanged.Broadcast();
+}
+
+// ============================================================
+// 宠物 — 阵亡 / 复活
+// ============================================================
+
+void UMFInventoryComponent::HandlePetDied(FGuid InstanceID)
+{
+	FMFPetInstance* Inst = FindPetMutable(InstanceID);
+	if (!Inst || Inst->bIsDead)
+	{
+		return;   // 实例已移除或已在复活中（防重入）
+	}
+
+	// 从战场移除（延迟到下一帧销毁，避免在 OnDeath 广播中销毁自身 ASC）
+	DestroyPetActorDeferred(InstanceID);
+
+	Inst->bIsActive          = false;
+	Inst->bIsDead            = true;
+	Inst->ReviveTimeRemaining = PetReviveDuration;
+
+	MF_LOG(LogMFInventory, TEXT("HandlePetDied: '%s' down — reviving in %.0fs."),
+		*Inst->PetName, PetReviveDuration);
+
+	if (PetReviveDuration <= 0.f)
+	{
+		ReviveSinglePet(*Inst);   // 立即可再召唤
+	}
+	else
+	{
+		EnsureReviveTickerRunning();
+	}
+
+	OnPetRosterChanged.Broadcast();
+}
+
+void UMFInventoryComponent::OnReviveTick()
+{
+	bool bAnyStillReviving = false;
+	bool bAnyRevivedNow    = false;
+
+	for (FMFPetInstance& Pet : PetSlots)
+	{
+		if (!Pet.bIsDead) continue;
+
+		Pet.ReviveTimeRemaining = FMath::Max(0.f, Pet.ReviveTimeRemaining - 1.f);
+		if (Pet.ReviveTimeRemaining <= 0.f)
+		{
+			ReviveSinglePet(Pet);
+			bAnyRevivedNow = true;
+			MF_LOG(LogMFInventory, TEXT("OnReviveTick: '%s' revived — ready to summon."), *Pet.PetName);
+		}
+		else
+		{
+			bAnyStillReviving = true;
+		}
+	}
+
+	OnPetReviveTick.Broadcast();           // UI 刷新读秒数字
+	if (bAnyRevivedNow)
+	{
+		OnPetRosterChanged.Broadcast();    // 状态切换，刷新槽位
+	}
+
+	if (!bAnyStillReviving)
+	{
+		if (UWorld* World = GetWorld())
+		{
+			World->GetTimerManager().ClearTimer(ReviveTickHandle);
+		}
+	}
+}
+
+void UMFInventoryComponent::EnsureReviveTickerRunning()
+{
+	UWorld* World = GetWorld();
+	if (!World) return;
+
+	if (!World->GetTimerManager().IsTimerActive(ReviveTickHandle))
+	{
+		World->GetTimerManager().SetTimer(
+			ReviveTickHandle, this, &UMFInventoryComponent::OnReviveTick,
+			1.f, /*bLoop=*/true, /*FirstDelay=*/1.f);
+	}
+}
+
+void UMFInventoryComponent::ReviveSinglePet(FMFPetInstance& Instance) const
+{
+	Instance.bIsDead            = false;
+	Instance.ReviveTimeRemaining = 0.f;
+
+	// 回满血：把快照 Health 设回 MaxHealth（下次召唤 RestoreFromInstance 时生效）。
+	// 不能依赖死亡瞬间快照（Health=0）。
+	if (const float* MaxHP = Instance.AttributeSnapshot.Find(TEXT("MaxHealth")))
+	{
+		Instance.AttributeSnapshot.Add(TEXT("Health"), *MaxHP);
+	}
+}
+
+void UMFInventoryComponent::DestroyPetActorDeferred(FGuid InstanceID)
+{
+	TWeakObjectPtr<AMFPetBase> Weak;
+	if (const TWeakObjectPtr<AMFPetBase>* ActorPtr = ActivePetActors.Find(InstanceID))
+	{
+		Weak = *ActorPtr;
+	}
+	ActivePetActors.Remove(InstanceID);
+
+	if (!Weak.IsValid()) return;
+
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().SetTimerForNextTick([Weak]()
+		{
+			if (Weak.IsValid())
+			{
+				Weak->Destroy();
+			}
+		});
+	}
 }
 
 // ============================================================
@@ -395,4 +550,10 @@ TArray<AMFPetBase*> UMFInventoryComponent::GetActivePetActors() const
 		}
 	}
 	return Result;
+}
+
+AMFPetBase* UMFInventoryComponent::GetActivePetActor(FGuid InstanceID) const
+{
+	const TWeakObjectPtr<AMFPetBase>* ActorPtr = ActivePetActors.Find(InstanceID);
+	return (ActorPtr && ActorPtr->IsValid()) ? ActorPtr->Get() : nullptr;
 }

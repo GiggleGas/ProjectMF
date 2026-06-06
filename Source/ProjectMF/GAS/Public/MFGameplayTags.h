@@ -95,11 +95,17 @@ namespace MFGameplayTags
 	// FilterTarget() in UGA_AIAttackBase compares these between caster and target.
 	// -----------------------------------------------------------------------
 
+	/** Parent category for all faction tags (MF.Team.*). Used to enumerate a character's team membership. */
+	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Team);
+
 	/** Owned by player-faction characters. */
 	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Team_Player);
 
 	/** Owned by enemy/AI-faction characters. */
 	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Team_Enemy);
+
+	/** Owned by Boss-faction characters. Separate from Team_Enemy so summoned pets and Boss are distinct factions. */
+	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Team_Boss);
 
 	// -----------------------------------------------------------------------
 	// Attack Data Tags

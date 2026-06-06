@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
+#include "GameplayTagContainer.h"
 #include "MFRadarSensingComponent.h"
 #include "MFThreatComponent.h"
 #include "MFGameLoopConfig.generated.h"
@@ -44,6 +45,10 @@ struct PROJECTMF_API FMFBossSpawnConfig
 	/** Boss 的索敌配置。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss|AI")
 	FMFThreatConfig ThreatConfig;
+
+	/** Boss 的出生阵营标签。通常为 MF.Team.Boss。M1_SpawnBoss 时通过 SetFaction 写入。 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss|AI")
+	FGameplayTagContainer BossTeamTags;
 };
 
 /**
@@ -77,19 +82,25 @@ public:
 	int32 PetsRequiredForEarlyTrigger = 3;
 
 	// -----------------------------------------------------------------------
+	// 宠物复活
+	// -----------------------------------------------------------------------
+
+	/**
+	 * 宠物阵亡后回到背包的复活读秒时长（秒）。
+	 * 读秒归零后宠物变回"可召唤"状态（需玩家手动再次召唤），并恢复满血。
+	 * 设为 0 表示阵亡后立即可再召唤。由 AMFGameMode 注入 InventoryComponent。
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GameLoop|Pet",
+		meta = (ClampMin = 0.f))
+	float PetReviveDuration = 5.f;
+
+	// -----------------------------------------------------------------------
 	// Boss 配置
 	// -----------------------------------------------------------------------
 
 	/** Boss 生成与 AI 配置。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GameLoop|Boss")
 	FMFBossSpawnConfig BossSpawnConfig;
-
-	/**
-	 * Boss 战开始时，应用到所有已召唤宠物的雷达感知配置。
-	 * TargetTags 应设为 MF.Team.Enemy，使宠物能感知并追击 Boss。
-	 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GameLoop|Boss")
-	FMFRadarSensingConfig SummonedPetBossRadarConfig;
 
 	// -----------------------------------------------------------------------
 	// 竞技场围墙

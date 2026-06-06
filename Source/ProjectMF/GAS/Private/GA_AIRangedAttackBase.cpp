@@ -3,6 +3,7 @@
 #include "GA_AIRangedAttackBase.h"
 
 #include "MFGameplayTags.h"
+#include "MFFactionStatics.h"
 #include "MFAICharacter.h"
 #include "MFCharacterBase.h"
 #include "MFThreatComponent.h"
@@ -149,12 +150,11 @@ bool UGA_AIRangedAttackBase::FilterTarget(AActor* Candidate, EAttackTargetFilter
 
 	if (Filter == EAttackTargetFilter::All) return true;
 
+	// 阵营判定：共享任意 MF.Team.* 标签即同队；中立与所有人都不同队。
 	UAbilitySystemComponent* CasterASC = GetAbilitySystemComponentFromActorInfo();
 	if (!CasterASC || !CandidateASC) return false;
 
-	const bool bCasterIsPlayer    = CasterASC->HasMatchingGameplayTag(MFGameplayTags::Team_Player);
-	const bool bCandidateIsPlayer = CandidateASC->HasMatchingGameplayTag(MFGameplayTags::Team_Player);
-	const bool bSameTeam          = (bCasterIsPlayer == bCandidateIsPlayer);
+	const bool bSameTeam = UMFFactionStatics::AreSameTeam(CasterASC, CandidateASC);
 
 	return (Filter == EAttackTargetFilter::EnemyOnly) ? !bSameTeam : bSameTeam;
 }

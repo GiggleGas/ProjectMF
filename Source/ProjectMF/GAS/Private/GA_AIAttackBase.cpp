@@ -4,6 +4,7 @@
 
 #include "MFAttackAbilityData.h"
 #include "MFGameplayTags.h"
+#include "MFFactionStatics.h"
 #include "MFCharacterBase.h"
 #include "MFAICharacter.h"
 #include "MFCombatAttributeSet.h"
@@ -262,13 +263,11 @@ bool UGA_AIAttackBase::FilterTarget_Implementation(AActor* Candidate) const
 
 	if (AttackData->TargetFilter == EAttackTargetFilter::All) return true;
 
-	// Compare team tags
+	// 阵营判定：共享任意 MF.Team.* 标签即同队；中立与所有人都不同队。
 	UAbilitySystemComponent* CasterASC = GetAbilitySystemComponentFromActorInfo();
 	if (!CasterASC || !CandidateASC) return false;
 
-	const bool bCasterIsPlayer    = CasterASC->HasMatchingGameplayTag(MFGameplayTags::Team_Player);
-	const bool bCandidateIsPlayer = CandidateASC->HasMatchingGameplayTag(MFGameplayTags::Team_Player);
-	const bool bSameTeam          = (bCasterIsPlayer == bCandidateIsPlayer);
+	const bool bSameTeam = UMFFactionStatics::AreSameTeam(CasterASC, CandidateASC);
 
 	return (AttackData->TargetFilter == EAttackTargetFilter::EnemyOnly) ? !bSameTeam : bSameTeam;
 }
