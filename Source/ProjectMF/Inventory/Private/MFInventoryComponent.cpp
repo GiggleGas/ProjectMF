@@ -273,6 +273,21 @@ AMFPetBase* UMFInventoryComponent::SummonPet(FGuid InstanceID, FVector Location)
 		return nullptr;
 	}
 
+	// 重复召唤保护：已在场且 Actor 有效，直接返回现有，避免重复 Spawn 泄漏旧 Actor。
+	if (AMFPetBase* Existing = GetActivePetActor(InstanceID))
+	{
+		MF_LOG_WARNING(LogMFInventory,
+			TEXT("SummonPet: '%s' is already summoned — returning existing actor."),
+			*InstancePtr->PetName);
+		return Existing;
+	}
+	// 状态残留清理：标记出战但 Actor 已失效（被外部销毁），重置后继续正常召唤。
+	if (InstancePtr->bIsActive)
+	{
+		ActivePetActors.Remove(InstanceID);
+		InstancePtr->bIsActive = false;
+	}
+
 	if (!AIRegistry)
 	{
 		MF_LOG_ERROR(LogMFInventory, TEXT("SummonPet: AIRegistry not set. 请在 BP_MFCharacter 的 InventoryComponent 中赋值 DT_AIRegistry。"));
@@ -313,9 +328,10 @@ AMFPetBase* UMFInventoryComponent::SummonPet(FGuid InstanceID, FVector Location)
 		return nullptr;
 	}
 
-	// 先恢复属性快照，再 ApplyPetConfig（顺序：属性 → 技能/标签/感知/动画 → AI）
-	SpawnedPet->RestoreFromInstance(*InstancePtr);
+	// 先 ApplyPetConfig 铺底属性（含 DefaultInitEffect 初始化），再用快照覆盖，
+	// 确保还原的血量/属性不被 InitEffect 盖掉（顺序：技能/标签/感知/动画/AI → 属性快照）。
 	SpawnedPet->ApplyPetConfig(Config);
+	SpawnedPet->RestoreFromInstance(*InstancePtr);
 
 	// 阵营 + 索敌：宠物 DataAsset 默认是中立/野生配置；召唤宠在此翻转为玩家阵营并改索敌目标。
 	if (UAbilitySystemComponent* PetASC = SpawnedPet->GetAbilitySystemComponent())
