@@ -2,6 +2,7 @@
 
 #include "GA_AIRangedAttackBase.h"
 
+#include "MFRangedAttackDataBase.h"
 #include "MFGameplayTags.h"
 #include "MFFactionStatics.h"
 #include "MFAICharacter.h"
@@ -38,6 +39,17 @@ void UGA_AIRangedAttackBase::ActivateAbility(
 		return;
 	}
 
+	// Require a configured data asset (carries AttackAnim + AnimToSpawnDelay)
+	UMFRangedAttackDataBase* Data = GetRangedData();
+	if (!Data)
+	{
+		MF_LOG_WARNING(LogMFAbility,
+			TEXT("[GA_AIRangedAttackBase] %s has no ranged data asset assigned — ability cancelled."),
+			*GetNameSafe(GetAvatarActorFromActorInfo()));
+		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+		return;
+	}
+
 	// Require a valid target
 	CachedTarget = GetCurrentTarget();
 	if (!CachedTarget.IsValid())
@@ -60,10 +72,10 @@ void UGA_AIRangedAttackBase::ActivateAbility(
 		TEXT("[GA_AIRangedAttackBase] %s → target=%s  delay=%.2fs"),
 		*GetNameSafe(GetAvatarActorFromActorInfo()),
 		*GetNameSafe(CachedTarget.Get()),
-		AnimToSpawnDelay);
+		Data->AnimToSpawnDelay);
 
 	// Play attack animation if assigned
-	if (AttackAnim)
+	if (Data->AttackAnim)
 	{
 		if (AMFCharacterBase* Char = GetMFCharacter())
 		{
@@ -71,7 +83,7 @@ void UGA_AIRangedAttackBase::ActivateAbility(
 					Char->FindComponentByClass<UPaperZDAnimationComponent>())
 			{
 				if (UPaperZDAnimInstance* AnimInst = AnimComp->GetAnimInstance())
-					AnimInst->PlayAnimationOverride(AttackAnim);
+					AnimInst->PlayAnimationOverride(Data->AttackAnim);
 			}
 		}
 	}
@@ -83,7 +95,7 @@ void UGA_AIRangedAttackBase::ActivateAbility(
 			SpawnTimer,
 			this,
 			&UGA_AIRangedAttackBase::OnSpawnTimerFired,
-			FMath::Max(AnimToSpawnDelay, 0.01f),
+			FMath::Max(Data->AnimToSpawnDelay, 0.01f),
 			false);
 	}
 	// GA stays Running — subclass EndAbility when attack resolves

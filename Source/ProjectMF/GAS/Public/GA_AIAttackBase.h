@@ -15,7 +15,7 @@ class AMFAICharacter;
  *
  * Pipeline (each step is a BlueprintNativeEvent — override in C++ or BP):
  *   ActivateAbility
- *     → PlayAnimationOverride(AttackAnim)
+ *     → PlayAnimationOverride(AttackData->AttackAnim)
  *     → [HitDelaySeconds later] OnHitPhaseBegin
  *           → CollectTargets  (shape query)
  *           → FilterTarget    (per-candidate)
@@ -25,8 +25,9 @@ class AMFAICharacter;
  *     → OnAttackEnd → EndAbility
  *
  * Configuration:
- *   Assign AttackData (UMFAttackAbilityData) and AttackAnim in the Blueprint CDO.
- *   All shape / damage parameters live in the Data Asset — editable at runtime.
+ *   Assign AttackData (UMFAttackAbilityData) in the Blueprint CDO.
+ *   All shape / timing / damage parameters — including AttackAnim — live in the
+ *   Data Asset, editable at runtime.
  */
 UCLASS(Abstract, Blueprintable)
 class PROJECTMF_API UGA_AIAttackBase : public UMFGameplayAbilityBase
@@ -39,13 +40,9 @@ public:
 	// Blueprint Configuration
 	// -----------------------------------------------------------------------
 
-	/** All shape / timing / damage parameters. Must be assigned in BP defaults. */
+	/** All shape / timing / damage parameters (including AttackAnim). Must be assigned in BP defaults. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Attack|Config")
 	TObjectPtr<UMFAttackAbilityData> AttackData;
-
-	/** Animation played when this ability activates. Optional — timers still fire without it. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Attack|Config")
-	TObjectPtr<UPaperZDAnimSequence> AttackAnim;
 
 	// -----------------------------------------------------------------------
 	// UGameplayAbility interface
@@ -104,7 +101,7 @@ public:
 	virtual bool FilterTarget_Implementation(AActor* Candidate) const;
 
 	/**
-	 * Applies AttackData->DamageGameplayEffect to a single validated target.
+	 * Applies AttackData->DamageGE to a single validated target.
 	 * Default: builds an outgoing GE spec, writes DamageMultiplier as SetByCaller
 	 *          (tag MF.Attack.Data.Damage), and applies it via the source ASC.
 	 */

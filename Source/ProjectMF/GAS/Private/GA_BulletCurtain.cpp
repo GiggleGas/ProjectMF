@@ -14,6 +14,11 @@
 // UGameplayAbility interface
 // ============================================================================
 
+UMFRangedAttackDataBase* UGA_BulletCurtain::GetRangedData() const
+{
+	return BulletCurtainData;
+}
+
 void UGA_BulletCurtain::ActivateAbility(
 	const FGameplayAbilitySpecHandle     Handle,
 	const FGameplayAbilityActorInfo*     ActorInfo,

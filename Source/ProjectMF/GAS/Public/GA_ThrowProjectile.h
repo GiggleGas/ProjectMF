@@ -8,13 +8,14 @@
 #include "GA_ThrowProjectile.generated.h"
 
 class UMFProjectileAttackData;
+class UMFRangedAttackDataBase;
 struct FMFProjectileResult;
 
 /**
  * Ranged attack ability: launches a straight-line projectile via UMFProjectileSubsystem.
  *
  * Flow:
- *   ActivateAbility (sets AnimToSpawnDelay from ProjectileData, calls Super)
+ *   ActivateAbility (base reads AttackAnim + AnimToSpawnDelay via GetRangedData)
  *   → [delay] SpawnProjectile → Subsystem::Launch → GA stays Running
  *   → HandleProjectileResolved callback:
  *       HitTarget  → FilterTarget → ApplyDamageToTarget → EndAbility
@@ -33,12 +34,6 @@ class PROJECTMF_API UGA_ThrowProjectile : public UGA_AIRangedAttackBase
 
 public:
 
-	virtual void ActivateAbility(
-		const FGameplayAbilitySpecHandle     Handle,
-		const FGameplayAbilityActorInfo*     ActorInfo,
-		const FGameplayAbilityActivationInfo ActivationInfo,
-		const FGameplayEventData*            TriggerEventData) override;
-
 	virtual void EndAbility(
 		const FGameplayAbilitySpecHandle     Handle,
 		const FGameplayAbilityActorInfo*     ActorInfo,
@@ -47,6 +42,8 @@ public:
 		bool                                 bWasCancelled) override;
 
 	virtual void SpawnProjectile_Implementation(AActor* Target) override;
+
+	virtual UMFRangedAttackDataBase* GetRangedData() const override;
 
 protected:
 

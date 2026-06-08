@@ -132,7 +132,7 @@ void UGA_AIAttackBase::ActivateAbility(
 		AttackData->bSustained ? 1 : 0);
 
 	// Play animation override if assigned
-	if (AttackAnim)
+	if (AttackData->AttackAnim)
 	{
 		if (AMFCharacterBase* Char = GetMFCharacter())
 		{
@@ -141,7 +141,7 @@ void UGA_AIAttackBase::ActivateAbility(
 			{
 				if (UPaperZDAnimInstance* AnimInst = AnimComp->GetAnimInstance())
 				{
-					AnimInst->PlayAnimationOverride(AttackAnim);
+					AnimInst->PlayAnimationOverride(AttackData->AttackAnim);
 				}
 			}
 		}
@@ -274,7 +274,7 @@ bool UGA_AIAttackBase::FilterTarget_Implementation(AActor* Candidate) const
 
 void UGA_AIAttackBase::ApplyDamageToTarget_Implementation(AActor* Target)
 {
-	if (!Target || !AttackData || !AttackData->DamageGameplayEffect) return;
+	if (!Target || !AttackData || !AttackData->DamageGE) return;
 
 	UAbilitySystemComponent* TargetASC =
 		UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Target);
@@ -291,7 +291,7 @@ void UGA_AIAttackBase::ApplyDamageToTarget_Implementation(AActor* Target)
 	const float FinalMagnitude = AttackValue * AttackData->DamageMultiplier;
 
 	FGameplayEffectSpecHandle Spec =
-		MakeOutgoingGameplayEffectSpec(AttackData->DamageGameplayEffect, GetAbilityLevel());
+		MakeOutgoingGameplayEffectSpec(AttackData->DamageGE, GetAbilityLevel());
 
 	Spec.Data->SetSetByCallerMagnitude(
 		MFGameplayTags::Attack_Data_Damage,
@@ -415,8 +415,8 @@ void UGA_AIAttackBase::ScheduleTimers()
 	{
 		// Single hit: derive end time from animation duration when possible so the
 		// ability always expires exactly when the animation finishes — no manual sync needed.
-		const float EffectiveDuration = (AttackAnim && AttackAnim->GetTotalDuration() > 0.f)
-			? AttackAnim->GetTotalDuration()
+		const float EffectiveDuration = (AttackData->AttackAnim && AttackData->AttackAnim->GetTotalDuration() > 0.f)
+			? AttackData->AttackAnim->GetTotalDuration()
 			: AttackData->AbilityDuration;
 
 		const float Remaining = FMath::Max(EffectiveDuration - AttackData->HitDelaySeconds, 0.01f);
@@ -424,7 +424,7 @@ void UGA_AIAttackBase::ScheduleTimers()
 		MF_LOG(LogMFAbility,
 			TEXT("[GA_AIAttackBase] Single-hit end timer: effectiveDuration=%.3fs (anim=%s, configured=%.3fs) remaining=%.3fs"),
 			EffectiveDuration,
-			AttackAnim ? TEXT("yes") : TEXT("no"),
+			AttackData->AttackAnim ? TEXT("yes") : TEXT("no"),
 			AttackData->AbilityDuration,
 			Remaining);
 

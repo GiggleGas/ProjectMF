@@ -8,14 +8,16 @@
 #include "GA_FallingBoulder.generated.h"
 
 class UMFFallingBoulderData;
+class UMFRangedAttackDataBase;
 
 /**
  * Ranged attack ability: drops a boulder straight down onto the target's position.
  *
- * Reuses UMFProjectileSubsystem — no separate Actor needed:
- *   Origin    = TargetPos + (0, 0, FallHeight)
+ * Reuses UMFProjectileSubsystem — no separate Actor needed.
+ * The inherited MaxRange field doubles as the fall height:
+ *   Origin    = TargetPos + (0, 0, MaxRange)
  *   Direction = (0, 0, -1)
- *   MaxRange  = FallHeight   ← resolved as "hit ground"
+ *   MaxRange resolved   ← "hit ground"
  *
  * On landing (MaxRange resolve), performs a sphere overlap at FinalPosition
  * and applies area damage to all valid targets within ImpactRadius.
@@ -34,12 +36,6 @@ class PROJECTMF_API UGA_FallingBoulder : public UGA_AIRangedAttackBase
 
 public:
 
-	virtual void ActivateAbility(
-		const FGameplayAbilitySpecHandle     Handle,
-		const FGameplayAbilityActorInfo*     ActorInfo,
-		const FGameplayAbilityActivationInfo ActivationInfo,
-		const FGameplayEventData*            TriggerEventData) override;
-
 	virtual void EndAbility(
 		const FGameplayAbilitySpecHandle     Handle,
 		const FGameplayAbilityActorInfo*     ActorInfo,
@@ -48,6 +44,8 @@ public:
 		bool                                 bWasCancelled) override;
 
 	virtual void SpawnProjectile_Implementation(AActor* Target) override;
+
+	virtual UMFRangedAttackDataBase* GetRangedData() const override;
 
 protected:
 

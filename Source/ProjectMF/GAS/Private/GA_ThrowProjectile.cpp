@@ -14,17 +14,9 @@
 // UGameplayAbility interface
 // ============================================================================
 
-void UGA_ThrowProjectile::ActivateAbility(
-	const FGameplayAbilitySpecHandle     Handle,
-	const FGameplayAbilityActorInfo*     ActorInfo,
-	const FGameplayAbilityActivationInfo ActivationInfo,
-	const FGameplayEventData*            TriggerEventData)
+UMFRangedAttackDataBase* UGA_ThrowProjectile::GetRangedData() const
 {
-	// Set delay from DataAsset before the base class sets the timer
-	if (ProjectileData)
-		AnimToSpawnDelay = ProjectileData->AnimToSpawnDelay;
-
-	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
+	return ProjectileData;
 }
 
 void UGA_ThrowProjectile::EndAbility(

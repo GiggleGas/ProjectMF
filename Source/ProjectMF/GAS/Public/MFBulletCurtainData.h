@@ -3,12 +3,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Engine/DataAsset.h"
-#include "MFAttackTypes.h"
+#include "MFRangedAttackDataBase.h"
 #include "MFBulletCurtainData.generated.h"
-
-class UStaticMesh;
-class UGameplayEffect;
 
 /**
  * DataAsset that configures the bullet-curtain ranged attack (UGA_BulletCurtain).
@@ -16,9 +12,14 @@ class UGameplayEffect;
  * Each burst fires one projectile per entry in BurstAngles, all offset from
  * CurrentBaseAngle (which starts at 0° = world +X and increments by RotationPerBurst
  * after every burst).
+ *
+ * Common fields (AttackAnim, DamageGE, DamageMultiplier, TargetFilter, Speed,
+ * MaxRange, CollisionRadius, ProjectileMesh) are inherited from
+ * UMFRangedAttackDataBase. This class only adds the burst pattern.
+ * (AnimToSpawnDelay is inherited but unused — bullet-curtain fires immediately.)
  */
 UCLASS(BlueprintType)
-class PROJECTMF_API UMFBulletCurtainData : public UDataAsset
+class PROJECTMF_API UMFBulletCurtainData : public UMFRangedAttackDataBase
 {
 	GENERATED_BODY()
 
@@ -44,40 +45,4 @@ public:
 	/** Total number of bursts. Ability ends after the last burst resolves. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "BurstPattern", meta = (ClampMin = "1"))
 	int32 BurstCount = 10;
-
-	// -----------------------------------------------------------------------
-	// Projectile physics
-	// -----------------------------------------------------------------------
-
-	/** Travel speed (cm/s). */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Projectile", meta = (ClampMin = "1.0"))
-	float Speed = 1200.f;
-
-	/** Maximum travel distance before the projectile expires (cm). */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Projectile", meta = (ClampMin = "1.0"))
-	float MaxRange = 2000.f;
-
-	/** Sweep sphere radius (cm). */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Projectile", meta = (ClampMin = "1.0"))
-	float CollisionRadius = 20.f;
-
-	/** Mesh rendered via ISM. Leave null for invisible projectiles. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Projectile")
-	TObjectPtr<UStaticMesh> ProjectileMesh;
-
-	// -----------------------------------------------------------------------
-	// Damage
-	// -----------------------------------------------------------------------
-
-	/** GameplayEffect applied when a projectile hits a valid target. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Damage")
-	TSubclassOf<UGameplayEffect> DamageGE;
-
-	/** SetByCaller multiplier for MF.Attack.Data.Damage. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Damage", meta = (ClampMin = "0.0"))
-	float DamageMultiplier = 1.f;
-
-	/** Who can be damaged by the projectiles. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Damage")
-	EAttackTargetFilter TargetFilter = EAttackTargetFilter::EnemyOnly;
 };

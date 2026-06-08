@@ -3,14 +3,15 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Engine/DataAsset.h"
+#include "MFAttackDataBase.h"
 #include "MFAttackTypes.h"
 #include "MFAttackAbilityData.generated.h"
 
-class UGameplayEffect;
-
 /**
- * Data Asset：AI 攻击技能的所有可配置参数。
+ * Data Asset：AI 近战 / AOE 攻击技能的可配置参数。
+ *
+ * 通用字段（AttackAnim / DamageGE / DamageMultiplier / TargetFilter）继承自
+ * UMFAttackDataBase；本类仅补充近战专有的检测形状、时序、多段、持续参数。
  *
  * 使用方式：
  *   1. 内容浏览器右键 → 杂项 → 数据资产 → 选择 MFAttackAbilityData
@@ -19,7 +20,7 @@ class UGameplayEffect;
  * 所有数值通过此资产驱动，运行时可直接修改，无需重新编译。
  */
 UCLASS(BlueprintType)
-class PROJECTMF_API UMFAttackAbilityData : public UDataAsset
+class PROJECTMF_API UMFAttackAbilityData : public UMFAttackDataBase
 {
 	GENERATED_BODY()
 
@@ -64,14 +65,6 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Attack|Detection",
 		meta = (EditCondition = "ShapeType == EAttackShapeType::Box"))
 	FVector BoxHalfExtent = FVector(100.f, 60.f, 60.f);
-
-	// -----------------------------------------------------------------------
-	// 目标过滤
-	// -----------------------------------------------------------------------
-
-	/** 决定攻击影响敌方、友方还是全部角色。 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Attack|Target")
-	EAttackTargetFilter TargetFilter = EAttackTargetFilter::EnemyOnly;
 
 	// -----------------------------------------------------------------------
 	// 时序控制
@@ -133,22 +126,5 @@ public:
 		meta = (ClampMin = "0.05", EditCondition = "bSustained"))
 	float TickInterval = 0.5f;
 
-	// -----------------------------------------------------------------------
-	// 伤害
-	// -----------------------------------------------------------------------
-
-	/**
-	 * 应用到目标的伤害 GameplayEffect。
-	 * 该 GE 应配置为通过 SetByCaller（标签 MF.Attack.Data.Damage）读取伤害量。
-	 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Attack|Damage")
-	TSubclassOf<UGameplayEffect> DamageGameplayEffect;
-
-	/**
-	 * 伤害倍率，作为 SetByCaller 值写入 GE Spec。
-	 * 最终伤害由 GE 内部公式（可引用 Attack 属性）乘以此值决定。
-	 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Attack|Damage",
-		meta = (ClampMin = "0.0"))
-	float DamageMultiplier = 1.f;
+	// 伤害字段（DamageGE / DamageMultiplier）与目标过滤（TargetFilter）继承自 UMFAttackDataBase。
 };

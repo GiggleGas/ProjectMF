@@ -10,20 +10,23 @@
 class UPaperZDAnimSequence;
 class AMFAICharacter;
 class UGameplayEffect;
+class UMFRangedAttackDataBase;
 
 /**
  * Abstract base class for all AI ranged attack GameplayAbilities.
  *
  * Pipeline:
  *   ActivateAbility
+ *     → GetRangedData()           if null → EndAbility(cancelled)
  *     → GetCurrentTarget()        if null → EndAbility(cancelled)
- *     → PlayAnimationOverride(AttackAnim)
- *     → [AnimToSpawnDelay later]  OnSpawnTimerFired()
+ *     → PlayAnimationOverride(Data->AttackAnim)
+ *     → [Data->AnimToSpawnDelay later]  OnSpawnTimerFired()
  *           → SpawnProjectile(CachedTarget)   ← subclass implements this
  *     → GA stays Running until subclass calls EndAbility
  *
  * Subclass responsibilities:
- *   1. Set AnimToSpawnDelay (from DataAsset) before calling Super::ActivateAbility.
+ *   1. Override GetRangedData() to return the subclass's ranged data asset
+ *      (AttackAnim + AnimToSpawnDelay are read from it by the base).
  *   2. Override SpawnProjectile_Implementation to launch the actual attack.
  *   3. Call EndAbility when the attack resolves (hit, miss, or cancelled).
  *
@@ -68,14 +71,16 @@ public:
 	void SpawnProjectile(AActor* Target);
 	virtual void SpawnProjectile_Implementation(AActor* Target) {}
 
+	/**
+	 * Return this ability's ranged data asset. Each subclass overrides to return its
+	 * own typed asset (UMFProjectileAttackData / UMFFallingBoulderData / ...).
+	 * The base ActivateAbility reads AttackAnim + AnimToSpawnDelay through this — so
+	 * every ranged ability is configured by a single data-asset field, no separate
+	 * AttackAnim property on the GA.
+	 */
+	virtual UMFRangedAttackDataBase* GetRangedData() const { return nullptr; }
+
 protected:
-
-	/** Animation played when this ability activates. Optional. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "RangedAttack|Config")
-	TObjectPtr<UPaperZDAnimSequence> AttackAnim;
-
-	// Set by subclass BEFORE calling Super::ActivateAbility (read from DataAsset).
-	float AnimToSpawnDelay = 0.2f;
 
 	// Cached across the async gap (timer → SpawnProjectile → OnResolved).
 	FGameplayAbilitySpecHandle     CachedHandle;

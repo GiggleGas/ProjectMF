@@ -13,16 +13,9 @@
 // UGameplayAbility interface
 // ============================================================================
 
-void UGA_FallingBoulder::ActivateAbility(
-	const FGameplayAbilitySpecHandle     Handle,
-	const FGameplayAbilityActorInfo*     ActorInfo,
-	const FGameplayAbilityActivationInfo ActivationInfo,
-	const FGameplayEventData*            TriggerEventData)
+UMFRangedAttackDataBase* UGA_FallingBoulder::GetRangedData() const
 {
-	if (BoulderData)
-		AnimToSpawnDelay = BoulderData->AnimToSpawnDelay;
-
-	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
+	return BoulderData;
 }
 
 void UGA_FallingBoulder::EndAbility(
@@ -68,17 +61,18 @@ void UGA_FallingBoulder::SpawnProjectile_Implementation(AActor* Target)
 		return;
 	}
 
-	// Record the target's position at cast time — boulder falls to this fixed point
+	// Record the target's position at cast time — boulder falls to this fixed point.
+	// MaxRange doubles as the fall height (spawn offset above the target).
 	const FVector GroundPos  = Target->GetActorLocation();
-	const FVector SpawnPos   = GroundPos + FVector(0.f, 0.f, BoulderData->FallHeight);
+	const FVector SpawnPos   = GroundPos + FVector(0.f, 0.f, BoulderData->MaxRange);
 
 	FMFProjectileLaunchParams Params;
 	Params.Origin          = SpawnPos;
 	Params.Direction       = FVector::DownVector;          // straight down
-	Params.Speed           = BoulderData->FallSpeed;
-	Params.MaxRange        = BoulderData->FallHeight;      // MaxRange hit = landed
+	Params.Speed           = BoulderData->Speed;
+	Params.MaxRange        = BoulderData->MaxRange;        // MaxRange hit = landed
 	Params.CollisionRadius = BoulderData->CollisionRadius;
-	Params.Mesh            = BoulderData->BoulderMesh;
+	Params.Mesh            = BoulderData->ProjectileMesh;
 	Params.Instigator      = GetAvatarActorFromActorInfo();
 	Params.DamageGE        = BoulderData->DamageGE;
 	Params.DamageMultiplier = BoulderData->DamageMultiplier;
@@ -91,8 +85,8 @@ void UGA_FallingBoulder::SpawnProjectile_Implementation(AActor* Target)
 		TEXT("[GA_FallingBoulder] %s → boulder spawned above %s  height=%.0f speed=%.0f radius=%.0f"),
 		*GetNameSafe(GetAvatarActorFromActorInfo()),
 		*GetNameSafe(Target),
-		BoulderData->FallHeight,
-		BoulderData->FallSpeed,
+		BoulderData->MaxRange,
+		BoulderData->Speed,
 		BoulderData->ImpactRadius);
 }
 

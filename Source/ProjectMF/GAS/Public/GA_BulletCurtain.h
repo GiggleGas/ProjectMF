@@ -8,6 +8,7 @@
 #include "GA_BulletCurtain.generated.h"
 
 class UMFBulletCurtainData;
+class UMFRangedAttackDataBase;
 
 /**
  * Danmaku-style ranged ability: fires multiple projectiles per burst at configured
@@ -44,6 +45,8 @@ public:
 		const FGameplayAbilityActivationInfo ActivationInfo,
 		bool                                 bReplicateEndAbility,
 		bool                                 bWasCancelled) override;
+
+	virtual UMFRangedAttackDataBase* GetRangedData() const override;
 
 protected:
 
