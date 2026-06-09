@@ -4,10 +4,12 @@
 #include "MFHitReactInterface.h"
 #include "MFAnimInstanceBase.h"
 #include "MFAttributeSetBase.h"
+#include "MFCombatAttributeSet.h"
 #include "MFGameplayAbilityBase.h"
 #include "MFGameplayTags.h"
 #include "AbilitySystemComponent.h"
 #include "GameplayEffect.h"
+#include "GameplayEffectTypes.h"
 #include "PaperFlipbookComponent.h"
 #include "PaperZDAnimationComponent.h"
 #include "PaperFlipbook.h"
@@ -100,18 +102,19 @@ void AMFCharacterBase::InitAbilitySystemComponent()
 	// Owner and Avatar are both this actor (no separate PlayerState for now).
 	AbilitySystemComponent->InitAbilityActorInfo(this, this);
 
-	// Apply default init effect (sets MaxHealth, Attack, Defense, etc.)
+	// MoveSpeed → MaxWalkSpeed：先注册属性变化回调（覆盖后续 slow/缠绕/buff 对移速的改动）。
+	AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(
+		UMFAttributeSetBase::GetMoveSpeedAttribute())
+		.AddUObject(this, &AMFCharacterBase::OnMoveSpeedChanged);
+
+	// 初始化属性（MaxHealth/Health/MoveSpeed/Attack/Defense/FleeThreshold）。
 	// Must come before granting abilities so attribute values are ready.
-	if (DefaultInitEffect)
+	ApplyAttributeInitData(InitAttributes);
+
+	// init 后同步一次 MaxWalkSpeed，确保初始移速生效。
+	if (UCharacterMovementComponent* CMC = GetCharacterMovement())
 	{
-		FGameplayEffectContextHandle Context = AbilitySystemComponent->MakeEffectContext();
-		Context.AddSourceObject(this);
-		const FGameplayEffectSpecHandle Spec =
-			AbilitySystemComponent->MakeOutgoingSpec(DefaultInitEffect, 1.f, Context);
-		if (Spec.IsValid())
-		{
-			AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*Spec.Data);
-		}
+		CMC->MaxWalkSpeed = AttributeSet->GetMoveSpeed();
 	}
 
 	// Grant every ability listed in DefaultAbilities at level 1.
@@ -128,6 +131,33 @@ void AMFCharacterBase::InitAbilitySystemComponent()
 	if (!DefaultOwnedTags.IsEmpty())
 	{
 		AbilitySystemComponent->AddLooseGameplayTags(DefaultOwnedTags);
+	}
+}
+
+void AMFCharacterBase::ApplyAttributeInitData(const FMFAttributeInitData& Data)
+{
+	if (!AbilitySystemComponent) return;
+
+	// 基础集（每个角色都挂载 UMFAttributeSetBase）。
+	// MaxHealth 须先于 Health 写入：PreAttributeChange 会把 Health 夹紧到 [0, MaxHealth]。
+	AbilitySystemComponent->SetNumericAttributeBase(UMFAttributeSetBase::GetMaxHealthAttribute(), Data.MaxHealth);
+	AbilitySystemComponent->SetNumericAttributeBase(UMFAttributeSetBase::GetHealthAttribute(),    Data.MaxHealth);
+	AbilitySystemComponent->SetNumericAttributeBase(UMFAttributeSetBase::GetMoveSpeedAttribute(), Data.MoveSpeed);
+
+	// 战斗集仅 AI/宠物/Boss 挂载；玩家无此集，跳过攻防/逃跑阈值。
+	if (AbilitySystemComponent->GetSet<UMFCombatAttributeSet>())
+	{
+		AbilitySystemComponent->SetNumericAttributeBase(UMFCombatAttributeSet::GetAttackAttribute(),        Data.Attack);
+		AbilitySystemComponent->SetNumericAttributeBase(UMFCombatAttributeSet::GetDefenseAttribute(),       Data.Defense);
+		AbilitySystemComponent->SetNumericAttributeBase(UMFCombatAttributeSet::GetFleeThresholdAttribute(), Data.FleeThreshold);
+	}
+}
+
+void AMFCharacterBase::OnMoveSpeedChanged(const FOnAttributeChangeData& Data)
+{
+	if (UCharacterMovementComponent* CMC = GetCharacterMovement())
+	{
+		CMC->MaxWalkSpeed = Data.NewValue;
 	}
 }
 
@@ -291,20 +321,34 @@ void AMFCharacterBase::OnHealthChangedCallback(float OldHealth, float NewHealth)
 {
 	if (NewHealth < OldHealth)
 	{
-		ReactToHit_Implementation();
+		ReactToHit_Implementation();   // 掉血 → 闪红
+	}
+	else if (NewHealth > OldHealth)
+	{
+		ReactToHeal();                 // 回血 → 闪绿
 	}
 }
 
-void AMFCharacterBase::ReactToHit_Implementation()
+void AMFCharacterBase::FlashSpriteColor(const FLinearColor& Color)
 {
 	if (!FlipbookComponent) return;
 
-	FlipbookComponent->SetSpriteColor(FLinearColor::Red);
+	FlipbookComponent->SetSpriteColor(Color);
 
 	GetWorldTimerManager().SetTimer(
 		HitFlashTimerHandle,
 		this, &AMFCharacterBase::ResetHitFlashColor,
 		HitFlashDuration, /*bLoop=*/false);
+}
+
+void AMFCharacterBase::ReactToHit_Implementation()
+{
+	FlashSpriteColor(FLinearColor::Red);
+}
+
+void AMFCharacterBase::ReactToHeal()
+{
+	FlashSpriteColor(FLinearColor::Green);
 }
 
 void AMFCharacterBase::ResetHitFlashColor()

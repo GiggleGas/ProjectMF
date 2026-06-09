@@ -21,7 +21,7 @@ class FKKGraph : public IKKGraph
 {
 public:
     // Constructor
-    FKKGraph() : MaxEnergyNodeIndex(-1), EdgeCount(0) {}
+    FKKGraph() : EdgeCount(0), MaxEnergyNodeIndex(-1) {}
     
     // Add a node to the graph
     int AddNode(const FKKNode& Node);

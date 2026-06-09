@@ -130,11 +130,11 @@ struct PROJECTMF_API FTaskDefinition
         : EntranceRoomChance(1.0f)
         , CoveRoomChance(0.0f)
         , CoveRoomMaxEdges(0)
+        , Colour(FLinearColor::White)
         , MazeTileSize(0)
         , CrosslinkFactor(0.0f)
         , bMakeLoop(false)
         , bLevelSetPieceBlocker(false)
-        , Colour(FLinearColor::White)
     {}
 
     // 从JSON对象加载任务定义
@@ -186,8 +186,8 @@ struct PROJECTMF_API FRoomDefinition
     float DistributePercent;
 
     FRoomDefinition()
-        : DistributePercent(0.0f)
-        , Colour(FLinearColor::White)
+        : Colour(FLinearColor::White)
+        , DistributePercent(0.0f)
     {}
 
     // 从JSON对象加载房间定义

@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "MFGameplayAbilityBase.h"
+#include "MFPetGameplayAbility.h"
 #include "GA_AIAttackBase.generated.h"
 
 class UMFAttackAbilityData;
@@ -30,7 +30,7 @@ class AMFAICharacter;
  *   Data Asset, editable at runtime.
  */
 UCLASS(Abstract, Blueprintable)
-class PROJECTMF_API UGA_AIAttackBase : public UMFGameplayAbilityBase
+class PROJECTMF_API UGA_AIAttackBase : public UMFPetGameplayAbility
 {
 	GENERATED_BODY()
 

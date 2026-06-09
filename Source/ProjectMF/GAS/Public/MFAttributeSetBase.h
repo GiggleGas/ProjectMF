@@ -90,6 +90,14 @@ public:
 	FGameplayAttributeData Damage;
 	ATTRIBUTE_ACCESSORS(UMFAttributeSetBase, Damage)
 
+	/**
+	 * Transient incoming heal value. Set by GE_Heal / GE_Regen → consumed and reset
+	 * to 0 in PostGameplayEffectExecute. Never query this from outside the PostGE.
+	 */
+	UPROPERTY(BlueprintReadOnly, Category = "Attributes|Combat")
+	FGameplayAttributeData Healing;
+	ATTRIBUTE_ACCESSORS(UMFAttributeSetBase, Healing)
+
 	// -----------------------------------------------------------------------
 	// Damage pipeline events
 	// -----------------------------------------------------------------------

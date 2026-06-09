@@ -63,6 +63,20 @@ public:
 	ATTRIBUTE_ACCESSORS(UMFCombatAttributeSet, FleeThreshold)
 
 	// -----------------------------------------------------------------------
+	// 伤害修正系数（buff/debuff 用，默认 1 = 无修正）
+	// -----------------------------------------------------------------------
+
+	/** 受到伤害的倍率（易伤 >1 / 减伤 <1）。在 PostGE 伤害公式中乘算（见 B4）。 */
+	UPROPERTY(BlueprintReadOnly, Category = "Attributes|Combat")
+	FGameplayAttributeData IncomingDamageMultiplier;
+	ATTRIBUTE_ACCESSORS(UMFCombatAttributeSet, IncomingDamageMultiplier)
+
+	/** 造成伤害的倍率（增伤 >1 / 虚弱 <1）。在出伤侧 ApplyDamageToTarget 乘算（见 B5）。 */
+	UPROPERTY(BlueprintReadOnly, Category = "Attributes|Combat")
+	FGameplayAttributeData OutgoingDamageMultiplier;
+	ATTRIBUTE_ACCESSORS(UMFCombatAttributeSet, OutgoingDamageMultiplier)
+
+	// -----------------------------------------------------------------------
 	// UAttributeSet interface
 	// -----------------------------------------------------------------------
 

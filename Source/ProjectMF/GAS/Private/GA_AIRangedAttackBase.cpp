@@ -133,21 +133,23 @@ void UGA_AIRangedAttackBase::ApplyDamageToTarget(
 	UAbilitySystemComponent* SourceASC = GetAbilitySystemComponentFromActorInfo();
 	if (!TargetASC || !SourceASC) return;
 
-	float AttackValue = 0.f;
+	float AttackValue  = 0.f;
+	float OutgoingMult = 1.f;
 	if (const UMFCombatAttributeSet* CombatSet = SourceASC->GetSet<UMFCombatAttributeSet>())
 	{
-		AttackValue = CombatSet->GetAttack();
+		AttackValue  = CombatSet->GetAttack();
+		OutgoingMult = CombatSet->GetOutgoingDamageMultiplier();
 	}
 
-	const float FinalMagnitude = AttackValue * DamageMultiplier;
+	const float FinalMagnitude = AttackValue * DamageMultiplier * OutgoingMult;
 
 	FGameplayEffectSpecHandle Spec = MakeOutgoingGameplayEffectSpec(DamageGE, GetAbilityLevel());
 	Spec.Data->SetSetByCallerMagnitude(MFGameplayTags::Attack_Data_Damage, FinalMagnitude);
 	SourceASC->ApplyGameplayEffectSpecToTarget(*Spec.Data.Get(), TargetASC);
 
 	MF_LOG(LogMFAbility,
-		TEXT("[GA_AIRangedAttackBase] Damage → %s (attack=%.1f x multiplier=%.2f = %.1f)"),
-		*GetNameSafe(Target), AttackValue, DamageMultiplier, FinalMagnitude);
+		TEXT("[GA_AIRangedAttackBase] Damage → %s (attack=%.1f x mult=%.2f x out=%.2f = %.1f)"),
+		*GetNameSafe(Target), AttackValue, DamageMultiplier, OutgoingMult, FinalMagnitude);
 }
 
 bool UGA_AIRangedAttackBase::FilterTarget(AActor* Candidate, EAttackTargetFilter Filter) const

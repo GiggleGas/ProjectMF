@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
 #include "GameplayTagContainer.h"
+#include "MFAttributeInitData.h"
 #include "MFPlayerConfig.generated.h"
 
 class UInputMappingContext;
@@ -93,12 +94,9 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAS")
 	FGameplayTagContainer DefaultOwnedTags;
 
-	/**
-	 * 初始化属性的 Instant GameplayEffect（MaxHealth、MoveSpeed、Attack 等）。
-	 * 留空则使用 AttributeSet 构造函数默认值。
-	 */
+	/** 初始属性值（MaxHealth/MoveSpeed/Attack/Defense/FleeThreshold）。BeginPlay 前复制到角色基类。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAS")
-	TSubclassOf<UGameplayEffect> DefaultInitEffect;
+	FMFAttributeInitData InitAttributes;
 
 	// -----------------------------------------------------------------------
 	// 召唤宠物阵营 — 召唤时写入，覆盖宠物自带的中立/野生配置

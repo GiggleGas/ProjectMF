@@ -1,0 +1,94 @@
+# ProjectMF — GAS 技能扩展 · 任务清单
+
+> 配套设计文档：[GAS_AbilitySystem_Summary_and_Plan.md](GAS_AbilitySystem_Summary_and_Plan.md)
+> 用途：跟踪扩展实现进度。完成一项把 `[ ]` 改成 `[x]`，状态列同步更新。
+> 状态图例：⬜ 待办　🟡 进行中　✅ 完成　⏸️ 阻塞/挂起
+
+总计约 **19–26 人天**。关键路径：P1 → P2 → P3（区域/Combo）。P0a 与 P0b 可并行。
+
+---
+
+## P0a · 地基：伤害管线（3–4d）
+
+| 任务 | 描述 | 涉及 | 依赖 | 状态 |
+|------|------|------|------|------|
+| [x] B1 | `MoveSpeed` → `MaxWalkSpeed` 同步（ASC 属性变化回调 + init 后同步一次） | `MFCharacterBase.cpp` | — | ✅ |
+| [x] B2 | 加 `IncomingDamageMultiplier` / `OutgoingDamageMultiplier` 属性（默认 1，夹紧 `[0,+∞)`） | `MFCombatAttributeSet` | — | ✅ |
+| [x] B3 | 加 `Healing` meta + `PostGE` 对称回复管线（复用 `OnHealthChanged`）+ 治疗闪绿（`ReactToHeal`/`FlashSpriteColor`） | `MFAttributeSetBase`、`MFCharacterBase` | — | ✅ |
+| [x] B4 | 伤害公式接易伤：`max(Damage − Defense, 1) × IncomingMult` | `MFAttributeSetBase` PostGE | B2 | ✅ |
+| [x] B5 | 出伤接增伤：近战+远程 `ApplyDamageToTarget` 乘 `OutgoingMult` | `GA_AIAttackBase` / `GA_AIRangedAttackBase` | B2 | ✅ |
+| [ ] B6 | 新标签：`State.Stunned/Slowed/Blinded`、`Ability.Charge/Jump/GroundSlam`、`Effect.*` | `MFGameplayTags` | — | ⬜ |
+| [ ] B7 | 眩晕禁动（`State.Stunned` 标签事件 → `DisableMovement`/恢复） | `MFCharacterBase.cpp` | B6 | ⬜ |
+| [ ] B8 | 致盲目标失效钩子（持 `State.Blinded` 时目标获取返回空） | `MFThreatComponent` 等 | B6 | ⬜ |
+| [x] B9 | 属性初始化配置化（扁平）：`FMFAttributeInitData` 取代 `DefaultInitEffect`(GE)，代码 `SetNumericAttributeBase` 直接 init | `MFAttributeInitData`(新) + `MFCharacterBase` + Player/AI Config + 2 apply 点 | — | ✅ |
+
+## P0b · 地基：技能基类（2d）
+
+| 任务 | 描述 | 涉及 | 依赖 | 状态 |
+|------|------|------|------|------|
+| [x] A1 | 新建 `UMFPlayerGameplayAbility` / `UMFPetGameplayAbility`（抽象，继承 `UMFGameplayAbilityBase`，纯骨架无门禁） | 新建 2 头文件 | — | ✅ |
+| [x] A2 | reparent：Pick/Catch/Summon→Player；AIAttack/AIRanged→Pet | 5 个 GA 头文件 | A1 | ✅ |
+| [ ] A3 | 通用门禁 `ActivationBlockedTags`（Dead / Stunned）入父类构造 | 两基类 .cpp | A1、B6 | ⬜ |
+| [x] C0 | 新建 `UMFGameplayEffectBase`（`EffectTag` 身份标签） | 新建文件 | — | ✅ |
+
+## P1 · GE 体系（2–3d）
+
+| 任务 | 描述 | 涉及 | 依赖 | 状态 |
+|------|------|------|------|------|
+| [ ] C1 | 10 个 GE 蓝图：Burn/Freeze/Root/Slow/Stun/Vulnerable/DamageUp/Heal/Regen/Blind（继承 `UMFGameplayEffectBase`，带 `Effect.*` 标签） | Content/GameplayEffect | P0a、P0b | ⬜ |
+
+## P2 · 区域子系统（3–4d）
+
+| 任务 | 描述 | 涉及 | 依赖 | 状态 |
+|------|------|------|------|------|
+| [ ] E1 | `UMFAreaEffectData`（半径/时长/间隔/过滤/GE 列表/伤害倍率） | 新建数据资产 | P1 | ⬜ |
+| [ ] E2 | `UMFAreaEffectSubsystem`：注册 / overlap 跟踪 / 逐 actor Update / Instant×Duration 双模式施加 | 新建子系统 | E1 | ⬜ |
+
+## P3 · Combo 子系统（2–3d）
+
+| 任务 | 描述 | 涉及 | 依赖 | 状态 |
+|------|------|------|------|------|
+| [ ] F1 | `UMFComboSubsystem` + combo 数据表 `(TagA,TagB)→ResultGE` | 新建子系统 + DataTable | P2 | ⬜ |
+| [ ] F2 | 区域子系统结算完目标效果标签后调用 Combo | `MFAreaEffectSubsystem` | F1 | ⬜ |
+
+## P4 · 投掷区域化（1–2d）
+
+| 任务 | 描述 | 涉及 | 依赖 | 状态 |
+|------|------|------|------|------|
+| [ ] D1 | `UMFProjectileAttackData` 加 `AreaConfig`（可选） | `MFProjectileAttackData.h` | P2 | ⬜ |
+| [ ] D2 | `GA_ThrowProjectile` resolve 改：撞击伤害 + 注册区域 | `GA_ThrowProjectile.cpp` | D1 | ⬜ |
+
+## P5 · 移动技能（4–5d）
+
+| 任务 | 描述 | 涉及 | 依赖 | 状态 |
+|------|------|------|------|------|
+| [ ] G0 | `UMFMovementAbilityBase`（继承 Pet 基类）+ 击退/sweep/落点区域工具 | 新建基类 | P0b | ⬜ |
+| [ ] G1 | `GA_Charge` + `UMFChargeData`（突进 + 沿途命中 + 击退/控制） | 新建 | G0 | ⬜ |
+| [ ] G2 | `GA_Jump` + `UMFJumpData`（抛物线跳 + 落地可选 AOE） | 新建 | G0 | ⬜ |
+| [ ] G3 | `GA_GroundSlam` + `UMFGroundSlamData`（径向 AOE + 击退 + 落点注册区域） | 新建 | G0、P2 | ⬜ |
+
+## P6 · 整合联调（2–3d）
+
+| 任务 | 描述 | 依赖 | 状态 |
+|------|------|------|------|
+| [ ] H1 | AI StateTree 接线、玩家输入绑定 | P1–P5 | ⬜ |
+| [ ] H2 | 数值调优、debug 可视化、回归一阶段循环 | H1 | ⬜ |
+
+---
+
+## 里程碑
+
+| 里程碑 | 包含 | 周期 | 交付点 | 状态 |
+|--------|------|------|--------|------|
+| M1 | P0a + P0b + P1 | ~1.5 周 | 地基打通、基类重构完、10 个 GE 可单独验证 | ⬜ |
+| M2 | P2 + P3 + P4 | ~2 周 | 区域+Combo 跑通、投掷落地生成区域、燃烧+缠绕触发额外 GE | ⬜ |
+| M3 | P5 + P6 | ~1.5 周 | 三个移动技能可用、全面联调 | ⬜ |
+
+## 后续迭代 TODO（本批不做）
+
+- [ ] 同种效果叠层（如燃烧叠 N 层）
+- [ ] 多元（>2）combo
+- [ ] 区域表现（Decal / Niagara）
+- [ ] 区域/combo 性能与数量级评估
+- [ ] 门禁细则（待策划案更新后补充到 Pet/Player 基类）
+- [ ] **养成 / 等级系统**：线性「基值 + 每级成长」，`DT_CharacterStats`(按 AIConfigID)，`ApplyAttributeInitData` 加 Level 入参查表现算；宠物快照改存 Level+XP。详见设计文档第四部分。

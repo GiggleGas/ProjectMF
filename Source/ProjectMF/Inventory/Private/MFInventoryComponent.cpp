@@ -328,8 +328,8 @@ AMFPetBase* UMFInventoryComponent::SummonPet(FGuid InstanceID, FVector Location)
 		return nullptr;
 	}
 
-	// 先 ApplyPetConfig 铺底属性（含 DefaultInitEffect 初始化），再用快照覆盖，
-	// 确保还原的血量/属性不被 InitEffect 盖掉（顺序：技能/标签/感知/动画/AI → 属性快照）。
+	// 先 ApplyPetConfig 铺底属性（含 InitAttributes 初始化），再用快照覆盖，
+	// 确保还原的血量/属性不被初始值盖掉（顺序：技能/标签/感知/动画/AI → 属性快照）。
 	SpawnedPet->ApplyPetConfig(Config);
 	SpawnedPet->RestoreFromInstance(*InstancePtr);
 

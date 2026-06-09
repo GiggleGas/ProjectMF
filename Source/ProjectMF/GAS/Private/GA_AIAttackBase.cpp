@@ -282,13 +282,15 @@ void UGA_AIAttackBase::ApplyDamageToTarget_Implementation(AActor* Target)
 
 	if (!TargetASC || !SourceASC) return;
 
-	float AttackValue = 0.f;
+	float AttackValue  = 0.f;
+	float OutgoingMult = 1.f;
 	if (const UMFCombatAttributeSet* CombatSet = SourceASC->GetSet<UMFCombatAttributeSet>())
 	{
-		AttackValue = CombatSet->GetAttack();
+		AttackValue  = CombatSet->GetAttack();
+		OutgoingMult = CombatSet->GetOutgoingDamageMultiplier();
 	}
 
-	const float FinalMagnitude = AttackValue * AttackData->DamageMultiplier;
+	const float FinalMagnitude = AttackValue * AttackData->DamageMultiplier * OutgoingMult;
 
 	FGameplayEffectSpecHandle Spec =
 		MakeOutgoingGameplayEffectSpec(AttackData->DamageGE, GetAbilityLevel());
@@ -299,8 +301,8 @@ void UGA_AIAttackBase::ApplyDamageToTarget_Implementation(AActor* Target)
 
 	SourceASC->ApplyGameplayEffectSpecToTarget(*Spec.Data.Get(), TargetASC);
 
-	MF_LOG(LogMFAbility, TEXT("[GA_AIAttackBase] Damage applied to %s (attack=%.1f x multiplier=%.2f = %.1f)"),
-		*GetNameSafe(Target), AttackValue, AttackData->DamageMultiplier, FinalMagnitude);
+	MF_LOG(LogMFAbility, TEXT("[GA_AIAttackBase] Damage applied to %s (attack=%.1f x mult=%.2f x out=%.2f = %.1f)"),
+		*GetNameSafe(Target), AttackValue, AttackData->DamageMultiplier, OutgoingMult, FinalMagnitude);
 }
 
 void UGA_AIAttackBase::OnHitPhaseBegin_Implementation()

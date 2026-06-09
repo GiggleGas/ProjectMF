@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "MFGameplayAbilityBase.h"
+#include "MFPetGameplayAbility.h"
 #include "MFAttackTypes.h"
 #include "GA_AIRangedAttackBase.generated.h"
 
@@ -35,7 +35,7 @@ class UMFRangedAttackDataBase;
  *   ActivationOwnedTags   += MF.Character.State.RangedAttacking (or let C++ manage it)
  */
 UCLASS(Abstract, Blueprintable)
-class PROJECTMF_API UGA_AIRangedAttackBase : public UMFGameplayAbilityBase
+class PROJECTMF_API UGA_AIRangedAttackBase : public UMFPetGameplayAbility
 {
 	GENERATED_BODY()
 

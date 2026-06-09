@@ -110,7 +110,7 @@ FMFProjectileHandle UMFProjectileSubsystem::Launch(const FMFProjectileLaunchPara
 	int32 SlotIdx;
 	if (FreeInstanceSlots.Num() > 0)
 	{
-		SlotIdx = FreeInstanceSlots.Pop(false);
+		SlotIdx = FreeInstanceSlots.Pop(EAllowShrinking::No);
 	}
 	else
 	{

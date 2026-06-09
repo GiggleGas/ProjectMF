@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "MFGameplayAbilityBase.h"
+#include "MFPlayerGameplayAbility.h"
 #include "GA_Pick.generated.h"
 
 /**
@@ -25,7 +25,7 @@
  *   This keeps the existing PaperZD animation pipeline fully intact with no extra changes.
  */
 UCLASS()
-class PROJECTMF_API UGA_Pick : public UMFGameplayAbilityBase
+class PROJECTMF_API UGA_Pick : public UMFPlayerGameplayAbility
 {
 	GENERATED_BODY()
 

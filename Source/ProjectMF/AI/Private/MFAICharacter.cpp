@@ -51,7 +51,7 @@ void AMFAICharacter::BeginPlay()
 	{
 		DefaultAbilities  = AIConfig->DefaultAbilities;
 		DefaultOwnedTags  = AIConfig->DefaultOwnedTags;
-		DefaultInitEffect = AIConfig->DefaultInitEffect;
+		InitAttributes    = AIConfig->InitAttributes;
 		HitFlashDuration  = AIConfig->HitFlashDuration;
 		OverheadWidgetClass   = AIConfig->OverheadWidgetClass;
 		OverheadWidgetZOffset = AIConfig->OverheadWidgetZOffset;
@@ -92,11 +92,7 @@ void AMFAICharacter::ApplyAIConfig(const UMFAIConfig* Config)
 			}
 		}
 
-		if (Config->DefaultInitEffect)
-		{
-			const UGameplayEffect* GE = Config->DefaultInitEffect->GetDefaultObject<UGameplayEffect>();
-			ASC->ApplyGameplayEffectToSelf(GE, 1.f, ASC->MakeEffectContext());
-		}
+		ApplyAttributeInitData(Config->InitAttributes);
 
 		if (!Config->DefaultOwnedTags.IsEmpty())
 		{

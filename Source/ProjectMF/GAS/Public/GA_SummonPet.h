@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "MFGameplayAbilityBase.h"
+#include "MFPlayerGameplayAbility.h"
 #include "GA_SummonPet.generated.h"
 
 /**
@@ -25,7 +25,7 @@
  *   在 BP_GA_SummonPet CDO 中设置 MinSummonRadius / MaxSummonRadius / NavQueryRetries。
  */
 UCLASS(Blueprintable)
-class PROJECTMF_API UGA_SummonPet : public UMFGameplayAbilityBase
+class PROJECTMF_API UGA_SummonPet : public UMFPlayerGameplayAbility
 {
 	GENERATED_BODY()
 

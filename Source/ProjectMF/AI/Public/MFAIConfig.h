@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
 #include "GameplayTagContainer.h"
+#include "MFAttributeInitData.h"
 #include "MFAIConfig.generated.h"
 
 class UMFGameplayAbilityBase;
@@ -41,12 +42,9 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAS")
 	FGameplayTagContainer DefaultOwnedTags;
 
-	/**
-	 * 初始化属性的 Instant GameplayEffect（MaxHealth、Attack、Defense、FleeThreshold 等）。
-	 * 留空则使用 AttributeSet 构造函数默认值。
-	 */
+	/** 初始属性值（MaxHealth/MoveSpeed/Attack/Defense/FleeThreshold）。Health 初始 = MaxHealth。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAS")
-	TSubclassOf<UGameplayEffect> DefaultInitEffect;
+	FMFAttributeInitData InitAttributes;
 
 	// -----------------------------------------------------------------------
 	// UI — 头顶血条

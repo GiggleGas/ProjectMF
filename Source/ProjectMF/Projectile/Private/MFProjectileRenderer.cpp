@@ -25,7 +25,7 @@ int32 AMFProjectileRenderer::AcquireSlot(UStaticMesh* Mesh, const FTransform& In
 	TArray<int32>& FreeSlots = FreeSlotMap.FindOrAdd(Mesh);
 	if (FreeSlots.Num() > 0)
 	{
-		const int32 Idx = FreeSlots.Pop(false);
+		const int32 Idx = FreeSlots.Pop(EAllowShrinking::No);
 		// bWorldSpace=true: InitialTransform is in world space
 		ISM->UpdateInstanceTransform(Idx, InitialTransform, true, true);
 		return Idx;

@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "MFGameplayAbilityBase.h"
+#include "MFPlayerGameplayAbility.h"
 #include "GA_CatchPet.generated.h"
 
 class UMFCatchPetConfig;
@@ -30,7 +30,7 @@ class ACatchBallActor;
  *   - 右键点击 / ESC → OnAimCancelled
  */
 UCLASS(Blueprintable)
-class PROJECTMF_API UGA_CatchPet : public UMFGameplayAbilityBase
+class PROJECTMF_API UGA_CatchPet : public UMFPlayerGameplayAbility
 {
 	GENERATED_BODY()
 

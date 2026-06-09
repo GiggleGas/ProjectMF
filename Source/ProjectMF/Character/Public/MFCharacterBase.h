@@ -8,6 +8,7 @@
 #include "GameplayTagContainer.h"
 #include "MFCharacterTypes.h"
 #include "MFHitReactInterface.h"
+#include "MFAttributeInitData.h"
 #include "MFCharacterBase.generated.h"
 
 class UPaperFlipbookComponent;
@@ -16,6 +17,7 @@ class UAbilitySystemComponent;
 class UMFAttributeSetBase;
 class UMFGameplayAbilityBase;
 class UGameplayEffect;
+struct FOnAttributeChangeData;
 
 /**
  * Abstract base class for all MF characters (player and AI).
@@ -88,20 +90,24 @@ protected:
 	FGameplayTagContainer DefaultOwnedTags;
 
 	/**
-	 * Instant GameplayEffect applied at BeginPlay to set initial attribute values
-	 * (MaxHealth, Health, MoveSpeed, Attack, Defense, FleeThreshold).
-	 *
-	 * Create one Blueprint GE per character type (e.g. GE_Init_Cat, GE_Init_Boss)
-	 * and assign it here in the Blueprint defaults. If null, constructor defaults are used.
+	 * 初始属性值（MaxHealth/MoveSpeed/Attack/Defense/FleeThreshold）。
+	 * BeginPlay 时由 ApplyAttributeInitData 写入 ASC。Health 初始 = MaxHealth。
+	 * 通常由各 Config（Player/AI/Pet）在 BeginPlay 前复制到此成员。
 	 */
 	UPROPERTY(EditDefaultsOnly, Category = "GAS")
-	TSubclassOf<UGameplayEffect> DefaultInitEffect;
+	FMFAttributeInitData InitAttributes;
 
 	/**
-	 * Initialize the ASC actor info, grant DefaultAbilities, and apply DefaultInitEffect.
+	 * Initialize the ASC actor info, grant DefaultAbilities, and apply InitAttributes.
 	 * Called from BeginPlay() — safe to call on both server and standalone.
 	 */
 	void InitAbilitySystemComponent();
+
+	/**
+	 * 把 InitData 写入 ASC（基础集恒写；战斗集 Attack/Defense/FleeThreshold 仅在挂载时写）。
+	 * 取代以往的 init GameplayEffect。
+	 */
+	void ApplyAttributeInitData(const FMFAttributeInitData& Data);
 
 	/**
 	 * Called when Health reaches 0. Grants State.Dead tag, cancels abilities,
@@ -122,6 +128,9 @@ protected:
 	float HitFlashDuration = 0.25f;
 
 	virtual void ReactToHit_Implementation() override;
+
+	/** 受到治疗时的视觉反馈：Flipbook 闪绿。由 OnHealthChangedCallback 在回血时调用。 */
+	void ReactToHeal();
 
 	// -----------------------------------------------------------------------
 	// 2D Rendering Components
@@ -247,5 +256,11 @@ private:
 	FTimerHandle HitFlashTimerHandle;
 
 	void OnHealthChangedCallback(float OldHealth, float NewHealth);
+
+	/** MoveSpeed 属性变化 → 写入 CharacterMovement->MaxWalkSpeed。 */
+	void OnMoveSpeedChanged(const FOnAttributeChangeData& Data);
+
+	/** 将 Flipbook 染成指定颜色并启动复位定时器（受击/治疗闪光共用）。 */
+	void FlashSpriteColor(const FLinearColor& Color);
 	void ResetHitFlashColor();
 };

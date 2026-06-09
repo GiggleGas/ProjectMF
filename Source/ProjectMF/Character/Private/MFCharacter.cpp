@@ -52,7 +52,7 @@ void AMFCharacter::BeginPlay()
 	{
 		DefaultAbilities  = PlayerConfig->DefaultAbilities;
 		DefaultOwnedTags  = PlayerConfig->DefaultOwnedTags;
-		DefaultInitEffect = PlayerConfig->DefaultInitEffect;
+		InitAttributes    = PlayerConfig->InitAttributes;
 		HitFlashDuration  = PlayerConfig->HitFlashDuration;
 
 		if (InventoryComponent)
