@@ -160,7 +160,7 @@ void AMFCharacter::HandlePickStarted()
 	if (AbilitySystemComponent)
 	{
 		AbilitySystemComponent->TryActivateAbilitiesByTag(
-			FGameplayTagContainer(MFGameplayTags::Ability_Pick));
+			FGameplayTagContainer(MFGameplayTags::Ability_Player_Pick));
 	}
 }
 
@@ -168,7 +168,7 @@ void AMFCharacter::HandlePickCompleted()
 {
 	if (AbilitySystemComponent)
 	{
-		const FGameplayTagContainer PickTag(MFGameplayTags::Ability_Pick);
+		const FGameplayTagContainer PickTag(MFGameplayTags::Ability_Player_Pick);
 		AbilitySystemComponent->CancelAbilities(&PickTag);
 	}
 }
@@ -192,7 +192,7 @@ void AMFCharacter::HandleCatchPet()
 	MF_LOG(LogMFCharacter, TEXT("AMFCharacter: CatchPet key released — trying to activate MF.Ability.CatchPet."));
 
 	const bool bActivated = AbilitySystemComponent->TryActivateAbilitiesByTag(
-		FGameplayTagContainer(MFGameplayTags::Ability_CatchPet));
+		FGameplayTagContainer(MFGameplayTags::Ability_Player_CatchPet));
 
 	if (!bActivated)
 	{
@@ -208,7 +208,7 @@ void AMFCharacter::HandleSummonSlot(int32 SlotIndex)
 
 	FGameplayEventData EventData;
 	EventData.EventMagnitude = static_cast<float>(SlotIndex);
-	AbilitySystemComponent->HandleGameplayEvent(MFGameplayTags::Ability_SummonPet, &EventData);
+	AbilitySystemComponent->HandleGameplayEvent(MFGameplayTags::Ability_Player_SummonPet, &EventData);
 }
 
 void AMFCharacter::HandleStartBossBattle()

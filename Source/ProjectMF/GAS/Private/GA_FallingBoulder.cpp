@@ -2,6 +2,7 @@
 
 #include "GA_FallingBoulder.h"
 
+#include "MFGameplayTags.h"
 #include "MFFallingBoulderData.h"
 #include "MFProjectileSubsystem.h"
 #include "MFLog.h"
@@ -12,6 +13,11 @@
 // ============================================================================
 // UGameplayAbility interface
 // ============================================================================
+
+UGA_FallingBoulder::UGA_FallingBoulder()
+{
+	SetAssetTags(FGameplayTagContainer(MFGameplayTags::Ability_Pet_Ranged_Boulder));
+}
 
 UMFRangedAttackDataBase* UGA_FallingBoulder::GetRangedData() const
 {

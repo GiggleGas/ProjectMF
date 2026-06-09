@@ -2,6 +2,7 @@
 
 #include "GA_ThrowProjectile.h"
 
+#include "MFGameplayTags.h"
 #include "MFProjectileAttackData.h"
 #include "MFProjectileSubsystem.h"
 #include "MFAICharacter.h"
@@ -13,6 +14,11 @@
 // ============================================================================
 // UGameplayAbility interface
 // ============================================================================
+
+UGA_ThrowProjectile::UGA_ThrowProjectile()
+{
+	SetAssetTags(FGameplayTagContainer(MFGameplayTags::Ability_Pet_Ranged_Throw));
+}
 
 UMFRangedAttackDataBase* UGA_ThrowProjectile::GetRangedData() const
 {

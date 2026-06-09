@@ -36,6 +36,8 @@ class PROJECTMF_API UGA_FallingBoulder : public UGA_AIRangedAttackBase
 
 public:
 
+	UGA_FallingBoulder();
+
 	virtual void EndAbility(
 		const FGameplayAbilitySpecHandle     Handle,
 		const FGameplayAbilityActorInfo*     ActorInfo,

@@ -36,6 +36,8 @@ class PROJECTMF_API UGA_AIAttackBase : public UMFPetGameplayAbility
 
 public:
 
+	UGA_AIAttackBase();
+
 	// -----------------------------------------------------------------------
 	// Blueprint Configuration
 	// -----------------------------------------------------------------------

@@ -33,6 +33,8 @@ class PROJECTMF_API UGA_BulletCurtain : public UGA_AIRangedAttackBase
 
 public:
 
+	UGA_BulletCurtain();
+
 	virtual void ActivateAbility(
 		const FGameplayAbilitySpecHandle     Handle,
 		const FGameplayAbilityActorInfo*     ActorInfo,

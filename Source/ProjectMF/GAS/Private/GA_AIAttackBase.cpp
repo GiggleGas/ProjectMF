@@ -91,6 +91,11 @@ static void DrawAttackShape(
 // UGameplayAbility interface
 // ============================================================================
 
+UGA_AIAttackBase::UGA_AIAttackBase()
+{
+	SetAssetTags(FGameplayTagContainer(MFGameplayTags::Ability_Pet_Melee));
+}
+
 void UGA_AIAttackBase::ActivateAbility(
 	const FGameplayAbilitySpecHandle     Handle,
 	const FGameplayAbilityActorInfo*     ActorInfo,

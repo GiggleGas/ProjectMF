@@ -34,6 +34,8 @@ class PROJECTMF_API UGA_ThrowProjectile : public UGA_AIRangedAttackBase
 
 public:
 
+	UGA_ThrowProjectile();
+
 	virtual void EndAbility(
 		const FGameplayAbilitySpecHandle     Handle,
 		const FGameplayAbilityActorInfo*     ActorInfo,

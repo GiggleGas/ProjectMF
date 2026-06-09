@@ -22,10 +22,10 @@
 
 UGA_CatchPet::UGA_CatchPet()
 {
-	SetAssetTags(FGameplayTagContainer(MFGameplayTags::Ability_CatchPet));
+	SetAssetTags(FGameplayTagContainer(MFGameplayTags::Ability_Player_CatchPet));
 
 	// 激活期间阻止同类型 Ability 再次激活（防止重入）
-	ActivationBlockedTags.AddTag(MFGameplayTags::Ability_CatchPet);
+	ActivationBlockedTags.AddTag(MFGameplayTags::Ability_Player_CatchPet);
 
 	// 单次实例化（整个技能生命周期共用一个实例）
 	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;

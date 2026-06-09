@@ -19,26 +19,37 @@ namespace MFGameplayTags
 		"MF.Character.State.InCombat",
 		"Granted when a character has an active combat target. Drives StateTree Combat state.");
 
-	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
-		Ability_Pick,
-		"MF.Ability.Pick",
-		"Ability tag for the Pick/gather ability. Used with TryActivateAbilitiesByTag.");
+	// ----- 玩家技能 -----
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_Player, "MF.Ability.Player",
+		"Category: all player-cast abilities.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_Player_Pick, "MF.Ability.Player.Pick",
+		"Pick/gather ability (GA_Pick). Set in C++ ctor; activated via TryActivateAbilitiesByTag.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_Player_CatchPet, "MF.Ability.Player.CatchPet",
+		"CatchPet ability (GA_CatchPet). Activated on catch-key release.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_Player_SummonPet, "MF.Ability.Player.SummonPet",
+		"GameplayEvent tag for GA_SummonPet. EventMagnitude = slot index (1-5).");
 
-	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
-		Ability_CatchPet,
-		"MF.Ability.CatchPet",
-		"Ability tag for the CatchPet ability. Activated on catch-key release.");
-
-	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
-		Ability_Attack,
-		"MF.Ability.Attack",
-		"Identifies any AI attack ability. STTask_ActivateAttack finds the first granted ability with this tag.");
-
-	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
-		Ability_SummonPet,
-		"MF.Ability.SummonPet",
-		"GameplayEvent tag for GA_SummonPet. EventMagnitude = slot index (1-5). "
-		"Fired by demo key bindings now, by GA_PetWheel in the future.");
+	// ----- 宠物 / AI 战斗技能（宠物 + 敌人 + Boss）-----
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_Pet, "MF.Ability.Pet",
+		"Category: all AI-combatant abilities (pets / enemies / boss).");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_Pet_Melee, "MF.Ability.Pet.Melee",
+		"Melee / AOE attack (UGA_AIAttackBase). STTask_ActivateAttack finds the granted ability by this tag.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_Pet_Ranged, "MF.Ability.Pet.Ranged",
+		"Category: all ranged attacks. Use specific child tags in StateTree.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_Pet_Ranged_Throw, "MF.Ability.Pet.Ranged.Throw",
+		"Throw-projectile ranged attack (UGA_ThrowProjectile).");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_Pet_Ranged_Boulder, "MF.Ability.Pet.Ranged.Boulder",
+		"Falling-boulder ranged attack (UGA_FallingBoulder).");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_Pet_Ranged_BulletCurtain, "MF.Ability.Pet.Ranged.BulletCurtain",
+		"Bullet-curtain ranged attack (UGA_BulletCurtain).");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_Pet_Move, "MF.Ability.Pet.Move",
+		"Category: movement abilities (P5).");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_Pet_Move_Charge, "MF.Ability.Pet.Move.Charge",
+		"Charge/dash ability (P5, not yet implemented).");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_Pet_Move_Jump, "MF.Ability.Pet.Move.Jump",
+		"Jump ability (P5, not yet implemented).");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_Pet_Move_GroundSlam, "MF.Ability.Pet.Move.GroundSlam",
+		"Ground-slam ability (P5, not yet implemented).");
 
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
 		Catching_State_Aiming,
@@ -103,31 +114,8 @@ namespace MFGameplayTags
 		"Managed by the threat system; queried by StateTree to decide combat transitions.");
 
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
-		Ability_RangedAttack,
-		"MF.Ability.RangedAttack",
-		"Category tag shared by all ranged attack abilities. "
-		"Use specific child tags (ThrowProjectile / FallingBoulder) in StateTree nodes.");
-
-	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
-		Ability_ThrowProjectile,
-		"MF.Ability.ThrowProjectile",
-		"Identifies UGA_ThrowProjectile. Set in AbilityTags on BP_GA_ThrowProjectile. "
-		"Used as AbilityTag in STTask to activate the throw attack specifically.");
-
-	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
-		Ability_FallingBoulder,
-		"MF.Ability.FallingBoulder",
-		"Identifies UGA_FallingBoulder. Set in AbilityTags on BP_GA_FallingBoulder. "
-		"Used as AbilityTag in STTask to activate the boulder attack specifically.");
-
-	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
 		State_RangedAttacking,
 		"MF.Character.State.RangedAttacking",
 		"Granted to the ASC while any ranged attack ability is active. "
-		"Monitored as ActiveStateTag in STTask for both ThrowProjectile and FallingBoulder.");
-
-	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
-		Ability_BulletCurtain,
-		"MF.Ability.BulletCurtain",
-		"Identifies UGA_BulletCurtain. Fires multiple angled projectiles in rotating bursts.");
+		"Monitored as ActiveStateTag in STTask for ranged attacks.");
 }

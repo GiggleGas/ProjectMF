@@ -14,6 +14,11 @@
 // UGameplayAbility interface
 // ============================================================================
 
+UGA_BulletCurtain::UGA_BulletCurtain()
+{
+	SetAssetTags(FGameplayTagContainer(MFGameplayTags::Ability_Pet_Ranged_BulletCurtain));
+}
+
 UMFRangedAttackDataBase* UGA_BulletCurtain::GetRangedData() const
 {
 	return BulletCurtainData;
