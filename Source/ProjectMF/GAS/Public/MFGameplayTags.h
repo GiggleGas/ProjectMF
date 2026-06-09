@@ -12,15 +12,17 @@
  *
  * Tag naming convention:
  *   MF.<Domain>.<SubDomain>.<Name>
- *   e.g.  MF.Character.State.Picking
- *         MF.Ability.Pick
+ *   e.g.  MF.GameplayState.Picking
+ *         MF.Ability.Player.Pick
  */
 namespace MFGameplayTags
 {
 	// -----------------------------------------------------------------------
-	// Character State Tags
-	// Automatically owned by the ASC while the corresponding ability is active.
-	// AMFCharacterBase::UpdateCharacterAction() reads these to update CharacterState.
+	// GameplayState Tags（tag 字符串：MF.GameplayState.*）
+	// 角色通用玩法状态：部分由对应能力激活时自动持有（Picking/Attacking…），
+	// 部分由 buff/debuff GE 授予（Stunned/Slowed/Blinded）。
+	// 被 UpdateCharacterAction() / 能力门控 / StateTree 读取。
+	// 注：C++ 常量名保留 State_* 前缀，tag 字符串统一为 MF.GameplayState.*。
 	// -----------------------------------------------------------------------
 
 	/** Owned while the Pick/gather ability is active.
@@ -38,6 +40,15 @@ namespace MFGameplayTags
 	 * Used by StateTree to switch between Follow and Combat states.
 	 */
 	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_InCombat);
+
+	/** 眩晕：禁技能（A3 ActivationBlockedTags）+ 禁移动（B7）。由 GE_Stun / GE_Freeze 授予。 */
+	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_Stunned);
+
+	/** 减速：表现 / 动画 / 查询用（减速数值由 GE 改 MoveSpeed）。由 GE_Slow 授予。 */
+	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_Slowed);
+
+	/** 致盲：目标获取失效（B8）。由 GE_Blind 授予。 */
+	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_Blinded);
 
 	// -----------------------------------------------------------------------
 	// Ability Tags（按拥有者 / 功能分层：MF.Ability.<Player|Pet>.<...>）
@@ -161,4 +172,31 @@ namespace MFGameplayTags
 
 	/** Granted to the ASC while any ranged attack ability is active. */
 	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_RangedAttacking);
+
+	// -----------------------------------------------------------------------
+	// Effect Tags（MF.Effect.*）—— 效果身份标签
+	// 由各效果 GE（UMFGameplayEffectBase::EffectTag）授予到目标，
+	// 供区域子系统（UMFAreaEffectSubsystem）与连携子系统（UMFComboSubsystem）识别。
+	// -----------------------------------------------------------------------
+
+	/** 父类：任意 MF 效果。 */
+	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Effect);
+	/** 燃烧（持续掉血）。 */
+	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Effect_Burn);
+	/** 冰冻（行为同眩晕，视觉用 Cue 区分）。 */
+	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Effect_Freeze);
+	/** 缠绕（MoveSpeed×0，不禁技能）。 */
+	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Effect_Root);
+	/** 减速。 */
+	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Effect_Slow);
+	/** 眩晕。 */
+	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Effect_Stun);
+	/** 易伤（受伤加成）。 */
+	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Effect_Vulnerable);
+	/** 增伤（出伤加成）。 */
+	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Effect_DamageUp);
+	/** 回复。 */
+	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Effect_Heal);
+	/** 致盲。 */
+	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Effect_Blind);
 }

@@ -189,7 +189,7 @@ void AMFCharacter::HandleCatchPet()
 		return;
 	}
 
-	MF_LOG(LogMFCharacter, TEXT("AMFCharacter: CatchPet key released — trying to activate MF.Ability.CatchPet."));
+	MF_LOG(LogMFCharacter, TEXT("AMFCharacter: CatchPet key released — trying to activate MF.Ability.Player.CatchPet."));
 
 	const bool bActivated = AbilitySystemComponent->TryActivateAbilitiesByTag(
 		FGameplayTagContainer(MFGameplayTags::Ability_Player_CatchPet));

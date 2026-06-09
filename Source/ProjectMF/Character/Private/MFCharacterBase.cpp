@@ -202,7 +202,7 @@ void AMFCharacterBase::Tick(float DeltaTime)
 void AMFCharacterBase::UpdateCharacterAction()
 {
 	// Derive bIsPicking from the live GAS tag rather than a raw flag.
-	// GA_Pick sets MF.Character.State.Picking via ActivationOwnedTags while active.
+	// GA_Pick sets MF.GameplayState.Picking via ActivationOwnedTags while active.
 	CharacterState.bIsPicking = AbilitySystemComponent &&
 		AbilitySystemComponent->HasMatchingGameplayTag(MFGameplayTags::State_Picking);
 

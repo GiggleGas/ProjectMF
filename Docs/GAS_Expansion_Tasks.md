@@ -17,7 +17,7 @@
 | [x] B3 | 加 `Healing` meta + `PostGE` 对称回复管线（复用 `OnHealthChanged`）+ 治疗闪绿（`ReactToHeal`/`FlashSpriteColor`） | `MFAttributeSetBase`、`MFCharacterBase` | — | ✅ |
 | [x] B4 | 伤害公式接易伤：`max(Damage − Defense, 1) × IncomingMult` | `MFAttributeSetBase` PostGE | B2 | ✅ |
 | [x] B5 | 出伤接增伤：近战+远程 `ApplyDamageToTarget` 乘 `OutgoingMult` | `GA_AIAttackBase` / `GA_AIRangedAttackBase` | B2 | ✅ |
-| [ ] B6 | 新标签：`State.Stunned/Slowed/Blinded`、`Ability.Charge/Jump/GroundSlam`、`Effect.*` | `MFGameplayTags` | — | ⬜ |
+| [x] B6 | 标签层次化 + C++ 定义：Ability 树（Player/Pet/.../Move）、`MF.GameplayState.*`（旧 State 改名 + 新 Stunned/Slowed/Blinded）、`MF.Effect.*`(9+父类)；GA 构造 SetAssetTags；redirects | `MFGameplayTags`、各 GA、`DefaultGameplayTags.ini` | — | ✅ |
 | [ ] B7 | 眩晕禁动（`State.Stunned` 标签事件 → `DisableMovement`/恢复） | `MFCharacterBase.cpp` | B6 | ⬜ |
 | [ ] B8 | 致盲目标失效钩子（持 `State.Blinded` 时目标获取返回空） | `MFThreatComponent` 等 | B6 | ⬜ |
 | [x] B9 | 属性初始化配置化（扁平）：`FMFAttributeInitData` 取代 `DefaultInitEffect`(GE)，代码 `SetNumericAttributeBase` 直接 init | `MFAttributeInitData`(新) + `MFCharacterBase` + Player/AI Config + 2 apply 点 | — | ✅ |

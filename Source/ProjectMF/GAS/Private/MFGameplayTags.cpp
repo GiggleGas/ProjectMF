@@ -6,18 +6,33 @@ namespace MFGameplayTags
 {
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
 		State_Picking,
-		"MF.Character.State.Picking",
+		"MF.GameplayState.Picking",
 		"Owned by the ASC while the Pick ability is active. Drives the Pick animation state.");
 
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
 		State_Dead,
-		"MF.Character.State.Dead",
+		"MF.GameplayState.Dead",
 		"Granted when Health reaches 0. Blocks ability activation; monitored by StateTree and UI.");
 
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
 		State_InCombat,
-		"MF.Character.State.InCombat",
+		"MF.GameplayState.InCombat",
 		"Granted when a character has an active combat target. Drives StateTree Combat state.");
+
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
+		State_Stunned,
+		"MF.GameplayState.Stunned",
+		"Stunned: blocks ability activation (A3) and movement (B7). Granted by GE_Stun / GE_Freeze.");
+
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
+		State_Slowed,
+		"MF.GameplayState.Slowed",
+		"Slowed: for VFX / anim / queries (the slow magnitude is applied via MoveSpeed). Granted by GE_Slow.");
+
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
+		State_Blinded,
+		"MF.GameplayState.Blinded",
+		"Blinded: target acquisition disabled (B8). Granted by GE_Blind.");
 
 	// ----- 玩家技能 -----
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_Player, "MF.Ability.Player",
@@ -104,7 +119,7 @@ namespace MFGameplayTags
 
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
 		State_Attacking,
-		"MF.Character.State.Attacking",
+		"MF.GameplayState.Attacking",
 		"Granted to the ASC while an AI attack ability is active.");
 
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
@@ -115,7 +130,29 @@ namespace MFGameplayTags
 
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
 		State_RangedAttacking,
-		"MF.Character.State.RangedAttacking",
+		"MF.GameplayState.RangedAttacking",
 		"Granted to the ASC while any ranged attack ability is active. "
 		"Monitored as ActiveStateTag in STTask for ranged attacks.");
+
+	// ----- Effect 身份标签（MF.Effect.*）-----
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Effect, "MF.Effect",
+		"Parent category for all MF gameplay effects (combo / area identity).");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Effect_Burn, "MF.Effect.Burn",
+		"Burn: periodic damage.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Effect_Freeze, "MF.Effect.Freeze",
+		"Freeze: behaves like stun (grants State.Stunned); distinguished visually via Cue.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Effect_Root, "MF.Effect.Root",
+		"Root: MoveSpeed x0 (cannot move, can still cast). No State tag needed.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Effect_Slow, "MF.Effect.Slow",
+		"Slow: reduces MoveSpeed.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Effect_Stun, "MF.Effect.Stun",
+		"Stun: grants State.Stunned (blocks abilities + movement).");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Effect_Vulnerable, "MF.Effect.Vulnerable",
+		"Vulnerable: raises IncomingDamageMultiplier.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Effect_DamageUp, "MF.Effect.DamageUp",
+		"Damage-up: raises OutgoingDamageMultiplier.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Effect_Heal, "MF.Effect.Heal",
+		"Heal: writes the Healing meta attribute.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Effect_Blind, "MF.Effect.Blind",
+		"Blind: grants State.Blinded (target acquisition disabled).");
 }

@@ -8,7 +8,7 @@ UGA_Pick::UGA_Pick()
 	// This ability is found and activated/cancelled by tag.
 	SetAssetTags(FGameplayTagContainer(MFGameplayTags::Ability_Player_Pick));
 
-	// MF.Character.State.Picking is automatically added to the owning ASC while this
+	// MF.GameplayState.Picking is automatically added to the owning ASC while this
 	// ability is active and removed the moment it ends or is cancelled.
 	// AMFCharacterBase::UpdateCharacterAction() reads this tag — no manual bIsPicking
 	// assignment needed in this class.
@@ -32,7 +32,7 @@ void UGA_Pick::ActivateAbility(
 		return;
 	}
 
-	// ActivationOwnedTags handles the rest: MF.Character.State.Picking is now live on
+	// ActivationOwnedTags handles the rest: MF.GameplayState.Picking is now live on
 	// the ASC, and UpdateCharacterAction() will pick it up next tick.
 	// The ability stays active until CancelAbilitiesByTag is called from the input handler.
 }
