@@ -6,6 +6,8 @@
 #include "MFGameplayAbilityBase.h"
 #include "MFPetGameplayAbility.generated.h"
 
+struct FMFOnHitEffect;
+
 /**
  * AI 战斗技能的归属基类（拥有者轴）。
  *
@@ -18,4 +20,11 @@ UCLASS(Abstract)
 class PROJECTMF_API UMFPetGameplayAbility : public UMFGameplayAbilityBase
 {
 	GENERATED_BODY()
+
+protected:
+	/**
+	 * 对 Target 逐条施加「命中附加效果」：按 Chance roll，命中则 MakeOutgoingSpec(Effect)，
+	 * 用 SetByCaller(MF.Data.Duration) 写入时长后施加到目标。近战与远程攻击共用。
+	 */
+	void ApplyOnHitEffects(AActor* Target, const TArray<FMFOnHitEffect>& Effects);
 };

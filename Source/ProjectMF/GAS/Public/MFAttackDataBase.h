@@ -49,4 +49,11 @@ public:
 	/** 决定攻击影响敌方、友方还是全部角色。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Attack|Damage")
 	EAttackTargetFilter TargetFilter = EAttackTargetFilter::EnemyOnly;
+
+	/**
+	 * 命中有效目标时，在伤害之外按概率施加的附加效果（眩晕 / 减速 / 易伤…）。
+	 * 近战与远程（含落石 AOE 每个目标）均支持；每个目标独立 roll 概率。
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Attack|OnHit")
+	TArray<FMFOnHitEffect> OnHitEffects;
 };

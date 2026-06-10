@@ -308,6 +308,9 @@ void UGA_AIAttackBase::ApplyDamageToTarget_Implementation(AActor* Target)
 
 	MF_LOG(LogMFAbility, TEXT("[GA_AIAttackBase] Damage applied to %s (attack=%.1f x mult=%.2f x out=%.2f = %.1f)"),
 		*GetNameSafe(Target), AttackValue, AttackData->DamageMultiplier, OutgoingMult, FinalMagnitude);
+
+	// 命中附加效果（眩晕 / 减速等，按概率）
+	ApplyOnHitEffects(Target, AttackData->OnHitEffects);
 }
 
 void UGA_AIAttackBase::OnHitPhaseBegin_Implementation()

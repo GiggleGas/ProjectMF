@@ -260,6 +260,9 @@ private:
 	/** MoveSpeed 属性变化 → 写入 CharacterMovement->MaxWalkSpeed。 */
 	void OnMoveSpeedChanged(const FOnAttributeChangeData& Data);
 
+	/** State.Stunned 标签变化 → 进入眩晕禁动+打断 / 解除恢复行走。 */
+	void OnStunnedTagChanged(const FGameplayTag CallbackTag, int32 NewCount);
+
 	/** 将 Flipbook 染成指定颜色并启动复位定时器（受击/治疗闪光共用）。 */
 	void FlashSpriteColor(const FLinearColor& Color);
 	void ResetHitFlashColor();

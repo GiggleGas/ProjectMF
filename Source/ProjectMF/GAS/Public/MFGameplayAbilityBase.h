@@ -25,6 +25,8 @@ class PROJECTMF_API UMFGameplayAbilityBase : public UGameplayAbility
 	GENERATED_BODY()
 
 public:
+	UMFGameplayAbilityBase();
+
 	/**
 	 * Returns the Avatar actor cast to AMFCharacterBase.
 	 * Returns nullptr if the avatar is not an MF character (should not happen in normal play).

@@ -118,6 +118,12 @@ namespace MFGameplayTags
 		"The damage GameplayEffect must read this via GetSetByCallerMagnitude.");
 
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
+		Data_Duration,
+		"MF.Data.Duration",
+		"Generic SetByCaller key for effect duration (seconds). "
+		"OnHitEffects writes FMFOnHitEffect.Duration here to drive a Duration-policy GE's length.");
+
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
 		State_Attacking,
 		"MF.GameplayState.Attacking",
 		"Granted to the ASC while an AI attack ability is active.");

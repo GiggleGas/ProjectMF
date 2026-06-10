@@ -4,6 +4,9 @@
 
 #include "AbilitySystemComponent.h"
 #include "MFAttributeSetBase.h"
+#include "MFGameplayTags.h"
+#include "Components/Widget.h"
+#include "GameplayTagContainer.h"
 
 void UMFOverheadWidget::InitWithASC(UAbilitySystemComponent* InASC)
 {
@@ -23,6 +26,25 @@ void UMFOverheadWidget::InitWithASC(UAbilitySystemComponent* InASC)
 	MaxHealthChangedHandle = InASC->GetGameplayAttributeValueChangeDelegate(
 		UMFAttributeSetBase::GetMaxHealthAttribute())
 		.AddUObject(this, &UMFOverheadWidget::OnMaxHealthAttributeChanged);
+
+	// 眩晕标记：监听 State.Stunned 标签变化，并推送初始状态。
+	StunnedTagHandle = InASC->RegisterGameplayTagEvent(
+		MFGameplayTags::State_Stunned, EGameplayTagEventType::NewOrRemoved)
+		.AddUObject(this, &UMFOverheadWidget::OnStunnedTagChanged);
+
+	if (StunIcon)
+	{
+		const bool bStunned = InASC->HasMatchingGameplayTag(MFGameplayTags::State_Stunned);
+		StunIcon->SetVisibility(bStunned ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+	}
+}
+
+void UMFOverheadWidget::OnStunnedTagChanged(const FGameplayTag /*CallbackTag*/, int32 NewCount)
+{
+	if (StunIcon)
+	{
+		StunIcon->SetVisibility(NewCount > 0 ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+	}
 }
 
 void UMFOverheadWidget::OnHealthAttributeChanged(const FOnAttributeChangeData& Data)
@@ -53,6 +75,8 @@ void UMFOverheadWidget::NativeDestruct()
 			.Remove(HealthChangedHandle);
 		ASC->GetGameplayAttributeValueChangeDelegate(UMFAttributeSetBase::GetMaxHealthAttribute())
 			.Remove(MaxHealthChangedHandle);
+		ASC->RegisterGameplayTagEvent(MFGameplayTags::State_Stunned, EGameplayTagEventType::NewOrRemoved)
+			.Remove(StunnedTagHandle);
 	}
 	Super::NativeDestruct();
 }

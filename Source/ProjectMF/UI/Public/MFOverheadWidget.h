@@ -7,7 +7,9 @@
 #include "MFOverheadWidget.generated.h"
 
 class UAbilitySystemComponent;
+class UWidget;
 struct FOnAttributeChangeData;
+struct FGameplayTag;
 
 /**
  * Base class for the widget that floats above each character's head (Screen Space).
@@ -40,12 +42,20 @@ protected:
 	virtual void NativeDestruct() override;
 
 private:
+	/** 头顶眩晕图标。WBP 里放一个名为 StunIcon 的控件即可，显隐由 C++ 控制（无需 BP 逻辑）。 */
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UWidget> StunIcon;
+
 	UPROPERTY()
 	TWeakObjectPtr<UAbilitySystemComponent> BoundASC;
 
 	FDelegateHandle HealthChangedHandle;
 	FDelegateHandle MaxHealthChangedHandle;
+	FDelegateHandle StunnedTagHandle;
 
 	void OnHealthAttributeChanged(const FOnAttributeChangeData& Data);
 	void OnMaxHealthAttributeChanged(const FOnAttributeChangeData& Data);
+
+	/** State.Stunned 标签变化 → 切换 StunIcon 显隐。 */
+	void OnStunnedTagChanged(const FGameplayTag CallbackTag, int32 NewCount);
 };

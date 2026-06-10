@@ -150,6 +150,12 @@ void UGA_AIRangedAttackBase::ApplyDamageToTarget(
 	MF_LOG(LogMFAbility,
 		TEXT("[GA_AIRangedAttackBase] Damage → %s (attack=%.1f x mult=%.2f x out=%.2f = %.1f)"),
 		*GetNameSafe(Target), AttackValue, DamageMultiplier, OutgoingMult, FinalMagnitude);
+
+	// 命中附加效果（眩晕 / 减速等，按概率）；落石 AOE 时每个目标独立 roll
+	if (const UMFRangedAttackDataBase* Data = GetRangedData())
+	{
+		ApplyOnHitEffects(Target, Data->OnHitEffects);
+	}
 }
 
 bool UGA_AIRangedAttackBase::FilterTarget(AActor* Candidate, EAttackTargetFilter Filter) const

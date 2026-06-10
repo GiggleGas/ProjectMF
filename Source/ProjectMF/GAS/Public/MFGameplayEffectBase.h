@@ -30,11 +30,27 @@ class PROJECTMF_API UMFGameplayEffectBase : public UGameplayEffect
 	GENERATED_BODY()
 
 public:
-	/** 效果身份标签（如 Effect.Burn）。区域 / Combo 子系统据此识别效果种类。 */
+	/** 效果身份标签（如 Effect.Burn）。区域 / Combo 子系统据此识别效果种类。仅元数据，不授予目标。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "MF|Effect")
 	FGameplayTag EffectTag;
+
+	/**
+	 * 该效果生效期间授予目标的状态标签（如 MF.GameplayState.Stunned）。
+	 * 便捷封装：C++ 自动挂 Target Tags 组件来授予，无需在 GE 资产上手动 Add Component。
+	 * 留空则不授予任何状态标签。
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "MF|Effect")
+	FGameplayTagContainer GrantedStateTags;
 
 	/** 读取效果身份标签。 */
 	UFUNCTION(BlueprintPure, Category = "MF|Effect")
 	FGameplayTag GetEffectTag() const { return EffectTag; }
+
+protected:
+	/** 加载 / BP 重编译后由引擎调用：把 GrantedStateTags 同步到 Target Tags 组件。 */
+	virtual void OnGameplayEffectChanged() override;
+
+private:
+	/** 确保存在一个 Target Tags 组件并授予 GrantedStateTags。 */
+	void SyncGrantedStateTags();
 };

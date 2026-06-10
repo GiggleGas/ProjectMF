@@ -107,6 +107,11 @@ void AMFCharacterBase::InitAbilitySystemComponent()
 		UMFAttributeSetBase::GetMoveSpeedAttribute())
 		.AddUObject(this, &AMFCharacterBase::OnMoveSpeedChanged);
 
+	// 眩晕标签变化 → 禁动 / 打断 / 恢复。
+	AbilitySystemComponent->RegisterGameplayTagEvent(
+		MFGameplayTags::State_Stunned, EGameplayTagEventType::NewOrRemoved)
+		.AddUObject(this, &AMFCharacterBase::OnStunnedTagChanged);
+
 	// 初始化属性（MaxHealth/Health/MoveSpeed/Attack/Defense/FleeThreshold）。
 	// Must come before granting abilities so attribute values are ready.
 	ApplyAttributeInitData(InitAttributes);
@@ -158,6 +163,23 @@ void AMFCharacterBase::OnMoveSpeedChanged(const FOnAttributeChangeData& Data)
 	if (UCharacterMovementComponent* CMC = GetCharacterMovement())
 	{
 		CMC->MaxWalkSpeed = Data.NewValue;
+	}
+}
+
+void AMFCharacterBase::OnStunnedTagChanged(const FGameplayTag /*CallbackTag*/, int32 NewCount)
+{
+	if (!AbilitySystemComponent) return;
+
+	if (NewCount > 0)
+	{
+		// 进入眩晕：禁止移动 + 打断当前技能（技能再激活由 ActivationBlockedTags 拦截）。
+		GetCharacterMovement()->DisableMovement();
+		AbilitySystemComponent->CancelAllAbilities();
+	}
+	else if (!AbilitySystemComponent->HasMatchingGameplayTag(MFGameplayTags::State_Dead))
+	{
+		// 解除眩晕且未死亡：恢复行走（MaxWalkSpeed 由 MoveSpeed 同步维持）。
+		GetCharacterMovement()->SetMovementMode(MOVE_Walking);
 	}
 }
 
