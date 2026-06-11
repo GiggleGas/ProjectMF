@@ -120,8 +120,23 @@ namespace MFGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
 		Data_Duration,
 		"MF.Data.Duration",
-		"Generic SetByCaller key for effect duration (seconds). "
-		"OnHitEffects writes FMFOnHitEffect.Duration here to drive a Duration-policy GE's length.");
+		"SetByCaller key: effect duration (seconds).");
+
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
+		Data_MoveSpeedMult, "MF.Data.MoveSpeedMult",
+		"SetByCaller key: MoveSpeed multiplier (slow / root).");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
+		Data_IncomingDamageMult, "MF.Data.IncomingDamageMult",
+		"SetByCaller key: IncomingDamageMultiplier factor (vulnerable).");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
+		Data_OutgoingDamageMult, "MF.Data.OutgoingDamageMult",
+		"SetByCaller key: OutgoingDamageMultiplier factor (damage-up).");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
+		Data_TickDamage, "MF.Data.TickDamage",
+		"SetByCaller key: per-tick damage (burn).");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
+		Data_HealAmount, "MF.Data.HealAmount",
+		"SetByCaller key: heal amount.");
 
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
 		State_Attacking,

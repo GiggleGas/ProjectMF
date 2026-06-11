@@ -146,8 +146,18 @@ namespace MFGameplayTags
 	 */
 	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Attack_Data_Damage);
 
-	/** SetByCaller 通用键：效果时长（秒）。OnHitEffects 用它把 FMFOnHitEffect.Duration 写入 Duration 型 GE。 */
+	/** SetByCaller 键：效果时长（秒）。 */
 	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Data_Duration);
+	/** SetByCaller 键：移速乘数（减速/缠绕，MoveSpeed × 此值）。 */
+	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Data_MoveSpeedMult);
+	/** SetByCaller 键：易伤倍率（IncomingDamageMultiplier × 此值）。 */
+	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Data_IncomingDamageMult);
+	/** SetByCaller 键：增伤倍率（OutgoingDamageMultiplier × 此值）。 */
+	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Data_OutgoingDamageMult);
+	/** SetByCaller 键：燃烧每跳伤害。 */
+	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Data_TickDamage);
+	/** SetByCaller 键：治疗量。 */
+	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Data_HealAmount);
 
 	// -----------------------------------------------------------------------
 	// Attack State Tags

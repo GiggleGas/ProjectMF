@@ -7,6 +7,7 @@
 #include "MFCombatAttributeSet.h"
 #include "MFGameplayAbilityBase.h"
 #include "MFGameplayTags.h"
+#include "MFDamageNumberWidget.h"
 #include "AbilitySystemComponent.h"
 #include "GameplayEffect.h"
 #include "GameplayEffectTypes.h"
@@ -341,13 +342,21 @@ void AMFCharacterBase::UpdateCollisionFromFlipbook()
 
 void AMFCharacterBase::OnHealthChangedCallback(float OldHealth, float NewHealth)
 {
-	if (NewHealth < OldHealth)
+	const float Delta = NewHealth - OldHealth;
+
+	if (Delta < 0.f)
 	{
 		ReactToHit_Implementation();   // 掉血 → 闪红
 	}
-	else if (NewHealth > OldHealth)
+	else if (Delta > 0.f)
 	{
 		ReactToHeal();                 // 回血 → 闪绿
+	}
+
+	// 战斗飘字：伤害红字 / 治疗绿字（从角色头顶弹出）
+	if (!FMath::IsNearlyZero(Delta))
+	{
+		UMFDamageNumberWidget::ShowDamageNumber(this, GetActorLocation(), FMath::Abs(Delta), Delta > 0.f);
 	}
 }
 

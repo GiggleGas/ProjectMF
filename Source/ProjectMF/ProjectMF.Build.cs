@@ -13,6 +13,8 @@ public class ProjectMF : ModuleRules
 			"Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "Paper2D", "PaperZD",
 			// UI (UMG Widgets, WidgetComponent)
 			"UMG",
+			// 项目设置 (UDeveloperSettings)
+			"DeveloperSettings",
 			// AI 基础导航 (AIController, UPathFollowingComponent)
 			"AIModule", "NavigationSystem",
 			// GAS (Gameplay Ability System)

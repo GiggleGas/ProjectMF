@@ -92,3 +92,4 @@
 - [ ] 区域/combo 性能与数量级评估
 - [ ] 门禁细则（待策划案更新后补充到 Pet/Player 基类）
 - [ ] **养成 / 等级系统**：线性「基值 + 每级成长」，`DT_CharacterStats`(按 AIConfigID)，`ApplyAttributeInitData` 加 Level 入参查表现算；宠物快照改存 Level+XP。详见设计文档第四部分。
+- [ ] **伤害飘字对象池**：当前 `UMFDamageNumberWidget` 每个数字 CreateWidget→RemoveFromParent，数字密集时创建/销毁 + GC 开销大，改 widget 池复用。
