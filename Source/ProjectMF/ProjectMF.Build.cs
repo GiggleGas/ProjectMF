@@ -31,6 +31,10 @@ public class ProjectMF : ModuleRules
 		PublicIncludePaths.Add(Path.Combine(ModuleDirectory, "Character", "Public"));
 		PrivateIncludePaths.Add(Path.Combine(ModuleDirectory, "Character", "Private"));
 
+		// Scene (场景 Actor：PaperZD 展示基类，树木/矿石/区域表现等)
+		PublicIncludePaths.Add(Path.Combine(ModuleDirectory, "Scene", "Public"));
+		PrivateIncludePaths.Add(Path.Combine(ModuleDirectory, "Scene", "Private"));
+
 		// AI
 		PublicIncludePaths.Add(Path.Combine(ModuleDirectory, "AI", "Public"));
 		PrivateIncludePaths.Add(Path.Combine(ModuleDirectory, "AI", "Private"));

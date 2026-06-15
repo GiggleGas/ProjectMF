@@ -41,8 +41,10 @@
 
 | 任务 | 描述 | 涉及 | 依赖 | 状态 |
 |------|------|------|------|------|
-| [ ] E1 | `UMFAreaEffectData`（半径/时长/间隔/过滤/GE 列表/伤害倍率） | 新建数据资产 | P1 | ⬜ |
-| [ ] E2 | `UMFAreaEffectSubsystem`：注册 / overlap 跟踪 / 逐 actor Update / Instant×Duration 双模式施加 | 新建子系统 | E1 | ⬜ |
+| [x] E0 | 抽 `UMFCombatStatics`（ApplyDamage + ApplyOnHitEffects + SpawnAreaEffect 静态入口）；近战/远程 GA 改调它 | `MFCombatStatics` | — | ✅ |
+| [x] E1 | `UMFAreaEffectData`（半径/时长/间隔/过滤/DamageGE+倍率/Effects） | 新建数据资产 | P1 | ✅ |
+| [x] E2 | `UMFAreaEffectSubsystem`：注册/Tick/overlap/过滤/伤害+效果/自销毁（周期重刷）+ `mf.debug.spawnarea`/`mf.debug.area` | 新建子系统 | E1 | ✅ |
+| — | 设计调整：弃用 `Kind=Damage`；区域伤害走 `DamageGE+DamageMultiplier`（按来源 Attack 缩放）；区域生成统一走 `SpawnAreaEffect`（带来源） | — | — | ✅ |
 
 ## P3 · Combo 子系统（2–3d）
 
@@ -55,8 +57,12 @@
 
 | 任务 | 描述 | 涉及 | 依赖 | 状态 |
 |------|------|------|------|------|
-| [ ] D1 | `UMFProjectileAttackData` 加 `AreaConfig`（可选） | `MFProjectileAttackData.h` | P2 | ⬜ |
-| [ ] D2 | `GA_ThrowProjectile` resolve 改：撞击伤害 + 注册区域 | `GA_ThrowProjectile.cpp` | D1 | ⬜ |
+| [x] D1 | `AreaOnResolve`（可选）加到**远程基类** `UMFRangedAttackDataBase`（投掷/落石通用） | `MFRangedAttackDataBase.h` | P2 | ✅ |
+| [x] D2 | 远程基类加 `SpawnResolveArea(Location)`；投掷(命中/最大射程)+落石(落地)落点调它生成区域；弹幕不接 | `GA_AIRangedAttackBase`/`GA_ThrowProjectile`/`GA_FallingBoulder` | D1 | ✅ |
+
+### 区域表现（P2 延伸，已完成）
+| [x] E3 | `AMFSceneActorBase`：可播 PaperZD/Flipbook 的轻量场景 Actor 基类（无移动/GAS/碰撞，不自管寿命），供区域表现+将来树木/矿石复用 | `Scene/MFSceneActorBase` | — | ✅ |
+| [x] E4 | `UMFAreaEffectData` 加 `VisualActorClass`+`VisualBaseRadius`；子系统 RegisterArea 生成视觉+按半径缩放，区域结束/Cancel 销毁 | `MFAreaEffectData`/`MFAreaEffectSubsystem` | E3 | ✅ |
 
 ## P5 · 移动技能（4–5d）
 

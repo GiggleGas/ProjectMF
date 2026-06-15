@@ -137,5 +137,8 @@ void UGA_FallingBoulder::HandleBoulderResolved(const FMFProjectileResult& Result
 		Result.FinalPosition.X, Result.FinalPosition.Y, Result.FinalPosition.Z,
 		HitCount, BoulderData->ImpactRadius);
 
+	// 落地点生成持续区域（若数据配了 AreaOnResolve），如地裂/燃烧区。
+	SpawnResolveArea(Result.FinalPosition);
+
 	EndAbility(CachedHandle, CurrentActorInfo, CachedActivationInfo, true, false);
 }

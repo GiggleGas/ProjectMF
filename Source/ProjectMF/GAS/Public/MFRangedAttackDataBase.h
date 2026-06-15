@@ -7,6 +7,7 @@
 #include "MFRangedAttackDataBase.generated.h"
 
 class UStaticMesh;
+class UMFAreaEffectData;
 
 /**
  * 远程攻击数据资产的共享基类。
@@ -46,4 +47,11 @@ public:
 	/** 通过 ISM 渲染的投射物网格。留空则为隐形投射物。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Ranged|Projectile")
 	TObjectPtr<UStaticMesh> ProjectileMesh;
+
+	/**
+	 * 命中 / 落地时在落点生成的持续区域（可空）。撞击瞬时伤害照常，此区域是叠加。
+	 * 投掷（命中点/最大射程落点）与落石（落地点）会用它；弹幕不生成（每发都生成会爆量）。
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Ranged|Area")
+	TObjectPtr<UMFAreaEffectData> AreaOnResolve;
 };

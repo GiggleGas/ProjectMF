@@ -101,6 +101,9 @@ protected:
 	/** Return true if Candidate should be damaged (dead-check + team filter). */
 	bool FilterTarget(AActor* Candidate, EAttackTargetFilter Filter) const;
 
+	/** 若 ranged 数据配了 AreaOnResolve，在 Location 生成一个以本 avatar 为来源的持续区域。 */
+	void SpawnResolveArea(const FVector& Location);
+
 	/** Return avatar cast to AMFAICharacter; null if avatar is not an AI character. */
 	AMFAICharacter* GetAICharacter() const;
 

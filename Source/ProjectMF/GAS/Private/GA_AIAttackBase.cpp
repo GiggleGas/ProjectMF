@@ -3,6 +3,7 @@
 #include "GA_AIAttackBase.h"
 
 #include "MFAttackAbilityData.h"
+#include "MFCombatStatics.h"
 #include "MFGameplayTags.h"
 #include "MFFactionStatics.h"
 #include "MFCharacterBase.h"
@@ -279,38 +280,15 @@ bool UGA_AIAttackBase::FilterTarget_Implementation(AActor* Candidate) const
 
 void UGA_AIAttackBase::ApplyDamageToTarget_Implementation(AActor* Target)
 {
-	if (!Target || !AttackData || !AttackData->DamageGE) return;
+	if (!Target || !AttackData) return;
 
 	UAbilitySystemComponent* TargetASC =
 		UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Target);
 	UAbilitySystemComponent* SourceASC = GetAbilitySystemComponentFromActorInfo();
 
-	if (!TargetASC || !SourceASC) return;
-
-	float AttackValue  = 0.f;
-	float OutgoingMult = 1.f;
-	if (const UMFCombatAttributeSet* CombatSet = SourceASC->GetSet<UMFCombatAttributeSet>())
-	{
-		AttackValue  = CombatSet->GetAttack();
-		OutgoingMult = CombatSet->GetOutgoingDamageMultiplier();
-	}
-
-	const float FinalMagnitude = AttackValue * AttackData->DamageMultiplier * OutgoingMult;
-
-	FGameplayEffectSpecHandle Spec =
-		MakeOutgoingGameplayEffectSpec(AttackData->DamageGE, GetAbilityLevel());
-
-	Spec.Data->SetSetByCallerMagnitude(
-		MFGameplayTags::Attack_Data_Damage,
-		FinalMagnitude);
-
-	SourceASC->ApplyGameplayEffectSpecToTarget(*Spec.Data.Get(), TargetASC);
-
-	MF_LOG(LogMFAbility, TEXT("[GA_AIAttackBase] Damage applied to %s (attack=%.1f x mult=%.2f x out=%.2f = %.1f)"),
-		*GetNameSafe(Target), AttackValue, AttackData->DamageMultiplier, OutgoingMult, FinalMagnitude);
-
-	// 命中附加效果（眩晕 / 减速等，按概率）
-	ApplyOnHitEffects(Target, AttackData->OnHitEffects);
+	// 伤害（DamageGE 为空则跳过，仍施加附加效果）+ 命中附加效果，统一走共享静态。
+	UMFCombatStatics::ApplyDamage(SourceASC, TargetASC, AttackData->DamageGE, AttackData->DamageMultiplier);
+	UMFCombatStatics::ApplyOnHitEffects(SourceASC, TargetASC, AttackData->OnHitEffects, GetAbilityLevel());
 }
 
 void UGA_AIAttackBase::OnHitPhaseBegin_Implementation()

@@ -3,6 +3,7 @@
 #include "GA_AIRangedAttackBase.h"
 
 #include "MFRangedAttackDataBase.h"
+#include "MFCombatStatics.h"
 #include "MFGameplayTags.h"
 #include "MFFactionStatics.h"
 #include "MFAICharacter.h"
@@ -126,35 +127,28 @@ void UGA_AIRangedAttackBase::ApplyDamageToTarget(
 	TSubclassOf<UGameplayEffect> DamageGE,
 	float                        DamageMultiplier)
 {
-	if (!Target || !DamageGE) return;
+	if (!Target) return;
 
 	UAbilitySystemComponent* TargetASC =
 		UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Target);
 	UAbilitySystemComponent* SourceASC = GetAbilitySystemComponentFromActorInfo();
-	if (!TargetASC || !SourceASC) return;
 
-	float AttackValue  = 0.f;
-	float OutgoingMult = 1.f;
-	if (const UMFCombatAttributeSet* CombatSet = SourceASC->GetSet<UMFCombatAttributeSet>())
-	{
-		AttackValue  = CombatSet->GetAttack();
-		OutgoingMult = CombatSet->GetOutgoingDamageMultiplier();
-	}
-
-	const float FinalMagnitude = AttackValue * DamageMultiplier * OutgoingMult;
-
-	FGameplayEffectSpecHandle Spec = MakeOutgoingGameplayEffectSpec(DamageGE, GetAbilityLevel());
-	Spec.Data->SetSetByCallerMagnitude(MFGameplayTags::Attack_Data_Damage, FinalMagnitude);
-	SourceASC->ApplyGameplayEffectSpecToTarget(*Spec.Data.Get(), TargetASC);
-
-	MF_LOG(LogMFAbility,
-		TEXT("[GA_AIRangedAttackBase] Damage → %s (attack=%.1f x mult=%.2f x out=%.2f = %.1f)"),
-		*GetNameSafe(Target), AttackValue, DamageMultiplier, OutgoingMult, FinalMagnitude);
-
-	// 命中附加效果（眩晕 / 减速等，按概率）；落石 AOE 时每个目标独立 roll
+	// 伤害（DamageGE 为空则跳过）+ 命中附加效果，统一走共享静态。落石 AOE 时每个目标独立 roll。
+	UMFCombatStatics::ApplyDamage(SourceASC, TargetASC, DamageGE, DamageMultiplier);
 	if (const UMFRangedAttackDataBase* Data = GetRangedData())
 	{
-		ApplyOnHitEffects(Target, Data->OnHitEffects);
+		UMFCombatStatics::ApplyOnHitEffects(SourceASC, TargetASC, Data->OnHitEffects, GetAbilityLevel());
+	}
+}
+
+void UGA_AIRangedAttackBase::SpawnResolveArea(const FVector& Location)
+{
+	if (UMFRangedAttackDataBase* Data = GetRangedData())
+	{
+		if (Data->AreaOnResolve)
+		{
+			UMFCombatStatics::SpawnAreaEffect(GetAvatarActorFromActorInfo(), Data->AreaOnResolve, Location);
+		}
 	}
 }
 

@@ -137,5 +137,11 @@ void UGA_ThrowProjectile::HandleProjectileResolved(const FMFProjectileResult& Re
 		break;
 	}
 
+	// 命中或飞到尽头落地都在落点生成区域（若数据配了 AreaOnResolve）；取消则不生成。
+	if (Result.Reason != EMFProjectileResolveReason::Cancelled)
+	{
+		SpawnResolveArea(Result.FinalPosition);
+	}
+
 	EndAbility(CachedHandle, CurrentActorInfo, CachedActivationInfo, true, false);
 }
