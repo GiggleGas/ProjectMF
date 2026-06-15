@@ -37,6 +37,15 @@ public:
 	                              const TArray<FMFOnHitEffect>& Effects, float Level = 1.f);
 
 	/**
+	 * 共享的攻击目标过滤：跳过死亡目标，再按 Filter 用 MF.Team.* 标签判定阵营。
+	 * 近战 / 远程 / 冲撞等所有攻击的 FilterTarget 都复用此处，避免逻辑分散。
+	 *   All       → 任意非死亡目标通过；
+	 *   EnemyOnly → 与来源不同阵营通过；
+	 *   AllyOnly  → 与来源同阵营通过。
+	 */
+	static bool PassesTargetFilter(UAbilitySystemComponent* SourceASC, AActor* Candidate, EAttackTargetFilter Filter);
+
+	/**
 	 * 生成一个带来源的"场"（统一入口）。从 Instigator 取 World 找区域子系统并注册。
 	 * 任何地方都可调用：技能 / combo / 道具 / 投掷落点 / 撼地落点 等。
 	 */

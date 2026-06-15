@@ -3,11 +3,13 @@
 #include "MFCombatStatics.h"
 #include "MFCombatEffectSettings.h"
 #include "MFCombatAttributeSet.h"
+#include "MFFactionStatics.h"
 #include "MFGameplayTags.h"
 #include "MFAreaEffectData.h"
 #include "MFAreaEffectSubsystem.h"
 
 #include "AbilitySystemComponent.h"
+#include "AbilitySystemBlueprintLibrary.h"
 #include "GameplayEffect.h"
 #include "Engine/World.h"
 
@@ -83,6 +85,37 @@ void UMFCombatStatics::ApplyOnHitEffects(UAbilitySystemComponent* Source, UAbili
 
 		Source->ApplyGameplayEffectSpecToTarget(*Spec.Data.Get(), Target);
 	}
+}
+
+bool UMFCombatStatics::PassesTargetFilter(UAbilitySystemComponent* SourceASC, AActor* Candidate, EAttackTargetFilter Filter)
+{
+	if (!Candidate)
+	{
+		return false;
+	}
+
+	UAbilitySystemComponent* CandidateASC =
+		UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Candidate);
+
+	// 跳过已死亡目标。
+	if (CandidateASC && CandidateASC->HasMatchingGameplayTag(MFGameplayTags::State_Dead))
+	{
+		return false;
+	}
+
+	if (Filter == EAttackTargetFilter::All)
+	{
+		return true;
+	}
+
+	// 阵营判定：共享任意 MF.Team.* 标签即同队；中立与所有人都不同队。
+	if (!SourceASC || !CandidateASC)
+	{
+		return false;
+	}
+
+	const bool bSameTeam = UMFFactionStatics::AreSameTeam(SourceASC, CandidateASC);
+	return (Filter == EAttackTargetFilter::EnemyOnly) ? !bSameTeam : bSameTeam;
 }
 
 FMFAreaHandle UMFCombatStatics::SpawnAreaEffect(AActor* Instigator, const UMFAreaEffectData* AreaData, const FVector& Location)

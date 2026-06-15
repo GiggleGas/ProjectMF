@@ -155,6 +155,12 @@ namespace MFGameplayTags
 		"Granted to the ASC while any ranged attack ability is active. "
 		"Monitored as ActiveStateTag in STTask for ranged attacks.");
 
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
+		State_Charging,
+		"MF.GameplayState.Charging",
+		"Granted to the ASC while the Charge move ability (UGA_Charge) is active. "
+		"Monitored as ActiveStateTag in STTask for the charge skill.");
+
 	// ----- Effect 身份标签（MF.Effect.*）-----
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Effect, "MF.Effect",
 		"Parent category for all MF gameplay effects (combo / area identity).");

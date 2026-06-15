@@ -154,23 +154,9 @@ void UGA_AIRangedAttackBase::SpawnResolveArea(const FVector& Location)
 
 bool UGA_AIRangedAttackBase::FilterTarget(AActor* Candidate, EAttackTargetFilter Filter) const
 {
-	if (!Candidate) return false;
-
-	UAbilitySystemComponent* CandidateASC =
-		UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Candidate);
-
-	if (CandidateASC && CandidateASC->HasMatchingGameplayTag(MFGameplayTags::State_Dead))
-		return false;
-
-	if (Filter == EAttackTargetFilter::All) return true;
-
-	// 阵营判定：共享任意 MF.Team.* 标签即同队；中立与所有人都不同队。
-	UAbilitySystemComponent* CasterASC = GetAbilitySystemComponentFromActorInfo();
-	if (!CasterASC || !CandidateASC) return false;
-
-	const bool bSameTeam = UMFFactionStatics::AreSameTeam(CasterASC, CandidateASC);
-
-	return (Filter == EAttackTargetFilter::EnemyOnly) ? !bSameTeam : bSameTeam;
+	// 死亡跳过 + 阵营判定统一走共享静态（近战 / 远程 / 冲撞复用）。
+	return UMFCombatStatics::PassesTargetFilter(
+		GetAbilitySystemComponentFromActorInfo(), Candidate, Filter);
 }
 
 AMFAICharacter* UGA_AIRangedAttackBase::GetAICharacter() const

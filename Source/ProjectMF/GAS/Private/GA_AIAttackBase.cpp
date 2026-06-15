@@ -257,26 +257,11 @@ TArray<AActor*> UGA_AIAttackBase::CollectTargets_Implementation() const
 
 bool UGA_AIAttackBase::FilterTarget_Implementation(AActor* Candidate) const
 {
-	if (!Candidate || !AttackData) return false;
+	if (!AttackData) return false;
 
-	UAbilitySystemComponent* CandidateASC =
-		UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Candidate);
-
-	// Skip dead actors
-	if (CandidateASC && CandidateASC->HasMatchingGameplayTag(MFGameplayTags::State_Dead))
-	{
-		return false;
-	}
-
-	if (AttackData->TargetFilter == EAttackTargetFilter::All) return true;
-
-	// 阵营判定：共享任意 MF.Team.* 标签即同队；中立与所有人都不同队。
-	UAbilitySystemComponent* CasterASC = GetAbilitySystemComponentFromActorInfo();
-	if (!CasterASC || !CandidateASC) return false;
-
-	const bool bSameTeam = UMFFactionStatics::AreSameTeam(CasterASC, CandidateASC);
-
-	return (AttackData->TargetFilter == EAttackTargetFilter::EnemyOnly) ? !bSameTeam : bSameTeam;
+	// 死亡跳过 + 阵营判定统一走共享静态（近战 / 远程 / 冲撞复用）。
+	return UMFCombatStatics::PassesTargetFilter(
+		GetAbilitySystemComponentFromActorInfo(), Candidate, AttackData->TargetFilter);
 }
 
 void UGA_AIAttackBase::ApplyDamageToTarget_Implementation(AActor* Target)
