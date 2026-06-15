@@ -10,8 +10,6 @@
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "Kismet/KismetSystemLibrary.h"
-#include "GameFramework/PlayerController.h"
-#include "GameFramework/Pawn.h"
 #include "Engine/World.h"
 #include "DrawDebugHelpers.h"
 
@@ -22,7 +20,7 @@
 static TAutoConsoleVariable<int32> CVarAreaDebug(
 	TEXT("mf.debug.area"),
 	0,
-	TEXT("0=off  1=draw area-effect spheres and log per-tick hit counts."),
+	TEXT("0=off  1=每帧绘制场的球体 + 文字(类型/剩余时间/半径/伤害/过滤/效果)，并按 tick 记录命中数。"),
 	ECVF_Cheat);
 
 namespace
@@ -36,6 +34,30 @@ namespace
 		if (!Source) return false;
 		const bool bSame = UMFFactionStatics::AreSameTeam(Source, Cand);
 		return (Filter == EAttackTargetFilter::EnemyOnly) ? !bSame : bSame;
+	}
+
+	/** 目标过滤枚举 → 字符串（调试文字用）。 */
+	FString FilterToString(EAttackTargetFilter Filter)
+	{
+		if (const UEnum* E = StaticEnum<EAttackTargetFilter>())
+		{
+			return E->GetNameStringByValue(static_cast<int64>(Filter));
+		}
+		return TEXT("?");
+	}
+
+	/** 效果列表 → "Slow,Stun" 形式（调试文字用）。 */
+	FString EffectsToString(const TArray<FMFOnHitEffect>& Effects)
+	{
+		if (Effects.Num() == 0) return TEXT("无");
+		const UEnum* KindEnum = StaticEnum<EMFOnHitEffectKind>();
+		FString Out;
+		for (int32 i = 0; i < Effects.Num(); ++i)
+		{
+			if (i > 0) Out += TEXT(",");
+			Out += KindEnum ? KindEnum->GetNameStringByValue(static_cast<int64>(Effects[i].Kind)) : TEXT("?");
+		}
+		return Out;
 	}
 }
 
@@ -74,6 +96,7 @@ FMFAreaHandle UMFAreaEffectSubsystem::RegisterArea(AActor* Instigator, const UMF
 	Inst.Effects          = Data->Effects;
 	Inst.Instigator       = Instigator;
 	Inst.VisualActor      = nullptr;
+	Inst.DebugTypeName    = Data->GetFName();
 
 	// 表现：随场生成展示 Actor（可空），按需等比缩放以匹配半径。
 	if (Data->VisualActorClass)
@@ -137,6 +160,9 @@ int32 UMFAreaEffectSubsystem::FindSlotByUID(uint32 UID) const
 
 void UMFAreaEffectSubsystem::Tick(float DeltaTime)
 {
+	UWorld*    World  = GetWorld();
+	const bool bDebug = CVarAreaDebug.GetValueOnGameThread() != 0;
+
 	// 用 index 访问（不持有 ref）：施加 GE 可能触发死亡 → 未来 re-enter RegisterArea 重分配数组也安全。
 	for (int32 i = 0; i < Instances.Num(); ++i)
 	{
@@ -144,6 +170,26 @@ void UMFAreaEffectSubsystem::Tick(float DeltaTime)
 
 		Instances[i].RemainingLife   -= DeltaTime;
 		Instances[i].TickAccumulator += DeltaTime;
+
+		// 每帧绘制：球 + 文字（类型 / 剩余时间 / 半径 / 伤害倍率 / 过滤 / 效果）。
+		// 有伤害=红，纯控制=青。文字 lifetime=0 即单帧，靠逐帧重绘维持。
+		if (bDebug && World)
+		{
+			const FAreaInstance& D = Instances[i];
+			const bool   bDeals = (D.DamageMultiplier > 0.f && D.DamageGE != nullptr);
+			const FColor Color  = bDeals ? FColor::Red : FColor::Cyan;
+
+			DrawDebugSphere(World, D.Location, D.Radius, 24, Color, false, 0.f, 0, 2.f);
+
+			const FString Text = FString::Printf(
+				TEXT("%s\n剩余 %.1fs\nr=%.0f  dmgx%.2f\nfilter=%s\neffects=%s"),
+				*D.DebugTypeName.ToString(),
+				FMath::Max(D.RemainingLife, 0.f),
+				D.Radius, D.DamageMultiplier,
+				*FilterToString(D.TargetFilter),
+				*EffectsToString(D.Effects));
+			DrawDebugString(World, D.Location + FVector(0.f, 0.f, 40.f), Text, nullptr, Color, 0.f, true);
+		}
 
 		int32 Guard = 0;
 		while (Instances[i].bActive && Instances[i].TickAccumulator >= Instances[i].TickInterval && Guard++ < 4)
@@ -189,11 +235,8 @@ void UMFAreaEffectSubsystem::ApplyAreaTick(const FAreaInstance& Inst)
 	TArray<AActor*> Hits;
 	UKismetSystemLibrary::SphereOverlapActors(World, Loc, R, PawnType, nullptr, Ignore, Hits);
 
+	// 注：可视化（球 + 文字）由 Tick 每帧绘制，这里只保留每次施加的命中数日志。
 	const bool bDebug = CVarAreaDebug.GetValueOnGameThread() != 0;
-	if (bDebug)
-	{
-		DrawDebugSphere(World, Loc, R, 16, FColor::Magenta, false, Inst.TickInterval, 0, 1.5f);
-	}
 
 	int32 HitCount = 0;
 	for (AActor* Tgt : Hits)
@@ -232,37 +275,3 @@ TStatId UMFAreaEffectSubsystem::GetStatId() const
 {
 	RETURN_QUICK_DECLARE_CYCLE_STAT(UMFAreaEffectSubsystem, STATGROUP_Tickables);
 }
-
-// ============================================================================
-// Debug command: mf.debug.spawnarea
-// ============================================================================
-
-static FAutoConsoleCommandWithWorld GMFSpawnAreaCmd(
-	TEXT("mf.debug.spawnarea"),
-	TEXT("Spawn a test area-effect at the local player pawn (Slow + TargetFilter=All). Turn on mf.debug.area 1 to visualize."),
-	FConsoleCommandWithWorldDelegate::CreateStatic([](UWorld* World)
-	{
-		if (!World) return;
-		APlayerController* PC = World->GetFirstPlayerController();
-		APawn* Pawn = PC ? PC->GetPawn() : nullptr;
-		UMFAreaEffectSubsystem* Sub = World->GetSubsystem<UMFAreaEffectSubsystem>();
-		if (!Pawn || !Sub) return;
-
-		UMFAreaEffectData* Data = NewObject<UMFAreaEffectData>(GetTransientPackage());
-		Data->Radius       = 400.f;
-		Data->Duration     = 5.f;
-		Data->TickInterval = 0.5f;
-		Data->TargetFilter = EAttackTargetFilter::All;
-		// 命令拿不到 BP GE 资产，故不配伤害（DamageMultiplier=0）；
-		// 靠 mf.debug.area 看 overlap/tick；若映射表配了 Slow，范围内目标也会被减速。
-		FMFOnHitEffect Eff;
-		Eff.Kind = EMFOnHitEffectKind::Slow;
-		Eff.Chance = 1.f;
-		Eff.Duration = 1.f;
-		Eff.Magnitude = 0.5f;
-		Data->Effects.Add(Eff);
-
-		Sub->RegisterArea(Pawn, Data, Pawn->GetActorLocation());
-		MF_LOG(LogMFAbility, TEXT("[mf.debug.spawnarea] spawned at %s (mf.debug.area 1 to visualize)"),
-			*Pawn->GetActorLocation().ToString());
-	}));

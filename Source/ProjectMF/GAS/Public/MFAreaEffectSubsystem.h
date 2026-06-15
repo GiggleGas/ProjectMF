@@ -77,6 +77,8 @@ private:
 
 		TWeakObjectPtr<AActor>       Instigator;
 		TWeakObjectPtr<AActor>       VisualActor;       // 随场生成的表现 Actor，区域结束时销毁
+
+		FName                        DebugTypeName;     // 来源数据资产名，仅调试绘制用
 	};
 
 	/** 扁平 slot 数组，永不收缩。 */

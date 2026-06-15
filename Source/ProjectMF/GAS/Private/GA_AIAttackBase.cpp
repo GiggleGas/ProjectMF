@@ -123,6 +123,7 @@ void UGA_AIAttackBase::ActivateAbility(
 	CachedActivationInfo   = ActivationInfo;
 	HitsFired              = 0;
 	SustainedTicksFired    = 0;
+	OnHitEffectsAppliedTargets.Reset();
 
 	// Tag: mark character as attacking
 	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo())
@@ -286,9 +287,20 @@ void UGA_AIAttackBase::ApplyDamageToTarget_Implementation(AActor* Target)
 		UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Target);
 	UAbilitySystemComponent* SourceASC = GetAbilitySystemComponentFromActorInfo();
 
-	// 伤害（DamageGE 为空则跳过，仍施加附加效果）+ 命中附加效果，统一走共享静态。
+	// 伤害逐轮施加（DamageGE 为空则跳过）。
 	UMFCombatStatics::ApplyDamage(SourceASC, TargetASC, AttackData->DamageGE, AttackData->DamageMultiplier);
-	UMFCombatStatics::ApplyOnHitEffects(SourceASC, TargetASC, AttackData->OnHitEffects, GetAbilityLevel());
+
+	// 命中附加效果（眩晕/减速等控制类）每次释放对每个目标只施加一次：
+	// 多段/持续攻击会逐轮命中同一目标，若每轮都施加会反复眩晕/抖动；伤害逐轮、控制一次。
+	if (AttackData->OnHitEffects.Num() > 0)
+	{
+		bool bAlreadyApplied = false;
+		OnHitEffectsAppliedTargets.Add(Target, &bAlreadyApplied);
+		if (!bAlreadyApplied)
+		{
+			UMFCombatStatics::ApplyOnHitEffects(SourceASC, TargetASC, AttackData->OnHitEffects, GetAbilityLevel());
+		}
+	}
 }
 
 void UGA_AIAttackBase::OnHitPhaseBegin_Implementation()

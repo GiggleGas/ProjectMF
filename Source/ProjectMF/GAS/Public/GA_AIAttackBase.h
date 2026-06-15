@@ -160,6 +160,13 @@ private:
 	int32  HitsFired          = 0;
 	int32  SustainedTicksFired = 0;
 
+	/**
+	 * 本次释放中已施加过命中附加效果(OnHitEffects)的目标。
+	 * 控制类效果（眩晕/减速等）每个目标每次释放只施加一次——伤害仍逐轮，
+	 * 避免多段/持续攻击逐轮重施导致反复眩晕。每次 ActivateAbility 清空。
+	 */
+	TSet<TWeakObjectPtr<AActor>> OnHitEffectsAppliedTargets;
+
 	// Cached for use inside timer callbacks
 	FGameplayAbilitySpecHandle    CachedHandle;
 	FGameplayAbilityActivationInfo CachedActivationInfo;
