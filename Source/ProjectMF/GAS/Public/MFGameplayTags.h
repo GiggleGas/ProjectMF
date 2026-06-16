@@ -189,6 +189,9 @@ namespace MFGameplayTags
 	/** Granted to the ASC while the Charge move ability is active. STTask waits on this. */
 	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_Charging);
 
+	/** Granted to the ASC while the Jump move ability is active. STTask waits on this. */
+	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_Jumping);
+
 	// -----------------------------------------------------------------------
 	// Effect Tags（MF.Effect.*）—— 效果身份标签
 	// 由各效果 GE（UMFGameplayEffectBase::EffectTag）授予到目标，

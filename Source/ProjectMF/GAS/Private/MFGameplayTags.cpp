@@ -161,6 +161,12 @@ namespace MFGameplayTags
 		"Granted to the ASC while the Charge move ability (UGA_Charge) is active. "
 		"Monitored as ActiveStateTag in STTask for the charge skill.");
 
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
+		State_Jumping,
+		"MF.GameplayState.Jumping",
+		"Granted to the ASC while the Jump move ability (UGA_Jump) is active. "
+		"Monitored as ActiveStateTag in STTask for the jump skill.");
+
 	// ----- Effect 身份标签（MF.Effect.*）-----
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Effect, "MF.Effect",
 		"Parent category for all MF gameplay effects (combo / area identity).");
