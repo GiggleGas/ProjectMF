@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "AIController.h"
+#include "GameplayTagContainer.h"
 #include "MFPetAIController.generated.h"
 
 class UStateTree;
@@ -46,6 +47,14 @@ public:
 	/** 返回 StateTree 是否正在运行。 */
 	UFUNCTION(BlueprintPure, Category = "AI|StateTree")
 	bool IsStateTreeRunning() const;
+
+	/**
+	 * 向本 Controller 的 StateTree 发送一个事件（按 GameplayTag）。
+	 * 薄封装，供 UMFPetCommandComponent 等外部系统在不直接访问 private StateTreeComp 的情况下打断/通知。
+	 * StateTree 未运行时安全跳过。
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AI|StateTree")
+	void SendStateTreeEvent(FGameplayTag EventTag);
 
 protected:
 	virtual void OnPossess(APawn* InPawn) override;

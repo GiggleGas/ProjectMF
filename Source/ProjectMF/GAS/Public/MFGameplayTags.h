@@ -178,6 +178,12 @@ namespace MFGameplayTags
 	 */
 	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(AI_Perception_HasTarget);
 
+	/**
+	 * 玩家下达指令时，由 UMFPetCommandComponent 向宠物 StateTree 发送的事件标签。
+	 * StateTree 顶层据此触发打断转换，跳转到指令执行状态（M1）。
+	 */
+	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_PlayerCommand);
+
 	// -----------------------------------------------------------------------
 	// Ranged Attack State Tag
 	// （Ability.Pet.Ranged.* 已上移到 Ability Tags 段）

@@ -4,11 +4,30 @@
 #include "MFPlayerConfig.h"
 #include "MFMainHUDWidget.h"
 #include "MFCharacter.h"
+#include "MFCommandComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "Blueprint/UserWidget.h"
 
 AMFPlayerController::AMFPlayerController()
 {
+	// 玩家指令组件（指令系统 M0）。逻辑在组件，调试 Exec 命令放在本 Controller 上转调。
+	CommandComp = CreateDefaultSubobject<UMFCommandComponent>(TEXT("CommandComp"));
+}
+
+void AMFPlayerController::MFDebugPetMove(float X, float Y, float Z)
+{
+	if (CommandComp)
+	{
+		CommandComp->DebugMoveNearestPet(X, Y, Z);
+	}
+}
+
+void AMFPlayerController::MFDebugPetSkill(const FString& SkillTag)
+{
+	if (CommandComp)
+	{
+		CommandComp->DebugSkillNearestPet(SkillTag);
+	}
 }
 
 void AMFPlayerController::BeginPlay()

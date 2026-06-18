@@ -7,6 +7,7 @@
 #include "MFPetAIController.h"
 #include "MFRadarSensingComponent.h"
 #include "MFThreatComponent.h"
+#include "MFPetCommandComponent.h"
 #include "MFLog.h"
 #include "AbilitySystemComponent.h"
 #include "PaperZDAnimationComponent.h"
@@ -23,6 +24,9 @@ AMFPetBase::AMFPetBase()
 	// 设置默认 Controller 类，使 AutoPossessAI 自动 Possess AMFPetAIController。
 	// AMFSpawnAIManager 之后调用 RunStateTree() 绑定具体资产。
 	AIControllerClass = AMFPetAIController::StaticClass();
+
+	// 玩家指令载体（指令系统 M0）：仅宠物持有。
+	CommandComp = CreateDefaultSubobject<UMFPetCommandComponent>(TEXT("CommandComp"));
 }
 
 // ============================================================

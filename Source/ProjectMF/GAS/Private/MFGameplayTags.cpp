@@ -150,6 +150,12 @@ namespace MFGameplayTags
 		"Managed by the threat system; queried by StateTree to decide combat transitions.");
 
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
+		Event_PlayerCommand,
+		"MF.AI.Event.PlayerCommand",
+		"Sent to a pet's StateTree by UMFPetCommandComponent when the player issues a command. "
+		"The StateTree top-level uses it to trigger an interrupt transition into command-execution states (M1).");
+
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
 		State_RangedAttacking,
 		"MF.GameplayState.RangedAttacking",
 		"Granted to the ASC while any ranged attack ability is active. "

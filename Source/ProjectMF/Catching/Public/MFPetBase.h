@@ -11,6 +11,7 @@
 // MFPetBase.cpp 中 include MFItemTypes.h 获取完整定义。
 struct FMFPetInstance;
 class UMFPetConfig;
+class UMFPetCommandComponent;
 
 /**
  * AMFPetBase — 可被玩家抓取的宠物 AI 基类。
@@ -140,4 +141,11 @@ protected:
 	/** ApplyPetConfig 时缓存，供 SerializeToInstance 写入快照使用。 */
 	UPROPERTY()
 	TObjectPtr<const UMFPetConfig> CachedPetConfig;
+
+	/**
+	 * 玩家指令载体：接收玩家下达的移动/技能指令，并向本宠 StateTree 发打断事件。
+	 * 仅可被指挥的宠物持有（敌人/Boss 不挂）。指令系统 M0 起。
+	 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Pet|Command")
+	TObjectPtr<UMFPetCommandComponent> CommandComp;
 };

@@ -79,3 +79,11 @@ bool AMFPetAIController::IsStateTreeRunning() const
 {
 	return StateTreeComp && StateTreeComp->IsRunning();
 }
+
+void AMFPetAIController::SendStateTreeEvent(FGameplayTag EventTag)
+{
+	if (StateTreeComp && StateTreeComp->IsRunning())
+	{
+		StateTreeComp->SendStateTreeEvent(EventTag);
+	}
+}
