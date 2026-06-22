@@ -49,10 +49,8 @@ void AMFAICharacter::BeginPlay()
 	// Manager 生成的 AI（AIConfig = null）在 Spawn 后由 ApplyAIConfig() 注入，此处跳过。
 	if (AIConfig)
 	{
-		DefaultAbilities  = AIConfig->DefaultAbilities;
-		DefaultOwnedTags  = AIConfig->DefaultOwnedTags;
-		InitAttributes    = AIConfig->InitAttributes;
-		HitFlashDuration  = AIConfig->HitFlashDuration;
+		// Super 之前只写头顶 Widget 配置（Widget 初始化在 Super 之后读取这两个成员）。
+		// GAS（属性/技能/标签/受击闪光）改由 ApplyGASConfig 在 InitAbilitySystemComponent 内应用。
 		OverheadWidgetClass   = AIConfig->OverheadWidgetClass;
 		OverheadWidgetZOffset = AIConfig->OverheadWidgetZOffset;
 	}
@@ -81,27 +79,8 @@ void AMFAICharacter::ApplyAIConfig(const UMFAIConfig* Config)
 {
 	if (!Config) return;
 
-	// --- GAS (additive, safe post-BeginPlay) ---
-	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
-	{
-		for (const TSubclassOf<UMFGameplayAbilityBase>& AbilityClass : Config->DefaultAbilities)
-		{
-			if (AbilityClass)
-			{
-				ASC->GiveAbility(FGameplayAbilitySpec(AbilityClass, 1));
-			}
-		}
-
-		ApplyAttributeInitData(Config->InitAttributes);
-
-		if (!Config->DefaultOwnedTags.IsEmpty())
-		{
-			ASC->AddLooseGameplayTags(Config->DefaultOwnedTags);
-		}
-	}
-
-	// --- Combat ---
-	HitFlashDuration = Config->HitFlashDuration;
+	// --- GAS（属性 / 技能含释放模式 / 阵营标签 / 受击闪光），与关卡摆放路径共用 ---
+	ApplyConfigGAS(Config);
 
 	// --- Overhead Widget ---
 	OverheadWidgetZOffset = Config->OverheadWidgetZOffset;
@@ -115,6 +94,35 @@ void AMFAICharacter::ApplyAIConfig(const UMFAIConfig* Config)
 			W->InitWithASC(AbilitySystemComponent);
 		}
 	}
+}
+
+void AMFAICharacter::ApplyConfigGAS(const UMFAIConfig* Config)
+{
+	if (!Config) return;
+
+	// 属性先于技能（部分回调/技能可能读属性）。
+	ApplyAttributeInitData(Config->InitAttributes);
+
+	for (const FMFGrantedAbility& Granted : Config->DefaultAbilities)
+	{
+		GrantAbility(Granted.Ability, Granted.ReleaseMode == EMFSkillReleaseMode::Auto);
+	}
+
+	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
+	{
+		if (!Config->DefaultOwnedTags.IsEmpty())
+		{
+			ASC->AddLooseGameplayTags(Config->DefaultOwnedTags);
+		}
+	}
+
+	HitFlashDuration = Config->HitFlashDuration;
+}
+
+void AMFAICharacter::ApplyGASConfig()
+{
+	// 关卡直接摆放路径：AIConfig 已在 BeginPlay 前由 BP 设置；Manager 路径走 ApplyAIConfig。
+	ApplyConfigGAS(AIConfig);
 }
 
 // ---------------------------------------------------------------------------

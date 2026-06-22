@@ -322,6 +322,11 @@ AMFAICharacter* UGA_AIAttackBase::GetAICharacter() const
 	return Cast<AMFAICharacter>(GetAvatarActorFromActorInfo());
 }
 
+UMFAttackDataBase* UGA_AIAttackBase::GetAttackDataBase() const
+{
+	return AttackData;
+}
+
 void UGA_AIAttackBase::ExecuteHitRound()
 {
 	const FVector Origin    = GetDetectionOrigin();

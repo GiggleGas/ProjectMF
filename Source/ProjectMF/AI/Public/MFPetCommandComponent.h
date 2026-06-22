@@ -40,6 +40,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "MF|Command")
 	void ConsumeCommand();
 
+	/**
+	 * 返回该宠物当前"已转好的手动技能"的 AbilityTag（手动 = spec 无 MF.SkillMode.Auto 标签，
+	 * 且不在冷却）；多个时返回第一个，无则返回无效 tag。供 M3 双击判定是否有可手动释放的技能。
+	 */
+	UFUNCTION(BlueprintCallable, Category = "MF|Command")
+	FGameplayTag GetReadyManualSkillTag() const;
+
 private:
 
 	UPROPERTY()

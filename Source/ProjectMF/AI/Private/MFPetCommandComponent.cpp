@@ -6,6 +6,8 @@
 #include "MFGameplayTags.h"
 #include "MFLog.h"
 
+#include "AbilitySystemComponent.h"
+#include "AbilitySystemBlueprintLibrary.h"
 #include "GameFramework/Pawn.h"
 
 UMFPetCommandComponent::UMFPetCommandComponent()
@@ -42,4 +44,46 @@ void UMFPetCommandComponent::ConsumeCommand()
 {
 	bHasCommand        = false;
 	PendingCommand.Type = EMFCommandType::None;
+}
+
+FGameplayTag UMFPetCommandComponent::GetReadyManualSkillTag() const
+{
+	UAbilitySystemComponent* ASC =
+		UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(GetOwner());
+	if (!ASC)
+	{
+		return FGameplayTag();
+	}
+
+	for (const FGameplayAbilitySpec& Spec : ASC->GetActivatableAbilities())
+	{
+		if (!Spec.Ability)
+		{
+			continue;
+		}
+
+		// 手动 = spec 无 MF.SkillMode.Auto 标签。
+		if (Spec.GetDynamicSpecSourceTags().HasTag(MFGameplayTags::SkillMode_Auto))
+		{
+			continue;
+		}
+
+		// 跳过冷却中的（冷却身份标签 = 技能自身 AbilityTag）。
+		if (const FGameplayTagContainer* CooldownTags = Spec.Ability->GetCooldownTags())
+		{
+			if (ASC->HasAnyMatchingGameplayTags(*CooldownTags))
+			{
+				continue;
+			}
+		}
+
+		// 返回该技能的 AbilityTag（每个 GA 仅设一个 MF.Ability.* 资产标签）。
+		const FGameplayTagContainer& AssetTags = Spec.Ability->GetAssetTags();
+		if (!AssetTags.IsEmpty())
+		{
+			return AssetTags.First();
+		}
+	}
+
+	return FGameplayTag();
 }

@@ -164,6 +164,11 @@ AMFAICharacter* UGA_AIRangedAttackBase::GetAICharacter() const
 	return Cast<AMFAICharacter>(GetAvatarActorFromActorInfo());
 }
 
+UMFAttackDataBase* UGA_AIRangedAttackBase::GetAttackDataBase() const
+{
+	return GetRangedData();
+}
+
 AActor* UGA_AIRangedAttackBase::GetCurrentTarget() const
 {
 	AMFAICharacter* AI = GetAICharacter();

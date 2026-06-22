@@ -11,6 +11,7 @@ class UPaperZDAnimSequence;
 class AMFAICharacter;
 class UGameplayEffect;
 class UMFRangedAttackDataBase;
+class UMFAttackDataBase;
 
 /**
  * Abstract base class for all AI ranged attack GameplayAbilities.
@@ -106,6 +107,9 @@ protected:
 
 	/** Return avatar cast to AMFAICharacter; null if avatar is not an AI character. */
 	AMFAICharacter* GetAICharacter() const;
+
+	/** 返回 GetRangedData() 作为攻击数据基类（供基类读冷却等共享字段）。 */
+	virtual UMFAttackDataBase* GetAttackDataBase() const override;
 
 	/** Return the current threat target from the AI's ThreatComponent; null if none. */
 	AActor* GetCurrentTarget() const;

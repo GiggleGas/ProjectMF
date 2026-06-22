@@ -137,6 +137,19 @@ namespace MFGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
 		Data_HealAmount, "MF.Data.HealAmount",
 		"SetByCaller key: heal amount.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
+		Data_Cooldown, "MF.Data.Cooldown",
+		"SetByCaller key: ability cooldown duration (seconds). Read by UMFCooldownGameplayEffect.");
+
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
+		SkillMode_Auto, "MF.SkillMode.Auto",
+		"Dynamic ability-spec tag set at grant when a skill is auto-release (absence = manual). "
+		"Sourced from config FMFGrantedAbility.ReleaseMode; read by STCond_CanAutoUseSkill.");
+
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
+		Pet_Summoned, "MF.Pet.Summoned",
+		"Marks a pet as player-summoned (vs wild / enemy / boss). Added by InventoryComponent on summon, "
+		"removed on recall. StateTree uses STCond_OwnerHasTag to gate command + auto/manual behavior.");
 
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
 		State_Attacking,

@@ -7,6 +7,7 @@
 #include "GA_AIMoveAbilityBase.generated.h"
 
 class UMFMoveAbilityData;
+class UMFAttackDataBase;
 class UPaperZDAnimSequence;
 class AMFAICharacter;
 
@@ -70,6 +71,9 @@ protected:
 	/** 前摇结束、移动已接管、位移动画已播后调用：子类锁定专有参数并启动 MotionTimer。 */
 	virtual void BeginMovement()
 		PURE_VIRTUAL(UGA_AIMoveAbilityBase::BeginMovement, );
+
+	/** 返回 GetMoveData() 作为攻击数据基类（供基类读冷却等共享字段）。 */
+	virtual UMFAttackDataBase* GetAttackDataBase() const override;
 
 	// -----------------------------------------------------------------------
 	// 共享设施（子类调用）

@@ -113,31 +113,10 @@ void AMFCharacterBase::InitAbilitySystemComponent()
 		MFGameplayTags::State_Stunned, EGameplayTagEventType::NewOrRemoved)
 		.AddUObject(this, &AMFCharacterBase::OnStunnedTagChanged);
 
-	// 初始化属性（MaxHealth/Health/MoveSpeed/Attack/Defense/FleeThreshold）。
-	// Must come before granting abilities so attribute values are ready.
-	ApplyAttributeInitData(InitAttributes);
-
-	// init 后同步一次 MaxWalkSpeed，确保初始移速生效。
-	if (UCharacterMovementComponent* CMC = GetCharacterMovement())
-	{
-		CMC->MaxWalkSpeed = AttributeSet->GetMoveSpeed();
-	}
-
-	// Grant every ability listed in DefaultAbilities at level 1.
-	for (const TSubclassOf<UMFGameplayAbilityBase>& AbilityClass : DefaultAbilities)
-	{
-		if (!AbilityClass) continue;
-		AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(AbilityClass, 1));
-	}
-
-	// 添加阵营 / 固有属性标签（Loose Tag，不依赖 GameplayEffect）。
-	// 在各子类蓝图 Defaults 中配置 DefaultOwnedTags，例如：
-	//   BP_MFCharacter → MF.Team.Player
-	//   BP_MFPet       → MF.Team.Enemy
-	if (!DefaultOwnedTags.IsEmpty())
-	{
-		AbilitySystemComponent->AddLooseGameplayTags(DefaultOwnedTags);
-	}
+	// 应用 GAS 配置（初始属性 / 授予技能 / 阵营标签）——由子类从各自 Config 实现。
+	// 在属性变化/眩晕回调注册之后、OnDeath/OnHealthChanged 绑定之前（见 BeginPlay）执行，
+	// 避免初始化血量时误触发受伤 / 治疗回调。
+	ApplyGASConfig();
 }
 
 void AMFCharacterBase::ApplyAttributeInitData(const FMFAttributeInitData& Data)
@@ -157,6 +136,28 @@ void AMFCharacterBase::ApplyAttributeInitData(const FMFAttributeInitData& Data)
 		AbilitySystemComponent->SetNumericAttributeBase(UMFCombatAttributeSet::GetDefenseAttribute(),       Data.Defense);
 		AbilitySystemComponent->SetNumericAttributeBase(UMFCombatAttributeSet::GetFleeThresholdAttribute(), Data.FleeThreshold);
 	}
+
+	// 同步一次 MaxWalkSpeed，确保初始移速即时生效（移速属性回调通常也会同步）。
+	if (AttributeSet)
+	{
+		if (UCharacterMovementComponent* CMC = GetCharacterMovement())
+		{
+			CMC->MaxWalkSpeed = AttributeSet->GetMoveSpeed();
+		}
+	}
+}
+
+void AMFCharacterBase::GrantAbility(TSubclassOf<UMFGameplayAbilityBase> AbilityClass, bool bAutoRelease)
+{
+	if (!AbilityClass || !AbilitySystemComponent) return;
+
+	FGameplayAbilitySpec Spec(AbilityClass, 1);
+	if (bAutoRelease)
+	{
+		// 动态 spec 标签标记"自动释放"；无此标签即手动。STCond_CanAutoUseSkill 据此判定。
+		Spec.GetDynamicSpecSourceTags().AddTag(MFGameplayTags::SkillMode_Auto);
+	}
+	AbilitySystemComponent->GiveAbility(Spec);
 }
 
 void AMFCharacterBase::OnMoveSpeedChanged(const FOnAttributeChangeData& Data)

@@ -158,6 +158,25 @@ namespace MFGameplayTags
 	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Data_TickDamage);
 	/** SetByCaller 键：治疗量。 */
 	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Data_HealAmount);
+	/** SetByCaller 键：技能冷却时长（秒）。由 UMFCooldownGameplayEffect 读取。 */
+	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Data_Cooldown);
+
+	// -----------------------------------------------------------------------
+	// 技能释放模式 / 召唤标记
+	// -----------------------------------------------------------------------
+
+	/**
+	 * 动态 ability spec 标签：授予技能时若该技能为「自动释放」则打在 spec 上（无此标签=手动）。
+	 * 由 config 的 per-skill 模式（FMFGrantedAbility.ReleaseMode）在授予时决定。
+	 */
+	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(SkillMode_Auto);
+
+	/**
+	 * 标识该宠物是玩家召唤出战的（区别于野生宠物 / 敌人 / Boss）。
+	 * 召唤时由 InventoryComponent 加到宠物 ASC，召回时移除。
+	 * StateTree 用 STCond_OwnerHasTag 据此分流：召唤宠物受指令 + 走自动/手动模式；其余总是自动。
+	 */
+	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Pet_Summoned);
 
 	// -----------------------------------------------------------------------
 	// Attack State Tags

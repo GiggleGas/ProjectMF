@@ -7,6 +7,7 @@
 #include "GA_AIAttackBase.generated.h"
 
 class UMFAttackAbilityData;
+class UMFAttackDataBase;
 class UPaperZDAnimSequence;
 class AMFAICharacter;
 
@@ -143,6 +144,9 @@ protected:
 	/** Typed accessor for the owning AI character. Returns null if avatar is not AMFAICharacter. */
 	UFUNCTION(BlueprintPure, Category = "Attack")
 	AMFAICharacter* GetAICharacter() const;
+
+	/** 返回 AttackData 作为攻击数据基类（供基类读冷却等共享字段）。 */
+	virtual UMFAttackDataBase* GetAttackDataBase() const override;
 
 	/** Run one full round: CollectTargets → FilterTarget → ApplyDamageToTarget. */
 	void ExecuteHitRound();

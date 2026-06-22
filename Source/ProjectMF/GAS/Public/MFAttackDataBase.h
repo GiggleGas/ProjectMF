@@ -51,6 +51,13 @@ public:
 	EAttackTargetFilter TargetFilter = EAttackTargetFilter::EnemyOnly;
 
 	/**
+	 * 技能冷却时长（秒）。0 = 无冷却。
+	 * 释放（CommitAbility）后进入冷却，期间 CanActivateAbility 失败；由共享冷却 GE 实现。
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Attack|Cooldown", meta = (ClampMin = "0.0"))
+	float CooldownSeconds = 0.f;
+
+	/**
 	 * 命中有效目标时，在伤害之外按概率施加的附加效果（眩晕 / 减速 / 易伤…）。
 	 * 近战与远程（含落石 AOE 每个目标）均支持；每个目标独立 roll 概率。
 	 */

@@ -367,3 +367,8 @@ AActor* UGA_AIMoveAbilityBase::GetCurrentTarget() const
 	UMFThreatComponent* ThreatComp = AI->FindComponentByClass<UMFThreatComponent>();
 	return ThreatComp ? ThreatComp->GetCurrentTarget() : nullptr;
 }
+
+UMFAttackDataBase* UGA_AIMoveAbilityBase::GetAttackDataBase() const
+{
+	return GetMoveData();
+}

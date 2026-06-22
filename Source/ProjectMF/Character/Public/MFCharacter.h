@@ -36,6 +36,9 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
+	/** 从 PlayerConfig 应用 GAS（初始属性 / 授予技能 / 阵营标签 / 受击闪光）。InitASC 内调用。 */
+	virtual void ApplyGASConfig() override;
+
 	// -----------------------------------------------------------------------
 	// Camera accessors (AMFCharacterBase interface)
 	// -----------------------------------------------------------------------

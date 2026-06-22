@@ -13,6 +13,35 @@ class UGameplayEffect;
 class UMFOverheadWidget;
 
 /**
+ * 技能释放模式：决定该技能由 AI 自主触发还是等玩家指令。
+ * 仅对玩家召唤的宠物有意义（敌人/野宠的 StateTree 不挂模式门禁，总是自动）。
+ */
+UENUM(BlueprintType)
+enum class EMFSkillReleaseMode : uint8
+{
+	Auto    UMETA(DisplayName = "自动"),
+	Manual  UMETA(DisplayName = "手动"),
+};
+
+/**
+ * 一条"授予技能 + 释放模式"配置项。授予时若 ReleaseMode==Auto，给 ability spec 打动态标签
+ * MF.SkillMode.Auto（供 STCond_CanAutoUseSkill 判定）；默认 Manual。
+ */
+USTRUCT(BlueprintType)
+struct FMFGrantedAbility
+{
+	GENERATED_BODY()
+
+	/** 要授予的技能类。 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAS")
+	TSubclassOf<UMFGameplayAbilityBase> Ability;
+
+	/** 释放模式（默认手动）。 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAS")
+	EMFSkillReleaseMode ReleaseMode = EMFSkillReleaseMode::Manual;
+};
+
+/**
  * UMFAIConfig — AI 角色通用配置（DataAsset）。
  *
  * 汇总所有需要在 Blueprint/编辑器 中配置的 AI 属性：
@@ -34,9 +63,9 @@ public:
 	// GAS — 技能系统初始化
 	// -----------------------------------------------------------------------
 
-	/** BeginPlay 时授予的初始技能列表。 */
+	/** BeginPlay / 配置应用时授予的初始技能列表（每项带释放模式，默认 Manual）。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAS")
-	TArray<TSubclassOf<UMFGameplayAbilityBase>> DefaultAbilities;
+	TArray<FMFGrantedAbility> DefaultAbilities;
 
 	/** 初始 Loose GameplayTag（阵营声明，无需 GE）。通常包含 MF.Team.Enemy。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAS")

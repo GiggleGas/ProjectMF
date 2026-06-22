@@ -48,25 +48,42 @@ void AMFCharacter::BeginPlay()
 {
 	// 在 Super::BeginPlay 之前将 Config 值写入基类属性，
 	// 这样 InitAbilitySystemComponent() 和头顶 Widget 初始化能正确读取。
-	if (PlayerConfig)
+	// Super 之前写背包配置（InitAbilitySystemComponent 不依赖背包）。
+	// GAS（属性/技能/标签/受击闪光）改由 ApplyGASConfig 在 InitAbilitySystemComponent 内从 PlayerConfig 应用。
+	if (PlayerConfig && InventoryComponent)
 	{
-		DefaultAbilities  = PlayerConfig->DefaultAbilities;
-		DefaultOwnedTags  = PlayerConfig->DefaultOwnedTags;
-		InitAttributes    = PlayerConfig->InitAttributes;
-		HitFlashDuration  = PlayerConfig->HitFlashDuration;
-
-		if (InventoryComponent)
-		{
-			InventoryComponent->ItemDatabase          = PlayerConfig->ItemDatabase;
-			InventoryComponent->AIRegistry            = PlayerConfig->AIRegistry;
-			InventoryComponent->MaxResourceSlots      = PlayerConfig->MaxResourceSlots;
-			InventoryComponent->MaxPetSlots           = PlayerConfig->MaxPetSlots;
-			InventoryComponent->SummonedPetTeamTags   = PlayerConfig->SummonedPetTeamTags;
-			InventoryComponent->SummonedPetTargetTags = PlayerConfig->SummonedPetTargetTags;
-		}
+		InventoryComponent->ItemDatabase          = PlayerConfig->ItemDatabase;
+		InventoryComponent->AIRegistry            = PlayerConfig->AIRegistry;
+		InventoryComponent->MaxResourceSlots      = PlayerConfig->MaxResourceSlots;
+		InventoryComponent->MaxPetSlots           = PlayerConfig->MaxPetSlots;
+		InventoryComponent->SummonedPetTeamTags   = PlayerConfig->SummonedPetTeamTags;
+		InventoryComponent->SummonedPetTargetTags = PlayerConfig->SummonedPetTargetTags;
 	}
 
 	Super::BeginPlay();
+}
+
+void AMFCharacter::ApplyGASConfig()
+{
+	if (!PlayerConfig) return;
+
+	ApplyAttributeInitData(PlayerConfig->InitAttributes);
+
+	// 玩家技能不走"自动/手动"门禁（那是召唤宠物的机制），一律按手动授予（bAutoRelease=false）。
+	for (const TSubclassOf<UMFGameplayAbilityBase>& AbilityClass : PlayerConfig->DefaultAbilities)
+	{
+		GrantAbility(AbilityClass, /*bAutoRelease=*/false);
+	}
+
+	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
+	{
+		if (!PlayerConfig->DefaultOwnedTags.IsEmpty())
+		{
+			ASC->AddLooseGameplayTags(PlayerConfig->DefaultOwnedTags);
+		}
+	}
+
+	HitFlashDuration = PlayerConfig->HitFlashDuration;
 }
 
 void AMFCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)

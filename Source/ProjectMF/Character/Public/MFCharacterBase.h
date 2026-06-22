@@ -71,43 +71,30 @@ protected:
 	TObjectPtr<UMFAttributeSetBase> AttributeSet;
 
 	/**
-	 * Abilities granted at BeginPlay.
-	 * Configure in the Blueprint default for each character type.
-	 * Example: BP_MFCharacter adds GA_Pick here.
+	 * 应用 GAS 配置（初始属性 / 授予技能 / 阵营标签 / 受击闪光时长）。
+	 * 在 InitAbilitySystemComponent 内调用；基类默认空实现，各子类覆写为"从自己的 Config 应用"
+	 * （玩家 → UMFPlayerConfig，AI → UMFAIConfig）。
+	 * 设计：基类不再存 DefaultAbilities/OwnedTags/InitAttributes——这些一律走 Config（单一数据源）。
 	 */
-	UPROPERTY(EditDefaultsOnly, Category = "GAS")
-	TArray<TSubclassOf<UMFGameplayAbilityBase>> DefaultAbilities;
+	virtual void ApplyGASConfig() {}
 
 	/**
-	 * Loose GameplayTags added to the ASC at BeginPlay.
-	 * 用于声明该角色的阵营或固有属性标签，无需 GameplayEffect 即可持有。
-	 *
-	 * 典型配置（在各子类 Blueprint 的 Defaults 中设置）：
-	 *   BP_MFCharacter (玩家)  → MF.Team.Player
-	 *   BP_MFPet / BP_MFEnemy → MF.Team.Enemy
-	 */
-	UPROPERTY(EditDefaultsOnly, Category = "GAS")
-	FGameplayTagContainer DefaultOwnedTags;
-
-	/**
-	 * 初始属性值（MaxHealth/MoveSpeed/Attack/Defense/FleeThreshold）。
-	 * BeginPlay 时由 ApplyAttributeInitData 写入 ASC。Health 初始 = MaxHealth。
-	 * 通常由各 Config（Player/AI/Pet）在 BeginPlay 前复制到此成员。
-	 */
-	UPROPERTY(EditDefaultsOnly, Category = "GAS")
-	FMFAttributeInitData InitAttributes;
-
-	/**
-	 * Initialize the ASC actor info, grant DefaultAbilities, and apply InitAttributes.
+	 * Initialize the ASC actor info + 属性变化/眩晕回调，然后调用 ApplyGASConfig()。
 	 * Called from BeginPlay() — safe to call on both server and standalone.
 	 */
 	void InitAbilitySystemComponent();
 
 	/**
-	 * 把 InitData 写入 ASC（基础集恒写；战斗集 Attack/Defense/FleeThreshold 仅在挂载时写）。
-	 * 取代以往的 init GameplayEffect。
+	 * 把 InitData 写入 ASC（基础集恒写；战斗集 Attack/Defense/FleeThreshold 仅在挂载时写）
+	 * 并同步一次 MaxWalkSpeed。供子类 ApplyGASConfig / ApplyAIConfig 调用。
 	 */
 	void ApplyAttributeInitData(const FMFAttributeInitData& Data);
+
+	/**
+	 * 授予一个技能。bAutoRelease=true 时给 ability spec 打动态标签 MF.SkillMode.Auto
+	 * （供 STCond_CanAutoUseSkill 判定；默认手动）。供子类 ApplyGASConfig / ApplyAIConfig 调用。
+	 */
+	void GrantAbility(TSubclassOf<UMFGameplayAbilityBase> AbilityClass, bool bAutoRelease = false);
 
 	/**
 	 * Called when Health reaches 0. Grants State.Dead tag, cancels abilities,
@@ -123,8 +110,7 @@ protected:
 	// Hit React (IMFHitReactInterface)
 	// -----------------------------------------------------------------------
 
-	/** Flipbook 闪红持续时间（秒）。在各角色蓝图 Defaults 里调整。*/
-	UPROPERTY(EditDefaultsOnly, Category = "Combat|HitReact", meta = (ClampMin = "0.05", ClampMax = "2.0"))
+	/** Flipbook 闪红持续时间（秒）。运行时由各子类从 Config 写入（不再在基类 BP 编辑）。 */
 	float HitFlashDuration = 0.25f;
 
 	virtual void ReactToHit_Implementation() override;

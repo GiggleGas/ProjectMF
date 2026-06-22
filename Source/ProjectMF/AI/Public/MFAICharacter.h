@@ -85,6 +85,13 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
+	/**
+	 * 从 AIConfig 应用 GAS（初始属性 / 授予技能含释放模式 / 阵营标签 / 受击闪光）。
+	 * 由基类 InitAbilitySystemComponent 调用——关卡直接摆放（AIConfig 已设）的路径走此处；
+	 * Manager 生成路径在 ApplyAIConfig 中应用。
+	 */
+	virtual void ApplyGASConfig() override;
+
 	// -----------------------------------------------------------------------
 	// AMFCharacterBase camera interface
 	// -----------------------------------------------------------------------
@@ -180,4 +187,10 @@ protected:
 private:
 	/** Apply movement toward MassMoveTarget if the command carries a valid target. */
 	void ApplyMovementFromCommand(const FMFAICommand& Command);
+
+	/**
+	 * 把一份 AIConfig 的 GAS 部分（属性 / 技能含模式 / 阵营标签 / 受击闪光）应用到本角色。
+	 * 关卡摆放（ApplyGASConfig）与 Manager 生成（ApplyAIConfig）共用，避免重复。
+	 */
+	void ApplyConfigGAS(const UMFAIConfig* Config);
 };

@@ -8,6 +8,7 @@
 #include "MFPetAIController.h"
 #include "MFAttributeSetBase.h"
 #include "MFFactionStatics.h"
+#include "MFGameplayTags.h"
 #include "MFRadarSensingComponent.h"
 #include "MFLog.h"
 #include "MFCharacter.h"
@@ -337,6 +338,8 @@ AMFPetBase* UMFInventoryComponent::SummonPet(FGuid InstanceID, FVector Location)
 	if (UAbilitySystemComponent* PetASC = SpawnedPet->GetAbilitySystemComponent())
 	{
 		UMFFactionStatics::SetFaction(PetASC, SummonedPetTeamTags);
+		// 召唤标记：StateTree 据此分流（受指令 + 走自动/手动模式）。Actor 销毁(召回/阵亡)时随之失效。
+		PetASC->AddLooseGameplayTag(MFGameplayTags::Pet_Summoned);
 	}
 	if (UMFRadarSensingComponent* Radar = SpawnedPet->FindComponentByClass<UMFRadarSensingComponent>())
 	{
