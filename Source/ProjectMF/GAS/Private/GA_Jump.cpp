@@ -69,7 +69,8 @@ void UGA_Jump::BeginMovement()
 	// 水平(MaxJumpDistance)与垂直(MaxJumpHeight)都不会冲出屏幕。
 	const float Ratio = (JumpData->MaxJumpDistance > 0.f)
 		? FMath::Clamp(Dist / JumpData->MaxJumpDistance, 0.f, 1.f) : 0.f;
-	ArcHeight = JumpData->MaxJumpHeight * Ratio;
+	// 弧高按距离缩放，但不低于 MinJumpHeight——原地跳(距离≈0)也起跳到最小高度，避免"只播动画不动"。
+	ArcHeight = FMath::Max(JumpData->MinJumpHeight, JumpData->MaxJumpHeight * Ratio);
 
 	MF_LOG(LogMFAbility, TEXT("[GA_Jump] %s leap begin. Land=(%.0f,%.0f,%.0f) Dist=%.0f Dur=%.2fs ArcH=%.0f"),
 		*GetNameSafe(Char), LandPos.X, LandPos.Y, LandPos.Z, Dist, JumpData->JumpDuration, ArcHeight);

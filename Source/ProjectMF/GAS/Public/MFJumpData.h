@@ -37,6 +37,13 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Jump", meta = (ClampMin = "0.0"))
 	float MaxJumpHeight = 300.f;
 
+	/**
+	 * 最小跳跃高度（cm）：弧高下限。即使水平距离≈0（原地跳，如目标就在脚下），
+	 * 也至少起跳到此高度，避免"原地只播动画不动"的观感。
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Jump", meta = (ClampMin = "0.0"))
+	float MinJumpHeight = 100.f;
+
 	/** 起跳到落地的时长（秒）。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Jump", meta = (ClampMin = "0.05"))
 	float JumpDuration = 0.6f;

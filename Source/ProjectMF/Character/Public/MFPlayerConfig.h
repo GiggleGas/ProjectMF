@@ -71,6 +71,14 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<UInputAction> StartBossBattleAction;
 
+	/** 切换命令模式（指令系统）。M3 仅切换交互；M4 叠加林克时间。 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<UInputAction> CommandModeAction;
+
+	/** 命令模式内的左键：点选 / 拖拽移动 / 双击放技能。 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<UInputAction> CommandClickAction;
+
 	// -----------------------------------------------------------------------
 	// UI — 界面配置
 	// -----------------------------------------------------------------------

@@ -7,6 +7,8 @@
 #include "MFGameMode.h"
 #include "MFLog.h"
 #include "MFPlayerConfig.h"
+#include "MFPlayerController.h"
+#include "MFCommandComponent.h"
 #include "MFPlayerAttributeSet.h"
 #include "Abilities/GameplayAbilityTypes.h"
 #include "AbilitySystemComponent.h"
@@ -136,6 +138,26 @@ void AMFCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 		{
 			EI->BindAction(PlayerConfig->StartBossBattleAction, ETriggerEvent::Started,
 				this, &AMFCharacter::HandleStartBossBattle);
+		}
+
+		// 指令系统：把命令模式 / 点击绑到 PlayerController 的 UMFCommandComponent。
+		if (AMFPlayerController* MFPC = Cast<AMFPlayerController>(GetController()))
+		{
+			if (UMFCommandComponent* CmdComp = MFPC->GetCommandComponent())
+			{
+				if (PlayerConfig->CommandModeAction)
+				{
+					EI->BindAction(PlayerConfig->CommandModeAction, ETriggerEvent::Started,
+						CmdComp, &UMFCommandComponent::ToggleCommandMode);
+				}
+				if (PlayerConfig->CommandClickAction)
+				{
+					EI->BindAction(PlayerConfig->CommandClickAction, ETriggerEvent::Started,
+						CmdComp, &UMFCommandComponent::OnCommandClickStarted);
+					EI->BindAction(PlayerConfig->CommandClickAction, ETriggerEvent::Completed,
+						CmdComp, &UMFCommandComponent::OnCommandClickCompleted);
+				}
+			}
 		}
 	}
 }

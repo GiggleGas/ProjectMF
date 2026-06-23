@@ -34,6 +34,9 @@ public:
 	UFUNCTION(Exec)
 	void MFDebugPetSkill(const FString& SkillTag);
 
+	/** 玩家指令组件访问器（供 Pawn 在 SetupPlayerInputComponent 绑定命令输入）。 */
+	UMFCommandComponent* GetCommandComponent() const { return CommandComp; }
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void OnPossess(APawn* InPawn) override;
