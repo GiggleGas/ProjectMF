@@ -43,6 +43,8 @@ namespace MFGameplayTags
 		"CatchPet ability (GA_CatchPet). Activated on catch-key release.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_Player_SummonPet, "MF.Ability.Player.SummonPet",
 		"GameplayEvent tag for GA_SummonPet. EventMagnitude = slot index (1-5).");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_Player_CommandMode, "MF.Ability.Player.CommandMode",
+		"Command mode / 林克时间 ability (GA_CommandMode).");
 
 	// ----- 宠物 / AI 战斗技能（宠物 + 敌人 + Boss）-----
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_Pet, "MF.Ability.Pet",
@@ -185,6 +187,17 @@ namespace MFGameplayTags
 		"MF.GameplayState.Jumping",
 		"Granted to the ASC while the Jump move ability (UGA_Jump) is active. "
 		"Monitored as ActiveStateTag in STTask for the jump skill.");
+
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
+		State_CommandMode,
+		"MF.GameplayState.CommandMode",
+		"Owned while GA_CommandMode is active (its ActivationOwnedTags). Used by input to toggle.");
+
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
+		Cooldown_Player_CommandMode,
+		"MF.Cooldown.Player.CommandMode",
+		"Command-mode cooldown identity. Applied (for a duration) on GA_CommandMode end; "
+		"blocks re-activation via ActivationBlockedTags while present.");
 
 	// ----- Effect 身份标签（MF.Effect.*）-----
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Effect, "MF.Effect",

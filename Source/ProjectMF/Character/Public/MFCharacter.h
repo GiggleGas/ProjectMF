@@ -101,4 +101,7 @@ private:
 	void HandleSummonSlot(int32 SlotIndex);
 
 	void HandleStartBossBattle();
+
+	/** 命令模式键：已激活则取消（提前退出），否则按 tag 激活 GA_CommandMode（冷却中会被自动挡）。 */
+	void HandleCommandMode();
 };

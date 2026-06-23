@@ -88,6 +88,14 @@ public:
 		meta = (ClampMin = "0.01", ClampMax = "1.0"))
 	float CommandModeTimeDilation = 0.2f;
 
+	/** 命令模式倒计时时长（秒，真实时间）。到点自动退出并进入冷却。 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Command", meta = (ClampMin = "0.1"))
+	float CommandModeDuration = 5.f;
+
+	/** 命令模式冷却时长（秒）。退出后这段时间内无法再次进入。 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Command", meta = (ClampMin = "0.0"))
+	float CommandModeCooldown = 8.f;
+
 	// -----------------------------------------------------------------------
 	// UI — 界面配置
 	// -----------------------------------------------------------------------

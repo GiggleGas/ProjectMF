@@ -66,6 +66,8 @@ namespace MFGameplayTags
 	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Player_CatchPet);
 	/** 召唤 / 召回宠物（GA_SummonPet，GameplayEvent，EventMagnitude = slot 1-5）。 */
 	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Player_SummonPet);
+	/** 命令模式 / 林克时间（GA_CommandMode）。 */
+	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Player_CommandMode);
 
 	// --- 宠物 / AI 战斗技能（涵盖宠物 + 敌人 + Boss）---
 	/** 类别：所有 AI 战斗者释放的技能。 */
@@ -216,6 +218,12 @@ namespace MFGameplayTags
 
 	/** Granted to the ASC while the Jump move ability is active. STTask waits on this. */
 	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_Jumping);
+
+	/** 命令模式（林克时间）激活期间持有（GA_CommandMode 的 ActivationOwnedTags）。供输入 toggle 判断。 */
+	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_CommandMode);
+
+	/** 命令模式冷却身份标签：GA_CommandMode 结束后施加一段时长，期间 ActivationBlockedTags 拦截再进。 */
+	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Cooldown_Player_CommandMode);
 
 	// -----------------------------------------------------------------------
 	// Effect Tags（MF.Effect.*）—— 效果身份标签

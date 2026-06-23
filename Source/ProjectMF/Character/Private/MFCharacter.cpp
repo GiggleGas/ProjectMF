@@ -147,8 +147,9 @@ void AMFCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 			{
 				if (PlayerConfig->CommandModeAction)
 				{
+					// 命令模式经 GA_CommandMode（倒计时 + CD）激活/取消，不再直连组件。
 					EI->BindAction(PlayerConfig->CommandModeAction, ETriggerEvent::Started,
-						CmdComp, &UMFCommandComponent::ToggleCommandMode);
+						this, &AMFCharacter::HandleCommandMode);
 				}
 				if (PlayerConfig->CommandClickAction)
 				{
@@ -255,5 +256,42 @@ void AMFCharacter::HandleStartBossBattle()
 	if (AMFGameMode* GM = Cast<AMFGameMode>(GetWorld()->GetAuthGameMode()))
 	{
 		GM->RequestBossPhase();
+	}
+}
+
+void AMFCharacter::HandleCommandMode()
+{
+	if (!AbilitySystemComponent)
+	{
+		MF_LOG_WARNING(LogMFAI, TEXT("[Command] HandleCommandMode: 无 ASC。"));
+		return;
+	}
+
+	// 调试：确认输入到达了这里 + 该 tag 的技能是否已授予。
+	bool bGranted = false;
+	for (const FGameplayAbilitySpec& Spec : AbilitySystemComponent->GetActivatableAbilities())
+	{
+		if (Spec.Ability && Spec.Ability->GetAssetTags().HasTag(MFGameplayTags::Ability_Player_CommandMode))
+		{
+			bGranted = true;
+			break;
+		}
+	}
+	MF_LOG(LogMFAI, TEXT("[Command] HandleCommandMode 触发。CommandMode GA 已授予=%d"), bGranted ? 1 : 0);
+
+	if (AbilitySystemComponent->HasMatchingGameplayTag(MFGameplayTags::State_CommandMode))
+	{
+		// 已在命令模式 → 取消 GA_CommandMode（提前退出，进 CD）。
+		const FGameplayTagContainer CancelTags(MFGameplayTags::Ability_Player_CommandMode);
+		AbilitySystemComponent->CancelAbilities(&CancelTags);
+		MF_LOG(LogMFAI, TEXT("[Command] 已在命令模式 → 取消（提前退出）。"));
+	}
+	else
+	{
+		// 否则激活；冷却中 / 死亡时会被 ActivationBlockedTags 自动挡掉。
+		const bool bActivated = AbilitySystemComponent->TryActivateAbilitiesByTag(
+			FGameplayTagContainer(MFGameplayTags::Ability_Player_CommandMode));
+		MF_LOG(LogMFAI, TEXT("[Command] TryActivate(CommandMode)=%d（0 且已授予=被冷却/死亡挡；0 且未授予=需加进 PlayerConfig.DefaultAbilities）。"),
+			bActivated ? 1 : 0);
 	}
 }
