@@ -37,6 +37,9 @@ public:
 	/** 玩家指令组件访问器（供 Pawn 在 SetupPlayerInputComponent 绑定命令输入）。 */
 	UMFCommandComponent* GetCommandComponent() const { return CommandComp; }
 
+	/** 玩家配置访问器（供指令组件读取命令模式倍率等——配置只在 Config 上，不在蓝图）。 */
+	const UMFPlayerConfig* GetPlayerConfig() const { return PlayerConfig; }
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void OnPossess(APawn* InPawn) override;

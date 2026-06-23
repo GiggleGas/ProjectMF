@@ -80,6 +80,15 @@ public:
 	TObjectPtr<UInputAction> CommandClickAction;
 
 	// -----------------------------------------------------------------------
+	// 指令系统 / 林克时间
+	// -----------------------------------------------------------------------
+
+	/** 命令模式（林克时间）下的全局时间倍率：越小越慢。经 UMFTimeControlSubsystem 应用。 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Command",
+		meta = (ClampMin = "0.01", ClampMax = "1.0"))
+	float CommandModeTimeDilation = 0.2f;
+
+	// -----------------------------------------------------------------------
 	// UI — 界面配置
 	// -----------------------------------------------------------------------
 

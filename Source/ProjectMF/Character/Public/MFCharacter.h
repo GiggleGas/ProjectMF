@@ -33,6 +33,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Camera")
 	UMFCameraController* GetCameraController() const { return CameraController; }
 
+	/** 玩家相机组件访问器（供命令模式驱动后处理：去色 / 暗角）。 */
+	UCameraComponent* GetCameraComponent() const { return CameraComponent; }
+
 protected:
 	virtual void BeginPlay() override;
 

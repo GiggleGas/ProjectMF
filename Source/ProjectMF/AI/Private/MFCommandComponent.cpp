@@ -6,13 +6,20 @@
 #include "MFPetCommandComponent.h"
 #include "MFPetBase.h"
 #include "MFGameplayTags.h"
+#include "MFPlayerController.h"
+#include "MFPlayerConfig.h"
+#include "MFCharacter.h"
+#include "MFTimeControlSubsystem.h"
 #include "MFLog.h"
+
+#include "Camera/CameraComponent.h"
 
 #include "AbilitySystemComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/Pawn.h"
 #include "EngineUtils.h"
 #include "DrawDebugHelpers.h"
+#include "Engine/World.h"
 
 UMFCommandComponent::UMFCommandComponent()
 {
@@ -55,7 +62,18 @@ void UMFCommandComponent::EnterCommandMode()
 		PC->bEnableMouseOverEvents = true;
 	}
 
-	// M4：在此 SetGlobalTimeDilation 放慢世界。
+	// 林克时间：经公共子系统请求全局减速（多源叠加，最极端者生效）。
+	if (UWorld* World = GetWorld())
+	{
+		if (UMFTimeControlSubsystem* TC = World->GetSubsystem<UMFTimeControlSubsystem>())
+		{
+			TC->RequestTimeDilation(this, GetCommandModeDilation());
+		}
+	}
+
+	ApplyCommandModePostProcess(true);
+
+	OnCommandModeChanged.Broadcast(true);
 	MF_LOG(LogMFAI, TEXT("[Command] 进入命令模式"));
 }
 
@@ -71,7 +89,18 @@ void UMFCommandComponent::ExitCommandMode()
 		PC->bEnableClickEvents = false;
 	}
 
-	// M4：在此恢复 SetGlobalTimeDilation(1.0)。
+	// 林克时间：撤销本组件的减速请求（子系统重算后恢复或保留其它来源）。
+	if (UWorld* World = GetWorld())
+	{
+		if (UMFTimeControlSubsystem* TC = World->GetSubsystem<UMFTimeControlSubsystem>())
+		{
+			TC->ReleaseTimeDilation(this);
+		}
+	}
+
+	ApplyCommandModePostProcess(false);
+
+	OnCommandModeChanged.Broadcast(false);
 	MF_LOG(LogMFAI, TEXT("[Command] 退出命令模式"));
 }
 
@@ -232,6 +261,57 @@ void UMFCommandComponent::IssuePetReadyManualSkill(AMFPetBase* Pet)
 APlayerController* UMFCommandComponent::GetPC() const
 {
 	return Cast<APlayerController>(GetOwner());
+}
+
+float UMFCommandComponent::GetCommandModeDilation() const
+{
+	if (const AMFPlayerController* MFPC = Cast<AMFPlayerController>(GetOwner()))
+	{
+		if (const UMFPlayerConfig* Cfg = MFPC->GetPlayerConfig())
+		{
+			return Cfg->CommandModeTimeDilation;
+		}
+	}
+	return 0.2f; // 兜底
+}
+
+void UMFCommandComponent::ApplyCommandModePostProcess(bool bEnable)
+{
+	const APlayerController* PC = GetPC();
+	const AMFCharacter* Char = PC ? Cast<AMFCharacter>(PC->GetPawn()) : nullptr;
+	UCameraComponent* Cam = Char ? Char->GetCameraComponent() : nullptr;
+	if (!Cam)
+	{
+		return;
+	}
+
+	// 只切换我们这两个 override（相机 PostProcessBlendWeight 默认 1.0，关闭=不覆盖即透传）。
+	FPostProcessSettings& PP = Cam->PostProcessSettings;
+	if (bEnable)
+	{
+		PP.bOverride_ColorSaturation   = true;
+		PP.ColorSaturation             = FVector4(0.3f, 0.3f, 0.3f, 1.0f); // 接近去色
+		PP.bOverride_VignetteIntensity = true;
+		PP.VignetteIntensity           = 1.0f;                              // 暗角
+	}
+	else
+	{
+		PP.bOverride_ColorSaturation   = false;
+		PP.bOverride_VignetteIntensity = false;
+	}
+}
+
+void UMFCommandComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	// 兜底：组件销毁 / 关卡切换时撤销减速请求，防止残留慢动作。
+	if (UWorld* World = GetWorld())
+	{
+		if (UMFTimeControlSubsystem* TC = World->GetSubsystem<UMFTimeControlSubsystem>())
+		{
+			TC->ReleaseTimeDilation(this);
+		}
+	}
+	Super::EndPlay(EndPlayReason);
 }
 
 // ============================================================================

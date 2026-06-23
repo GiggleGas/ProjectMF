@@ -11,6 +11,9 @@ class AActor;
 class AMFPetBase;
 class APlayerController;
 
+/** 命令模式开关变化（true=进入）。HUD / BP 绑此驱动后处理（去色/暗角）+ 提示，表现不写死在 C++。 */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMFOnCommandModeChanged, bool, bActive);
+
 /**
  * UMFCommandComponent — 玩家侧指令组件，挂在 AMFPlayerController 上。
  *
@@ -29,6 +32,11 @@ public:
 	UMFCommandComponent();
 
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
+	/** 命令模式开关变化时广播（true=进入）。供 HUD/BP 驱动后处理与提示。 */
+	UPROPERTY(BlueprintAssignable, Category = "MF|Command")
+	FMFOnCommandModeChanged OnCommandModeChanged;
 
 	// -----------------------------------------------------------------------
 	// 命令模式（绑定到输入）
@@ -84,6 +92,12 @@ private:
 	void        IssuePetReadyManualSkill(AMFPetBase* Pet);
 
 	APlayerController* GetPC() const;
+
+	/** 从 PlayerConfig 读命令模式时间倍率（配置只在 Config，不在蓝图）；取不到用 0.2 兜底。 */
+	float GetCommandModeDilation() const;
+
+	/** 命令模式后处理：开启=玩家相机去色 + 暗角；关闭=清除。代码驱动，不依赖 PP 材质/蓝图。 */
+	void ApplyCommandModePostProcess(bool bEnable);
 
 	// 状态
 	bool bCommandModeActive   = false;
