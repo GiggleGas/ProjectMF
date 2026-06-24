@@ -199,6 +199,12 @@ namespace MFGameplayTags
 		"Command-mode cooldown identity. Applied (for a duration) on GA_CommandMode end; "
 		"blocks re-activation via ActivationBlockedTags while present.");
 
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
+		Cooldown_Ability,
+		"MF.Cooldown.Ability",
+		"Generic placeholder granted by UMFCooldownGameplayEffect CDO to satisfy the Blueprint "
+		"validator. Actual per-ability cooldown identity is added dynamically via DynamicGrantedTags.");
+
 	// ----- Effect 身份标签（MF.Effect.*）-----
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Effect, "MF.Effect",
 		"Parent category for all MF gameplay effects (combo / area identity).");

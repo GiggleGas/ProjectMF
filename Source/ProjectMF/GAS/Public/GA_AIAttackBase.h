@@ -158,11 +158,41 @@ private:
 	void OnSustainedTickInternal();
 	void ClearTimers();
 
+	// --- 多波次（撼地等）---
+
+	/** 是否处于波次模式（bWaveMode 且 Waves 非空）。 */
+	bool IsWaveMode() const;
+
+	/** 当前波（波次模式且下标有效时返回，否则 nullptr）。 */
+	const struct FMFAttackWave* CurrentWave() const;
+
+	/** 本轮检测的有效半径：波次模式取当前波 Radius，否则取 AttackData->Range。 */
+	float GetEffectiveRange() const;
+
+	/** 本轮检测的有效内半径（环形）：波次模式取当前波 InnerRadius，否则 0。 */
+	float GetEffectiveInnerRadius() const;
+
+	/** 本轮伤害系数：波次模式取当前波 DamageScale，否则 1。 */
+	float GetEffectiveDamageScale() const;
+
+	/** 推进到下一波并打击；末波后收尾。 */
+	void OnWaveTick();
+
+	/** 显示/更新“下一波”落点圆预警（复用单一 TelegraphHandle）。 */
+	void ShowWaveTelegraph(int32 WaveIdx);
+
+	/** 隐藏波次预警（幂等）。 */
+	void HideWaveTelegraph();
+
 	FTimerHandle InitialHitTimer;
 	FTimerHandle RepeatTimer;
 
 	int32  HitsFired          = 0;
 	int32  SustainedTicksFired = 0;
+
+	/** 波次模式：当前波下标 + 已排到当前波的累计时间（自激活起，秒）。 */
+	int32  CurrentWaveIndex   = 0;
+	float  WaveTimeAccum      = 0.f;
 
 	/**
 	 * 本次释放中已施加过命中附加效果(OnHitEffects)的目标。

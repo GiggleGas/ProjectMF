@@ -225,6 +225,13 @@ namespace MFGameplayTags
 	/** 命令模式冷却身份标签：GA_CommandMode 结束后施加一段时长，期间 ActivationBlockedTags 拦截再进。 */
 	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Cooldown_Player_CommandMode);
 
+	/**
+	 * 通用技能冷却占位标签。仅用于满足 UE 蓝图校验器——
+	 * UMFCooldownGameplayEffect CDO 须至少静态授予一个标签，否则编辑器报"grants no tags"警告。
+	 * 实际冷却身份仍由 ApplyCooldown 运行时写入 DynamicGrantedTags（即技能自身 AbilityTag）。
+	 */
+	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Cooldown_Ability);
+
 	// -----------------------------------------------------------------------
 	// Effect Tags（MF.Effect.*）—— 效果身份标签
 	// 由各效果 GE（UMFGameplayEffectBase::EffectTag）授予到目标，

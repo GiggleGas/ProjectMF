@@ -4,6 +4,7 @@
 
 #include "MFAttackAbilityData.h"
 #include "MFCombatStatics.h"
+#include "MFTelegraphSubsystem.h"
 #include "MFGameplayTags.h"
 #include "MFFactionStatics.h"
 #include "MFCharacterBase.h"
@@ -123,6 +124,8 @@ void UGA_AIAttackBase::ActivateAbility(
 	CachedActivationInfo   = ActivationInfo;
 	HitsFired              = 0;
 	SustainedTicksFired    = 0;
+	CurrentWaveIndex       = 0;
+	WaveTimeAccum          = AttackData->HitDelaySeconds; // 第 1 波在前摇结束时落地
 	OnHitEffectsAppliedTargets.Reset();
 
 	// Tag: mark character as attacking
@@ -131,12 +134,20 @@ void UGA_AIAttackBase::ActivateAbility(
 		ASC->AddLooseGameplayTag(MFGameplayTags::State_Attacking);
 	}
 
-	MF_LOG(LogMFAbility, TEXT("[GA_AIAttackBase] %s activated. Shape=%d HitDelay=%.2fs bMultiHit=%d bSustained=%d"),
+	MF_LOG(LogMFAbility, TEXT("[GA_AIAttackBase] %s activated. Shape=%d HitDelay=%.2fs bMultiHit=%d bSustained=%d bWaveMode=%d Waves=%d"),
 		*GetNameSafe(GetAvatarActorFromActorInfo()),
 		static_cast<int32>(AttackData->ShapeType),
 		AttackData->HitDelaySeconds,
 		AttackData->bMultiHit ? 1 : 0,
-		AttackData->bSustained ? 1 : 0);
+		AttackData->bSustained ? 1 : 0,
+		AttackData->bWaveMode ? 1 : 0,
+		AttackData->Waves.Num());
+
+	// 波次模式：前摇期就亮出第 1 波的落点圆预警。
+	if (IsWaveMode())
+	{
+		ShowWaveTelegraph(0);
+	}
 
 	// Play animation override if assigned
 	if (AttackData->AttackAnim)
@@ -174,6 +185,9 @@ void UGA_AIAttackBase::EndAbility(
 	bool                                 bWasCancelled)
 {
 	ClearTimers();
+
+	// 波次预警兜底清理（中断/取消时可能尚有残留圈）。
+	HideWaveTelegraph();
 
 	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo())
 	{
@@ -217,6 +231,31 @@ TArray<AActor*> UGA_AIAttackBase::CollectTargets_Implementation() const
 	// ObjectTypeQuery3 = ECC_Pawn
 	const TArray<TEnumAsByte<EObjectTypeQuery>> PawnType = { ObjectTypeQuery3 };
 	const TArray<AActor*> Ignore = { GetAvatarActorFromActorInfo() };
+
+	// 波次模式：忽略 ShapeType，以本波半径做圆/环检测（撼地扩散波）。
+	if (IsWaveMode())
+	{
+		TArray<AActor*> Hits;
+		UKismetSystemLibrary::SphereOverlapActors(
+			World, Origin, GetEffectiveRange(), PawnType, nullptr, Ignore, Hits);
+
+		const float Inner = GetEffectiveInnerRadius();
+		if (Inner <= 0.f)
+		{
+			return Hits; // 实心圆
+		}
+
+		// 环形：剔除水平距离 < 内半径的目标。
+		const float InnerSq = Inner * Inner;
+		for (AActor* Actor : Hits)
+		{
+			if (Actor && FVector::DistSquaredXY(Actor->GetActorLocation(), Origin) >= InnerSq)
+			{
+				Results.Add(Actor);
+			}
+		}
+		return Results;
+	}
 
 	switch (AttackData->ShapeType)
 	{
@@ -272,8 +311,9 @@ void UGA_AIAttackBase::ApplyDamageToTarget_Implementation(AActor* Target)
 		UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Target);
 	UAbilitySystemComponent* SourceASC = GetAbilitySystemComponentFromActorInfo();
 
-	// 伤害逐轮施加（DamageGE 为空则跳过）。
-	UMFCombatStatics::ApplyDamage(SourceASC, TargetASC, AttackData->DamageGE, AttackData->DamageMultiplier);
+	// 伤害逐轮施加（DamageGE 为空则跳过）；波次模式按当前波 DamageScale 缩放。
+	const float Mult = AttackData->DamageMultiplier * GetEffectiveDamageScale();
+	UMFCombatStatics::ApplyDamage(SourceASC, TargetASC, AttackData->DamageGE, Mult);
 
 	// 命中附加效果（眩晕/减速等控制类）每次释放对每个目标只施加一次：
 	// 多段/持续攻击会逐轮命中同一目标，若每轮都施加会反复眩晕/抖动；伤害逐轮、控制一次。
@@ -339,7 +379,21 @@ void UGA_AIAttackBase::ExecuteHitRound()
 
 	if (bDebug && World)
 	{
-		DrawAttackShape(World, AttackData, Origin, Direction, DebugDur);
+		if (IsWaveMode())
+		{
+			// 波次模式：画本波圆/环（与实际检测一致），避免误画静态 Range 球。
+			DrawDebugCircle(World, Origin, GetEffectiveRange(), 24, FColor::Yellow, false, DebugDur, 0, 3.f,
+				FVector(1.f, 0.f, 0.f), FVector(0.f, 1.f, 0.f), false);
+			if (GetEffectiveInnerRadius() > 0.f)
+			{
+				DrawDebugCircle(World, Origin, GetEffectiveInnerRadius(), 24, FColor::Silver, false, DebugDur, 0, 2.f,
+					FVector(1.f, 0.f, 0.f), FVector(0.f, 1.f, 0.f), false);
+			}
+		}
+		else
+		{
+			DrawAttackShape(World, AttackData, Origin, Direction, DebugDur);
+		}
 	}
 
 	int32 ValidCount = 0;
@@ -380,6 +434,33 @@ void UGA_AIAttackBase::ScheduleTimers()
 	if (!AttackData) return;
 	UWorld* World = GetWorld();
 	if (!World) return;
+
+	// 波次模式优先（忽略 bMultiHit / bSustained）：刚落地一波，排下一波或收尾。
+	if (IsWaveMode())
+	{
+		const int32 Next = CurrentWaveIndex + 1;
+		if (AttackData->Waves.IsValidIndex(Next))
+		{
+			const float Gap = FMath::Max(AttackData->Waves[Next].Interval, 0.01f);
+			WaveTimeAccum += Gap;
+			ShowWaveTelegraph(Next); // 预警切到下一波半径，显示到它落地
+			World->GetTimerManager().SetTimer(
+				RepeatTimer, this, &UGA_AIAttackBase::OnWaveTick, Gap, false);
+		}
+		else
+		{
+			// 末波已落地：撤预警，按动画/AbilityDuration 补足收尾再结束。
+			HideWaveTelegraph();
+			const float EffectiveDuration =
+				(AttackData->AttackAnim && AttackData->AttackAnim->GetTotalDuration() > 0.f)
+					? AttackData->AttackAnim->GetTotalDuration()
+					: AttackData->AbilityDuration;
+			const float Remaining = FMath::Max(EffectiveDuration - WaveTimeAccum, 0.05f);
+			World->GetTimerManager().SetTimer(
+				RepeatTimer, this, &UGA_AIAttackBase::OnAttackEnd_Implementation, Remaining, false);
+		}
+		return;
+	}
 
 	if (AttackData->bSustained)
 	{
@@ -462,4 +543,79 @@ void UGA_AIAttackBase::ClearTimers()
 		World->GetTimerManager().ClearTimer(InitialHitTimer);
 		World->GetTimerManager().ClearTimer(RepeatTimer);
 	}
+}
+
+// ============================================================================
+// Private — 多波次（撼地等）
+// ============================================================================
+
+bool UGA_AIAttackBase::IsWaveMode() const
+{
+	return AttackData && AttackData->bWaveMode && AttackData->Waves.Num() > 0;
+}
+
+const FMFAttackWave* UGA_AIAttackBase::CurrentWave() const
+{
+	return (IsWaveMode() && AttackData->Waves.IsValidIndex(CurrentWaveIndex))
+		? &AttackData->Waves[CurrentWaveIndex] : nullptr;
+}
+
+float UGA_AIAttackBase::GetEffectiveRange() const
+{
+	if (const FMFAttackWave* W = CurrentWave()) return W->Radius;
+	return AttackData ? AttackData->Range : 0.f;
+}
+
+float UGA_AIAttackBase::GetEffectiveInnerRadius() const
+{
+	const FMFAttackWave* W = CurrentWave();
+	return W ? W->InnerRadius : 0.f;
+}
+
+float UGA_AIAttackBase::GetEffectiveDamageScale() const
+{
+	const FMFAttackWave* W = CurrentWave();
+	return W ? W->DamageScale : 1.f;
+}
+
+void UGA_AIAttackBase::OnWaveTick()
+{
+	if (!IsWaveMode()) return;
+
+	CurrentWaveIndex++;
+	ExecuteHitRound(); // 用当前波几何（半径/内半径/伤害系数）
+	ScheduleTimers();  // 排下一波 / 收尾（含预警切换）
+}
+
+void UGA_AIAttackBase::ShowWaveTelegraph(int32 WaveIdx)
+{
+	if (!IsWaveMode() || !AttackData->Waves.IsValidIndex(WaveIdx)) return;
+
+	UMFTelegraphSubsystem* TG = GetTelegraphSubsystem();
+	if (!TG) return;
+
+	FMFTelegraphRequest Req;
+	Req.Shape    = EMFTelegraphShape::Circle;
+	Req.Location = GetDetectionOrigin();
+	Req.Radius   = AttackData->Waves[WaveIdx].Radius;
+	Req.Color    = FLinearColor(1.f, 0.15f, 0.1f, 0.5f);
+
+	// 复用单一句柄：已有则更新半径（当前波→下一波），否则新建。
+	if (TelegraphHandle.IsValid())
+	{
+		TG->Update(TelegraphHandle, Req);
+	}
+	else
+	{
+		TelegraphHandle = TG->Show(Req);
+	}
+}
+
+void UGA_AIAttackBase::HideWaveTelegraph()
+{
+	if (UMFTelegraphSubsystem* TG = GetTelegraphSubsystem())
+	{
+		TG->Hide(TelegraphHandle);
+	}
+	TelegraphHandle.Invalidate();
 }

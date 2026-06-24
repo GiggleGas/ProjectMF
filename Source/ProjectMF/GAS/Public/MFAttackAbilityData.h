@@ -126,5 +126,24 @@ public:
 		meta = (ClampMin = "0.05", EditCondition = "bSustained"))
 	float TickInterval = 0.5f;
 
+	// -----------------------------------------------------------------------
+	// 多波次（原地多段、每段范围不同——如撼地扩散冲击波）
+	// -----------------------------------------------------------------------
+
+	/**
+	 * 开启后忽略 bMultiHit / bSustained，按 Waves 列表逐波打击。
+	 * 检测形状强制为以检测原点为中心的圆/环（忽略 ShapeType）；每波用各自 Radius。
+	 * 时序：前摇 HitDelaySeconds 后第 1 波落地，之后每波相对上一波等待该波 Interval；
+	 *       末波后按 AbilityDuration（或动画时长）补足收尾再 EndAbility。
+	 * 预警：复用预警子系统，始终显示“下一波”的落点圆（当前波落地→切到下一波半径）。
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Attack|Wave")
+	bool bWaveMode = false;
+
+	/** 波次列表（按顺序依次落地）。bWaveMode=true 时有效，至少配 1 项。 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Attack|Wave",
+		meta = (EditCondition = "bWaveMode"))
+	TArray<FMFAttackWave> Waves;
+
 	// 伤害字段（DamageGE / DamageMultiplier）与目标过滤（TargetFilter）继承自 UMFAttackDataBase。
 };

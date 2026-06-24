@@ -80,3 +80,34 @@ struct FMFOnHitEffect
 		EditCondition = "Kind == EMFOnHitEffectKind::Slow || Kind == EMFOnHitEffectKind::Vulnerable || Kind == EMFOnHitEffectKind::DamageUp || Kind == EMFOnHitEffectKind::Burn || Kind == EMFOnHitEffectKind::Heal"))
 	float Magnitude = 1.f;
 };
+
+/**
+ * 多波次攻击的单波配置（用于撼地这类"原地多段、每段范围不同"的径向 AOE）。
+ *
+ * 波次模式（UMFAttackAbilityData::bWaveMode）下，攻击在检测原点按本波 Range 做球形检测，
+ * 逐波依次落地；每波可有独立半径 / 内半径（环形）/ 伤害系数。
+ */
+USTRUCT(BlueprintType)
+struct FMFAttackWave
+{
+	GENERATED_BODY()
+
+	/**
+	 * 本波相对“上一波落地”的间隔（秒）。
+	 * 第 1 波（下标 0）此值忽略——它在前摇 HitDelaySeconds 结束时落地。
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Wave", meta = (ClampMin = "0.0"))
+	float Interval = 0.3f;
+
+	/** 本波命中半径（cm）；覆盖数据资产的 Range。 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Wave", meta = (ClampMin = "1.0"))
+	float Radius = 300.f;
+
+	/** 可选内半径（cm）。>0 = 环形（仅命中 [Inner, Radius] 环带，水平距离判定）；0 = 实心圆。 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Wave", meta = (ClampMin = "0.0"))
+	float InnerRadius = 0.f;
+
+	/** 本波伤害系数（最终倍率 = 数据资产 DamageMultiplier × 此值）。可配“最后一砸最重”。 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Wave", meta = (ClampMin = "0.0"))
+	float DamageScale = 1.f;
+};
