@@ -86,6 +86,10 @@ void UGA_AIMoveAbilityBase::ActivateAbility(
 	// 初始瞄准：激活瞬间锁定一次方向/落点（不跟随时整段前摇都是这个锁定的预警）。
 	RefreshAim();
 
+	// 预警：前摇开始即显示（各技能在 Begin/Update/End 里实现形状，默认空=不显示）。
+	InitTelegraph();
+	BeginTelegraph();
+
 	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo())
 	{
 		ASC->AddLooseGameplayTag(GetActiveStateTag());
@@ -122,6 +126,9 @@ void UGA_AIMoveAbilityBase::EndAbility(
 	bool                                 bWasCancelled)
 {
 	ClearAllTimers();
+
+	// 安全兜底：被打断（眩晕/死亡）时可能尚未走到 StartRecovery，确保预警被清掉（幂等）。
+	EndTelegraph();
 
 	// 被打断（眩晕/死亡）时可能停在位移中途——确保移动模式归还。
 	RestoreMovement();
@@ -162,6 +169,7 @@ void UGA_AIMoveAbilityBase::OnWindupFinished()
 void UGA_AIMoveAbilityBase::WindupFollowTick()
 {
 	RefreshAim();
+	UpdateTelegraph(); // 跟随期：预警随重新锁定的方向/落点移动
 }
 
 void UGA_AIMoveAbilityBase::StopWindupFollow()
@@ -193,6 +201,9 @@ void UGA_AIMoveAbilityBase::StartRecovery()
 	{
 		World->GetTimerManager().ClearTimer(MotionTimer);
 	}
+
+	// 位移结束（命中/落地）→ 撤掉预警。
+	EndTelegraph();
 
 	RestoreMovement();
 

@@ -201,3 +201,33 @@ void UGA_Charge::SteerAimDirectionToward(const FVector& Desired, float MaxStepDe
 	const float Sign   = (CrossZ >= 0.f) ? 1.f : -1.f;
 	AimDirection = Cur.RotateAngleAxis(MaxStepDeg * Sign, FVector::UpVector).GetSafeNormal();
 }
+
+// ============================================================================
+// Telegraph（冲撞走廊矩形）
+// ============================================================================
+
+bool UGA_Charge::BuildTelegraphRequest(FMFTelegraphRequest& OutRequest) const
+{
+	const AActor* Avatar = GetAvatarActorFromActorInfo();
+	if (!ChargeData || !Avatar)
+	{
+		return false;
+	}
+
+	const FVector Dir = AimDirection.GetSafeNormal();
+	if (Dir.IsNearlyZero())
+	{
+		return false;
+	}
+
+	const float Length = ChargeData->MaxDistance;       // 走廊长 = 最大冲刺距离
+	const float Width  = ChargeData->ChargeRadius * 2.f; // 走廊宽 = 命中直径
+
+	OutRequest.Shape    = EMFTelegraphShape::Rect;
+	// 矩形中心 = 起点沿朝向前移半个长度（从脚下铺到最远点）。
+	OutRequest.Location = Avatar->GetActorLocation() + Dir * (Length * 0.5f);
+	OutRequest.Rotation = Dir.Rotation(); // 仅取 Yaw
+	OutRequest.BoxSize  = FVector2D(Length, Width); // (长, 宽)
+	OutRequest.Color    = FLinearColor(1.f, 0.15f, 0.1f, 0.5f);
+	return true;
+}

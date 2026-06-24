@@ -4,11 +4,58 @@
 #include "MFCombatStatics.h"
 #include "MFAttackDataBase.h"
 #include "MFCooldownGameplayEffect.h"
+#include "MFTelegraphSubsystem.h"
 #include "MFGameplayTags.h"
 
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "GameplayEffect.h"
+#include "Engine/World.h"
+
+UMFTelegraphSubsystem* UMFPetGameplayAbility::GetTelegraphSubsystem() const
+{
+	const UWorld* World = GetWorld();
+	return World ? World->GetSubsystem<UMFTelegraphSubsystem>() : nullptr;
+}
+
+void UMFPetGameplayAbility::BeginTelegraph()
+{
+	FMFTelegraphRequest Request;
+	if (!BuildTelegraphRequest(Request))
+	{
+		return; // 本技能不显示预警
+	}
+	if (UMFTelegraphSubsystem* TG = GetTelegraphSubsystem())
+	{
+		TelegraphHandle = TG->Show(Request);
+	}
+}
+
+void UMFPetGameplayAbility::UpdateTelegraph()
+{
+	if (!TelegraphHandle.IsValid())
+	{
+		return;
+	}
+	FMFTelegraphRequest Request;
+	if (!BuildTelegraphRequest(Request))
+	{
+		return;
+	}
+	if (UMFTelegraphSubsystem* TG = GetTelegraphSubsystem())
+	{
+		TG->Update(TelegraphHandle, Request);
+	}
+}
+
+void UMFPetGameplayAbility::EndTelegraph()
+{
+	if (UMFTelegraphSubsystem* TG = GetTelegraphSubsystem())
+	{
+		TG->Hide(TelegraphHandle);
+	}
+	TelegraphHandle.Invalidate();
+}
 
 UMFPetGameplayAbility::UMFPetGameplayAbility()
 {

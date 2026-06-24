@@ -37,6 +37,10 @@ protected:
 	virtual FGameplayTag        GetActiveStateTag() const override;
 	virtual void                BeginMovement() override;
 
+	// 预警：冲撞走廊矩形（长=MaxDistance、宽=2×ChargeRadius，沿锁定方向）。
+	// 基类在前摇期显示、跟随期随朝向更新、命中/结束撤掉。
+	virtual bool BuildTelegraphRequest(FMFTelegraphRequest& OutRequest) const override;
+
 private:
 
 	void DashTick();

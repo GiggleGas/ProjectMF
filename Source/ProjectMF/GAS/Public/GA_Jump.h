@@ -39,10 +39,16 @@ protected:
 	virtual FGameplayTag        GetActiveStateTag() const override;
 	virtual void                BeginMovement() override;
 
+	// 预警：落点圆形（落地 AOE 范围）。基类在前摇期显示、跟随期更新、落地/结束撤掉。
+	virtual bool BuildTelegraphRequest(FMFTelegraphRequest& OutRequest) const override;
+
 private:
 
 	void JumpTick();
 	void DoLanding();
+
+	/** 由当前 avatar 位置 + 锁定瞄准算出落点（已按 MaxJumpDistance 夹紧）；预警与起跳共用。 */
+	FVector ComputeLandPos() const;
 
 	FVector StartPos  = FVector::ZeroVector;
 	FVector LandPos   = FVector::ZeroVector;

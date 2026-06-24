@@ -4,6 +4,7 @@
 
 #include "MFJumpData.h"
 #include "MFCombatStatics.h"
+#include "MFTelegraphSubsystem.h"
 #include "MFGameplayTags.h"
 #include "MFCharacterBase.h"
 #include "MFLog.h"
@@ -49,21 +50,12 @@ void UGA_Jump::BeginMovement()
 	StartPos = Char->GetActorLocation();
 	Elapsed  = 0.f;
 
-	// 落点 = 锁定的目标位置（直接选目标点）；无目标则用瞄准方向定距到最大距离。
-	FVector Land = bAimHasTarget ? AimTargetLocation : (StartPos + AimDirection * JumpData->MaxJumpDistance);
+	// 落点 = 锁定瞄准算出（已按 MaxJumpDistance 夹紧）；与前摇预警共用同一计算。
+	LandPos = ComputeLandPos();
 
-	// 水平距离夹紧到 MaxJumpDistance（Z 保留落点高度）。
-	FVector Flat = Land - StartPos;
+	FVector Flat = LandPos - StartPos;
 	Flat.Z = 0.f;
-	float Dist = Flat.Size();
-	if (Dist > JumpData->MaxJumpDistance)
-	{
-		const FVector Dir = Flat / Dist;
-		Land.X = StartPos.X + Dir.X * JumpData->MaxJumpDistance;
-		Land.Y = StartPos.Y + Dir.Y * JumpData->MaxJumpDistance;
-		Dist = JumpData->MaxJumpDistance;
-	}
-	LandPos = Land;
+	const float Dist = Flat.Size();
 
 	// 弧高按 实际距离 / 最大距离 比例缩放，封顶 MaxJumpHeight——短跳低弧、满距离才到峰高，
 	// 水平(MaxJumpDistance)与垂直(MaxJumpHeight)都不会冲出屏幕。
@@ -103,9 +95,6 @@ void UGA_Jump::JumpTick()
 	if (IsMoveDebugEnabled())
 	{
 		DrawDebugSphere(World, Pos, 30.f, 8, FColor::Cyan, false, 0.5f, 0, 1.5f);
-		// 落点警示环（临时预警，正式预警系统后置）。
-		DrawDebugCircle(World, LandPos, JumpData->ImpactRadius, 24, FColor::Yellow, false, 0.5f, 0, 3.f,
-			FVector(1.f, 0.f, 0.f), FVector(0.f, 1.f, 0.f), false);
 	}
 
 	if (t >= 1.f)
@@ -169,4 +158,47 @@ void UGA_Jump::DoLanding()
 		*GetNameSafe(GetAvatarActorFromActorInfo()), HitTargets.Num());
 
 	StartRecovery();
+}
+
+// ============================================================================
+// Telegraph（落点圆 = 落地 AOE 范围）
+// ============================================================================
+
+FVector UGA_Jump::ComputeLandPos() const
+{
+	const AActor* Avatar = GetAvatarActorFromActorInfo();
+	if (!Avatar || !JumpData)
+	{
+		return FVector::ZeroVector;
+	}
+
+	const FVector Origin = Avatar->GetActorLocation();
+
+	// 落点 = 锁定的目标位置（直接选目标点）；无目标则用瞄准方向定距到最大距离。
+	FVector Land = bAimHasTarget ? AimTargetLocation : (Origin + AimDirection * JumpData->MaxJumpDistance);
+
+	// 水平距离夹紧到 MaxJumpDistance（Z 保留落点高度）。
+	FVector Flat = Land - Origin;
+	Flat.Z = 0.f;
+	const float Dist = Flat.Size();
+	if (Dist > JumpData->MaxJumpDistance)
+	{
+		const FVector Dir = Flat / Dist;
+		Land.X = Origin.X + Dir.X * JumpData->MaxJumpDistance;
+		Land.Y = Origin.Y + Dir.Y * JumpData->MaxJumpDistance;
+	}
+	return Land;
+}
+
+bool UGA_Jump::BuildTelegraphRequest(FMFTelegraphRequest& OutRequest) const
+{
+	if (!JumpData)
+	{
+		return false;
+	}
+	OutRequest.Shape    = EMFTelegraphShape::Circle;
+	OutRequest.Location = ComputeLandPos();
+	OutRequest.Radius   = JumpData->ImpactRadius;
+	OutRequest.Color    = FLinearColor(1.f, 0.15f, 0.1f, 0.5f); // 半透明红：落地 AOE 预警
+	return true;
 }
