@@ -398,21 +398,42 @@ void AMFGameMode::M1_UnsubscribeAll()
 
 void AMFGameMode::M1_OnPetRosterChanged()
 {
-	if (CurrentPhase != EMFGamePhase::Catching || !M1_CachedPlayer.IsValid() || !GameLoopConfig)
+	if (!M1_CachedPlayer.IsValid() || !GameLoopConfig)
 		return;
 
 	const UMFInventoryComponent* Inv = M1_CachedPlayer->GetInventoryComponent();
 	if (!Inv) return;
 
-	const int32 PetCount = Inv->GetAllPets().Num();
-	const bool  bWas     = bBossPhaseReady;
-	bBossPhaseReady      = (PetCount >= GameLoopConfig->PetsRequiredForEarlyTrigger);
-
-	if (bBossPhaseReady && !bWas)
+	if (CurrentPhase == EMFGamePhase::Catching)
 	{
-		OnBossPhaseReady.Broadcast();
-		MF_LOG(LogMFGameLoop,
-			TEXT("AMFGameMode [M1]: Boss phase ready (%d pets)."), PetCount);
+		// 捕宠阶段：宠物数量达标即可提前触发 Boss。
+		const int32 PetCount = Inv->GetAllPets().Num();
+		const bool  bWas     = bBossPhaseReady;
+		bBossPhaseReady      = (PetCount >= GameLoopConfig->PetsRequiredForEarlyTrigger);
+
+		if (bBossPhaseReady && !bWas)
+		{
+			OnBossPhaseReady.Broadcast();
+			MF_LOG(LogMFGameLoop,
+				TEXT("AMFGameMode [M1]: Boss phase ready (%d pets)."), PetCount);
+		}
+	}
+	else if (CurrentPhase == EMFGamePhase::Boss)
+	{
+		// Boss 阶段：全灭判负。一旦场上出现过出战宠即"武装"，之后存活出战宠归零 → 判负。
+		// HandlePetDied 在广播 OnPetRosterChanged 之前已把死宠移出 ActivePetActors，
+		// 故此处 GetActivePetActors() 计数即为"当前存活出战宠"，最后一只阵亡时为 0。
+		const int32 LivePets = Inv->GetActivePetActors().Num();
+		if (LivePets > 0)
+		{
+			bBossPetsArmed = true;
+		}
+		else if (bBossPetsArmed)
+		{
+			MF_LOG(LogMFGameLoop,
+				TEXT("AMFGameMode [M1]: All summoned pets down — DEFEAT (wipe)."));
+			M1_HandleDefeat();
+		}
 	}
 }
 

@@ -152,6 +152,12 @@ private:
 	float        TimeRemaining   = 0.f;
 	bool         bBossPhaseReady = false;
 
+	/**
+	 * Boss 阶段全灭判负的"武装"标志：一旦场上出现过≥1 只存活出战宠即置 true，
+	 * 之后存活出战宠归零才判负。避免"0 宠进入 Boss 阶段"被误判负。
+	 */
+	bool         bBossPetsArmed  = false;
+
 	FTimerHandle M1_CountdownHandle;
 	FTimerHandle M1_TickHandle;
 
