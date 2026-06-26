@@ -114,8 +114,10 @@ bool UMFCombatStatics::PassesTargetFilter(UAbilitySystemComponent* SourceASC, AA
 		return false;
 	}
 
-	const bool bSameTeam = UMFFactionStatics::AreSameTeam(SourceASC, CandidateASC);
-	return (Filter == EAttackTargetFilter::EnemyOnly) ? !bSameTeam : bSameTeam;
+	// EnemyOnly 走 AreHostile（中立不被误伤）；AllyOnly 走 AreSameTeam。两者互补、非二元取反。
+	return (Filter == EAttackTargetFilter::EnemyOnly)
+		? UMFFactionStatics::AreHostile(SourceASC, CandidateASC)
+		: UMFFactionStatics::AreSameTeam(SourceASC, CandidateASC);
 }
 
 FMFAreaHandle UMFCombatStatics::SpawnAreaEffect(AActor* Instigator, const UMFAreaEffectData* AreaData, const FVector& Location)

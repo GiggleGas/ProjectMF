@@ -6,6 +6,9 @@
 #include "MFLog.h"
 #include "NavigationSystem.h"
 #include "EnvironmentQuery/EnvQueryManager.h"
+#include "MFFactionStatics.h"
+#include "MFGameplayTags.h"
+#include "AbilitySystemComponent.h"
 
 // ============================================================
 // 构造
@@ -14,6 +17,9 @@
 AMFSpawnAIManager::AMFSpawnAIManager()
 {
 	PrimaryActorTick.bCanEverTick = false;
+
+	// 默认敌方：Manager 生成的一律是敌人（同类型被召唤才翻友方，见 SummonPet）。
+	SpawnFactionTags.AddTag(MFGameplayTags::Team_Enemy);
 }
 
 // ============================================================
@@ -188,6 +194,12 @@ void AMFSpawnAIManager::SpawnSinglePet(const FMFSpawnEntry& Entry, const FVector
 
 	// 3. 将 PetConfig 全部配置写入宠物（身份 / GAS / 感知），顺序：先于 StateTree 启动
 	Pet->ApplyPetConfig(PetConfig);
+
+	// 3.5 阵营由 spawn 入口赋予（覆盖 config 里可能残留的 Team.*）：本 Manager 生成的一律敌方。
+	if (!SpawnFactionTags.IsEmpty())
+	{
+		UMFFactionStatics::SetFaction(Pet->GetAbilitySystemComponent(), SpawnFactionTags);
+	}
 
 	// 4. 启动 StateTree（依赖 ApplyPetConfig 已完成感知组件初始化）
 	Controller->RunStateTree(PetConfig->StateTreeAsset);

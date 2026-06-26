@@ -7,6 +7,8 @@
 #include "GameplayTagContainer.h"
 #include "MFRadarSensingComponent.generated.h"
 
+class UAbilitySystemComponent;
+
 /**
  * 当雷达检测到 / 失去一个目标时广播。
  * @param Target  被感知到或离开范围的 Actor。
@@ -29,13 +31,7 @@ struct PROJECTMF_API FMFRadarSensingConfig
 		meta = (ClampMin = "0.0", UIMin = "0.0"))
 	float SensingRadius = 1000.f;
 
-	/**
-	 * 目标过滤标签：目标 ASC 必须拥有至少一个此集合中的标签。
-	 * 典型值：MF.Team.Player（感知玩家阵营）。
-	 * 留空则不过滤阵营，感知所有重叠 Pawn。
-	 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Radar")
-	FGameplayTagContainer TargetTags;
+	// 索敌目标由阵营自动判定（与 owner 敌对即索），不再配置 TargetTags。见 UMFFactionStatics::AreHostile。
 
 	/** 每次扫描的时间间隔（秒）。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Radar",
@@ -78,13 +74,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Radar|Config", meta = (ClampMin = "0.0", UIMin = "0.0"))
 	float SensingRadius = 1000.f;
 
-	/**
-	 * 目标必须拥有（至少一个）的 GameplayTag 集合。
-	 * 典型值：MF.Team.Player（感知玩家阵营）或 MF.Team.Enemy（感知敌对阵营）。
-	 * 留空则对所有重叠 Pawn 生效（不过滤阵营）。
-	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Radar|Config")
-	FGameplayTagContainer TargetTags;
+	// 索敌目标由阵营自动判定（faction-auto，与 owner 敌对即索），不再有 TargetTags 配置。
 
 	/** 每次扫描的时间间隔（秒）。越小响应越快，CPU 开销越高。 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Radar|Config", meta = (ClampMin = "0.05", UIMin = "0.05"))
@@ -147,11 +137,11 @@ private:
 	void PerformScan();
 
 	/**
-	 * 检查候选 Actor 是否通过 TargetTags 过滤。
-	 * 若 TargetTags 为空，任何非 Owner 的 Actor 均通过。
-	 * 否则查询目标 ASC 拥有的标签，至少匹配一个才通过。
+	 * 候选 Actor 是否与 owner 敌对（faction-auto 索敌）。
+	 * 走 UMFFactionStatics::AreHostile：双方都有非空阵营且不共享 → 敌对；中立不被索。
+	 * OwnerASC 由 PerformScan 每次扫描取一次传入（owner 阵营可能运行时翻转，如召唤宠）。
 	 */
-	bool PassesTagFilter(AActor* Candidate) const;
+	bool IsHostile(UAbilitySystemComponent* OwnerASC, AActor* Candidate) const;
 
 	/**
 	 * 在 CVar MF.Debug.RadarSensing 开启时，绘制感知范围球体和目标→AI 箭头。

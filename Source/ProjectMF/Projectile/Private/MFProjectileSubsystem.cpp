@@ -4,6 +4,7 @@
 
 #include "MFProjectileRenderer.h"
 #include "MFGameplayTags.h"
+#include "MFFactionStatics.h"
 #include "MFLog.h"
 
 #include "AbilitySystemComponent.h"
@@ -247,11 +248,10 @@ bool UMFProjectileSubsystem::PassesTargetFilter(
 
 	if (!InstigatorASC || !CandidateASC) return false;
 
-	const bool bInstigatorIsPlayer = InstigatorASC->HasMatchingGameplayTag(MFGameplayTags::Team_Player);
-	const bool bCandidateIsPlayer  = CandidateASC->HasMatchingGameplayTag(MFGameplayTags::Team_Player);
-	const bool bSameTeam           = (bInstigatorIsPlayer == bCandidateIsPlayer);
-
-	return (Inst.TargetFilter == EAttackTargetFilter::EnemyOnly) ? !bSameTeam : bSameTeam;
+	// 统一阵营判定：EnemyOnly 走 AreHostile（中立不被误伤）；AllyOnly 走 AreSameTeam。
+	return (Inst.TargetFilter == EAttackTargetFilter::EnemyOnly)
+		? UMFFactionStatics::AreHostile(InstigatorASC, CandidateASC)
+		: UMFFactionStatics::AreSameTeam(InstigatorASC, CandidateASC);
 }
 
 // ============================================================================

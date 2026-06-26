@@ -58,10 +58,6 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Config")
 	FGameplayTagContainer SummonedPetTeamTags;
 
-	/** 召唤宠物的索敌阵营标签（由 PlayerConfig 注入）。SummonPet 时覆盖宠物雷达 TargetTags。 */
-	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Config")
-	FGameplayTagContainer SummonedPetTargetTags;
-
 	// -----------------------------------------------------------------------
 	// 广播
 	// -----------------------------------------------------------------------

@@ -32,8 +32,10 @@ namespace
 		if (Cand->HasMatchingGameplayTag(MFGameplayTags::State_Dead)) return false;
 		if (Filter == EAttackTargetFilter::All) return true;
 		if (!Source) return false;
-		const bool bSame = UMFFactionStatics::AreSameTeam(Source, Cand);
-		return (Filter == EAttackTargetFilter::EnemyOnly) ? !bSame : bSame;
+		// EnemyOnly 走 AreHostile（中立不被误伤）；AllyOnly 走 AreSameTeam。
+		return (Filter == EAttackTargetFilter::EnemyOnly)
+			? UMFFactionStatics::AreHostile(Source, Cand)
+			: UMFFactionStatics::AreSameTeam(Source, Cand);
 	}
 
 	/** 目标过滤枚举 → 字符串（调试文字用）。 */

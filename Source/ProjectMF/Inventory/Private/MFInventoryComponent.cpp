@@ -334,16 +334,16 @@ AMFPetBase* UMFInventoryComponent::SummonPet(FGuid InstanceID, FVector Location)
 	SpawnedPet->ApplyPetConfig(Config);
 	SpawnedPet->RestoreFromInstance(*InstancePtr);
 
-	// 阵营 + 索敌：宠物 DataAsset 默认是中立/野生配置；召唤宠在此翻转为玩家阵营并改索敌目标。
+	// 阵营：野怪默认敌方，召唤宠在此翻转为玩家阵营。索敌方向由阵营自动判定（faction-auto），无需配置。
 	if (UAbilitySystemComponent* PetASC = SpawnedPet->GetAbilitySystemComponent())
 	{
 		UMFFactionStatics::SetFaction(PetASC, SummonedPetTeamTags);
 		// 召唤标记：StateTree 据此分流（受指令 + 走自动/手动模式）。Actor 销毁(召回/阵亡)时随之失效。
 		PetASC->AddLooseGameplayTag(MFGameplayTags::Pet_Summoned);
 	}
+	// 翻阵营后强制一次扫描，立即按新阵营重算索敌。
 	if (UMFRadarSensingComponent* Radar = SpawnedPet->FindComponentByClass<UMFRadarSensingComponent>())
 	{
-		Radar->TargetTags = SummonedPetTargetTags;
 		Radar->ForceScan();
 	}
 

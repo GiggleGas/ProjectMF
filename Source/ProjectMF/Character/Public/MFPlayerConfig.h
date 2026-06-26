@@ -130,10 +130,7 @@ public:
 	/** 召唤宠物的出生阵营标签。通常为 MF.Team.Player。SummonPet 时通过 SetFaction 写入宠物 ASC。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAS|SummonedPet")
 	FGameplayTagContainer SummonedPetTeamTags;
-
-	/** 召唤宠物的索敌阵营标签（写入雷达 TargetTags）。通常为 MF.Team.Boss + MF.Team.Enemy。 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAS|SummonedPet")
-	FGameplayTagContainer SummonedPetTargetTags;
+	// 索敌方向由阵营自动判定（faction-auto），不再需要配置 SummonedPetTargetTags。
 
 	// -----------------------------------------------------------------------
 	// Combat — 战斗参数

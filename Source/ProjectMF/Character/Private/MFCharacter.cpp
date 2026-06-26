@@ -59,7 +59,6 @@ void AMFCharacter::BeginPlay()
 		InventoryComponent->MaxResourceSlots      = PlayerConfig->MaxResourceSlots;
 		InventoryComponent->MaxPetSlots           = PlayerConfig->MaxPetSlots;
 		InventoryComponent->SummonedPetTeamTags   = PlayerConfig->SummonedPetTeamTags;
-		InventoryComponent->SummonedPetTargetTags = PlayerConfig->SummonedPetTargetTags;
 	}
 
 	Super::BeginPlay();

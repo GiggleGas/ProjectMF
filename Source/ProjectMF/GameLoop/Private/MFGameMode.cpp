@@ -10,6 +10,7 @@
 #include "MFRadarSensingComponent.h"
 #include "MFThreatComponent.h"
 #include "MFFactionStatics.h"
+#include "MFGameplayTags.h"
 #include "MFLog.h"
 #include "AbilitySystemComponent.h"
 #include "Kismet/GameplayStatics.h"
@@ -248,9 +249,10 @@ AMFAICharacter* AMFGameMode::M1_SpawnBoss(const FVector& PlayerLocation)
 	if (auto* Threat = Boss->FindComponentByClass<UMFThreatComponent>())
 		Threat->ApplyConfig(BossCfg.ThreatConfig);
 
-	// 出生阵营：Boss 默认中立，在此写入 Boss 阵营标签（通常 MF.Team.Boss）。
+	// 出生阵营：Boss 归入敌方阵营（Team.Enemy），与小怪同侧——faction-auto 下避免怪与 Boss 互殴。
+	// （原 Team.Boss 已弃用；Boss 身份由 actor 引用 M1_SpawnedBoss 标识，不靠阵营标签。）
 	if (UAbilitySystemComponent* BossASC = Boss->GetAbilitySystemComponent())
-		UMFFactionStatics::SetFaction(BossASC, BossCfg.BossTeamTags);
+		UMFFactionStatics::SetFaction(BossASC, FGameplayTagContainer(MFGameplayTags::Team_Enemy));
 
 	MF_LOG(LogMFGameLoop,
 		TEXT("AMFGameMode [M1]: Boss '%s' spawned at %s."),

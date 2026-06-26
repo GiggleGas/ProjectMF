@@ -138,6 +138,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SpawnAI")
 	TArray<FMFSpawnEntry> SpawnEntries;
 
+	/**
+	 * 本 Manager 生成的 AI 的出生阵营（默认 MF.Team.Enemy）。
+	 * 阵营由 spawn 入口赋予，而非宠物类型 config——同一类型野外是敌、被召唤是友。
+	 * 生成后经 UMFFactionStatics::SetFaction 写入；留空则保持中立。
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SpawnAI")
+	FGameplayTagContainer SpawnFactionTags;
+
 	/** NavMesh 投影时的查询容差（XY 宽松，Z 大以应对坡面）。 */
 	UPROPERTY(EditAnywhere, Category = "SpawnAI|Nav")
 	FVector NavQueryExtent = FVector(50.f, 50.f, 250.f);

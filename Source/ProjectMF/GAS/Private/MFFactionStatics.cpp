@@ -47,3 +47,16 @@ bool UMFFactionStatics::AreSameTeam(const UAbilitySystemComponent* ASCA, const U
 	const FGameplayTagContainer TeamB = GetTeamTags(ASCB);
 	return TeamB.HasAny(TeamA);
 }
+
+bool UMFFactionStatics::AreHostile(const UAbilitySystemComponent* ASCA, const UAbilitySystemComponent* ASCB)
+{
+	if (!ASCA || !ASCB) return false;
+
+	const FGameplayTagContainer TeamA = GetTeamTags(ASCA);
+	if (TeamA.IsEmpty()) return false;  // 中立不与任何人敌对
+
+	const FGameplayTagContainer TeamB = GetTeamTags(ASCB);
+	if (TeamB.IsEmpty()) return false;  // 对中立不敌对
+
+	return !TeamB.HasAny(TeamA);  // 双方都有阵营且不共享 → 敌对
+}

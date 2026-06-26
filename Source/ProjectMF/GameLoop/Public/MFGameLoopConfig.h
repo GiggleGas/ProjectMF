@@ -45,10 +45,7 @@ struct PROJECTMF_API FMFBossSpawnConfig
 	/** Boss 的索敌配置。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss|AI")
 	FMFThreatConfig ThreatConfig;
-
-	/** Boss 的出生阵营标签。通常为 MF.Team.Boss。M1_SpawnBoss 时通过 SetFaction 写入。 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss|AI")
-	FGameplayTagContainer BossTeamTags;
+	// Boss 阵营固定为 Team.Enemy（M1_SpawnBoss 内写死），与小怪同侧，不再配置。
 };
 
 /**

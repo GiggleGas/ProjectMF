@@ -8,6 +8,7 @@
 #include "DrawDebugHelpers.h"
 #include "MFLog.h"
 #include "Engine/OverlapResult.h"
+#include "MFFactionStatics.h"
 
 // ============================================================
 // CVar: MF.Debug.RadarSensing
@@ -121,7 +122,6 @@ int32 UMFRadarSensingComponent::GetPerceivedCount() const
 void UMFRadarSensingComponent::ApplyConfig(const FMFRadarSensingConfig& InConfig)
 {
 	SensingRadius = InConfig.SensingRadius;
-	TargetTags    = InConfig.TargetTags;
 
 	// ScanInterval 变化时需重启 Timer；Radius / Tags 直接写入即可（下次扫描自动生效）。
 	if (!FMath::IsNearlyEqual(InConfig.ScanInterval, ScanInterval) || !ScanTimerHandle.IsValid())
@@ -141,9 +141,9 @@ void UMFRadarSensingComponent::ApplyConfig(const FMFRadarSensingConfig& InConfig
 		}
 	}
 
-	MF_LOG(LogMFAI, TEXT("[RadarSensing] %s: Config applied — Radius=%.0f, Interval=%.2fs, Tags=%s"),
+	MF_LOG(LogMFAI, TEXT("[RadarSensing] %s: Config applied — Radius=%.0f, Interval=%.2fs (faction-auto targeting)"),
 		GetOwner() ? *GetOwner()->GetName() : TEXT("?"),
-		SensingRadius, ScanInterval, *TargetTags.ToStringSimple());
+		SensingRadius, ScanInterval);
 }
 
 void UMFRadarSensingComponent::ForceScan()
@@ -176,13 +176,17 @@ void UMFRadarSensingComponent::PerformScan()
 		QueryParams
 	);
 
-	// --- 2. 收集本次扫描中通过过滤的 Actor ---
+	// owner 阵营每次扫描取一次（召唤宠等运行时可能翻转阵营，需读当前值）。
+	UAbilitySystemComponent* OwnerASC =
+		UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Owner);
+
+	// --- 2. 收集本次扫描中通过阵营过滤（与 owner 敌对）的 Actor ---
 	TSet<TWeakObjectPtr<AActor>> CurrentFrame;
 	for (const FOverlapResult& Hit : Overlaps)
 	{
 		AActor* Candidate = Hit.GetActor();
 		if (!Candidate || Candidate == Owner) { continue; }
-		if (!PassesTagFilter(Candidate)) { continue; }
+		if (!IsHostile(OwnerASC, Candidate)) { continue; }
 
 		CurrentFrame.Add(TWeakObjectPtr<AActor>(Candidate));
 	}
@@ -285,17 +289,11 @@ void UMFRadarSensingComponent::DrawDebugVisualization(const FVector& OwnerLocati
 // 标签过滤
 // ============================================================
 
-bool UMFRadarSensingComponent::PassesTagFilter(AActor* Candidate) const
+bool UMFRadarSensingComponent::IsHostile(UAbilitySystemComponent* OwnerASC, AActor* Candidate) const
 {
-	// TargetTags 为空时不过滤：接受所有重叠 Pawn。
-	if (TargetTags.IsEmpty()) { return true; }
-
-	// 通过 AbilitySystemGlobals 获取目标 ASC（空安全）。
-	const UAbilitySystemComponent* TargetASC =
+	// faction-auto：候选与 owner 敌对才算目标（双方都有非空阵营且不共享）。中立不被索。
+	const UAbilitySystemComponent* CandidateASC =
 		UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Candidate);
 
-	if (!TargetASC) { return false; }
-
-	// 目标 ASC 拥有的标签中只要有一个在 TargetTags 里，就通过过滤。
-	return TargetASC->HasAnyMatchingGameplayTags(TargetTags);
+	return UMFFactionStatics::AreHostile(OwnerASC, CandidateASC);
 }
