@@ -72,5 +72,9 @@ public class ProjectMF : ModuleRules
 		// UI (HUD, Overhead Widget, Game Result)
 		PublicIncludePaths.Add(Path.Combine(ModuleDirectory, "UI", "Public"));
 		PrivateIncludePaths.Add(Path.Combine(ModuleDirectory, "UI", "Private"));
+
+		// Meta (局外元层：存档 / GameInstance 子系统 / 交接结构)
+		PublicIncludePaths.Add(Path.Combine(ModuleDirectory, "Meta", "Public"));
+		PrivateIncludePaths.Add(Path.Combine(ModuleDirectory, "Meta", "Private"));
     }
 }

@@ -106,43 +106,43 @@ struct PROJECTMF_API FMFPetInstance
 	GENERATED_BODY()
 
 	/** 唯一实例 ID，用于跨系统精确引用这只宠物。 */
-	UPROPERTY(BlueprintReadOnly, Category = "Pet")
+	UPROPERTY(BlueprintReadOnly, Category = "Pet", SaveGame)
 	FGuid InstanceID;
 
 	/**
 	 * AI 类型 ID，对应 DT_AIRegistry DataTable 的 RowKey（如 "Pet_SlimeCat"）。
 	 * 召唤时通过此 ID 从 DT 查找 UMFPetConfig，重新 ApplyPetConfig + RunStateTree。
 	 */
-	UPROPERTY(BlueprintReadOnly, Category = "Pet")
+	UPROPERTY(BlueprintReadOnly, Category = "Pet", SaveGame)
 	FName AIConfigID;
 
 	/** 玩家自定义昵称，默认使用 UMFPetConfig::DisplayName。 */
-	UPROPERTY(BlueprintReadWrite, Category = "Pet")
+	UPROPERTY(BlueprintReadWrite, Category = "Pet", SaveGame)
 	FString PetName;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Pet")
+	UPROPERTY(BlueprintReadOnly, Category = "Pet", SaveGame)
 	int32 Level = 1;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Pet")
+	UPROPERTY(BlueprintReadOnly, Category = "Pet", SaveGame)
 	int32 Experience = 0;
 
 	/** 是否当前出战（上阵）。 */
-	UPROPERTY(BlueprintReadOnly, Category = "Pet")
+	UPROPERTY(BlueprintReadOnly, Category = "Pet", SaveGame)
 	bool bIsActive = false;
 
 	/**
 	 * 是否处于阵亡复活倒计时中。
 	 * true 期间宠物已从战场移除、不可召唤；ReviveTimeRemaining 归零后清除并回满血。
 	 */
-	UPROPERTY(BlueprintReadOnly, Category = "Pet")
+	UPROPERTY(BlueprintReadOnly, Category = "Pet", SaveGame)
 	bool bIsDead = false;
 
 	/** 复活剩余秒数（仅 bIsDead 为 true 时有效，供 UI 读秒显示）。 */
-	UPROPERTY(BlueprintReadOnly, Category = "Pet")
+	UPROPERTY(BlueprintReadOnly, Category = "Pet", SaveGame)
 	float ReviveTimeRemaining = 0.f;
 
 	/** 捕获时快照的关键属性值。Key = 属性名，Value = 捕获瞬间的值。 */
-	UPROPERTY()
+	UPROPERTY(SaveGame)
 	TMap<FName, float> AttributeSnapshot;
 
 	bool IsValid() const { return InstanceID.IsValid() && !AIConfigID.IsNone(); }
