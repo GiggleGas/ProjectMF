@@ -43,6 +43,15 @@ static FAutoConsoleVariableRef CVarAttributeDebug(
 	ECVF_Default
 );
 
+// 友方头顶绿点（区分敌我），默认开启。
+static int32 GFriendlyMarker = 1;
+static FAutoConsoleVariableRef CVarFriendlyMarker(
+	TEXT("MF.Char.FriendlyMarker"),
+	GFriendlyMarker,
+	TEXT("Draw a green dot above friendly (MF.Team.Player) characters' heads. 1 = on (default), 0 = off."),
+	ECVF_Default
+);
+
 // ---------------------------------------------------------------------------
 // Construction
 // ---------------------------------------------------------------------------
@@ -217,6 +226,7 @@ void AMFCharacterBase::Tick(float DeltaTime)
 	UpdateAnimation();
 	UpdateBillboard();
 	DrawDebug();
+	DrawFriendlyMarker();
 }
 
 // ---------------------------------------------------------------------------
@@ -447,6 +457,30 @@ void AMFCharacterBase::DrawAttributeDebug() const
 			DrawLine(TEXT("[IN COMBAT]"), FColor(255, 80, 80));
 		}
 	}
+#endif
+}
+
+void AMFCharacterBase::DrawFriendlyMarker() const
+{
+#if ENABLE_DRAW_DEBUG
+	if (!GFriendlyMarker) return;
+
+	// 仅友方（持 Team.Player）：召唤宠 + 玩家。敌方/中立不画。
+	if (!AbilitySystemComponent ||
+		!AbilitySystemComponent->HasMatchingGameplayTag(MFGameplayTags::Team_Player))
+	{
+		return;
+	}
+
+	const UWorld* World = GetWorld();
+	if (!World) return;
+
+	const float HeadZ = GetCapsuleComponent()
+		? GetCapsuleComponent()->GetScaledCapsuleHalfHeight() : 80.f;
+	const FVector DotLoc = GetActorLocation() + FVector(0.f, 0.f, HeadZ + 30.f);
+
+	// 单帧（每 Tick 重画）的绿色实心点。
+	DrawDebugPoint(World, DotLoc, /*Size=*/18.f, FColor::Green, /*bPersistent=*/false, /*LifeTime=*/-1.f);
 #endif
 }
 

@@ -227,6 +227,12 @@ protected:
 	virtual void DrawDebug() const;
 
 	/**
+	 * Debug：友方（持 MF.Team.Player）头顶画一个绿色圆点，便于在怪堆里区分敌我。
+	 * 由 MF.Char.FriendlyMarker 控制（默认开）。仅 ENABLE_DRAW_DEBUG 构建有效。
+	 */
+	void DrawFriendlyMarker() const;
+
+	/**
 	 * Render all GAS attribute values as world-space text above this character.
 	 * Called from DrawDebug() when MF.Char.AttributeDebug is non-zero.
 	 */
