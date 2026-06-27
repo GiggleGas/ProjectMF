@@ -68,6 +68,17 @@ void UMFCommandComponent::EnterCommandMode()
 		if (UMFTimeControlSubsystem* TC = World->GetSubsystem<UMFTimeControlSubsystem>())
 		{
 			TC->RequestTimeDilation(this, GetCommandModeDilation());
+
+			// 玩家恢复原速：CustomTimeDilation = 1/全局膨胀，抵消世界减速（世界慢、玩家正常）。
+			// clamp 防止时停等极小膨胀导致 1/x 爆炸。
+			const float Eff = TC->GetEffectiveDilation();
+			if (const APlayerController* PC = GetPC())
+			{
+				if (APawn* Pawn = PC->GetPawn())
+				{
+					Pawn->CustomTimeDilation = (Eff > 0.01f) ? FMath::Clamp(1.f / Eff, 1.f, 10.f) : 1.f;
+				}
+			}
 		}
 	}
 
@@ -87,6 +98,11 @@ void UMFCommandComponent::ExitCommandMode()
 	{
 		PC->bShowMouseCursor   = bSavedShowMouseCursor;
 		PC->bEnableClickEvents = false;
+		// 取消玩家时间补偿，恢复与世界同步。
+		if (APawn* Pawn = PC->GetPawn())
+		{
+			Pawn->CustomTimeDilation = 1.f;
+		}
 	}
 
 	// 林克时间：撤销本组件的减速请求（子系统重算后恢复或保留其它来源）。
@@ -309,6 +325,14 @@ void UMFCommandComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 		if (UMFTimeControlSubsystem* TC = World->GetSubsystem<UMFTimeControlSubsystem>())
 		{
 			TC->ReleaseTimeDilation(this);
+		}
+	}
+	// 兜底：复位玩家时间补偿，防残留快速。
+	if (const APlayerController* PC = GetPC())
+	{
+		if (APawn* Pawn = PC->GetPawn())
+		{
+			Pawn->CustomTimeDilation = 1.f;
 		}
 	}
 	Super::EndPlay(EndPlayReason);
