@@ -159,11 +159,9 @@ void AMFCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 				}
 				if (PlayerConfig->CarryPetAction)
 				{
-					// 按住抱起、松开放下：Started 激活 GA_CarryPet，Completed 取消（→放下）。
+					// 切换式：按一次抱起、再按一次放下（参考命令模式 toggle）。
 					EI->BindAction(PlayerConfig->CarryPetAction, ETriggerEvent::Started,
-						this, &AMFCharacter::HandleCarryPetStart);
-					EI->BindAction(PlayerConfig->CarryPetAction, ETriggerEvent::Completed,
-						this, &AMFCharacter::HandleCarryPetStop);
+						this, &AMFCharacter::HandleCarryPet);
 				}
 			}
 		}
@@ -303,21 +301,19 @@ void AMFCharacter::HandleCommandMode()
 	}
 }
 
-void AMFCharacter::HandleCarryPetStart()
+void AMFCharacter::HandleCarryPet()
 {
-	if (AbilitySystemComponent)
-	{
-		AbilitySystemComponent->TryActivateAbilitiesByTag(
-			FGameplayTagContainer(MFGameplayTags::Ability_Player_CarryPet));
-	}
-}
+	if (!AbilitySystemComponent) return;
 
-void AMFCharacter::HandleCarryPetStop()
-{
-	// 松开即放下：取消 GA_CarryPet（→ EndAbility 里 detach + 放下宠物 + 恢复移速）。
-	if (AbilitySystemComponent)
+	// 切换式：已在抱 → 放下（取消 GA）；否则 → 抱起（激活 GA）。
+	if (AbilitySystemComponent->HasMatchingGameplayTag(MFGameplayTags::State_CarryingPet))
 	{
 		const FGameplayTagContainer CancelTags(MFGameplayTags::Ability_Player_CarryPet);
 		AbilitySystemComponent->CancelAbilities(&CancelTags);
+	}
+	else
+	{
+		AbilitySystemComponent->TryActivateAbilitiesByTag(
+			FGameplayTagContainer(MFGameplayTags::Ability_Player_CarryPet));
 	}
 }

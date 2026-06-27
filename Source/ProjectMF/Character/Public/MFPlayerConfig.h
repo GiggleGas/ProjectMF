@@ -79,7 +79,7 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<UInputAction> CommandClickAction;
 
-	/** 抱起/移动宠物（GA_CarryPet）。按住抱起、松开放下。 */
+	/** 抱起/移动宠物（GA_CarryPet）。切换式：按一次抱起、再按一次放下。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<UInputAction> CarryPetAction;
 

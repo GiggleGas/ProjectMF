@@ -12,10 +12,10 @@ class UMFPlayerConfig;
 /**
  * GA_CarryPet — 抱起 / 移动宠物（玩家技能）。
  *
- * 按住式：按下激活 → 就近抱起一只友方存活宠物（attach 到玩家 + 宠物进"被抱"态 + 玩家负重减速）；
- *         松开 / 取消 / 死亡 → 放下（detach + 宠物退"被抱"态 + 恢复玩家移速）。
+ * 切换式：按一次激活 → 就近抱起一只友方存活宠物（attach 到玩家 + 宠物进"被抱"态 + 玩家负重减速）；
+ *         再按一次 / 取消 / 死亡 → 放下（detach + 宠物退"被抱"态 + 恢复玩家移速）。
  *
- * 输入侧：AMFCharacter 把 CarryPetAction 的 Started→TryActivateAbilitiesByTag、Completed→CancelAbilities。
+ * 输入侧：AMFCharacter::HandleCarryPet 按 State.CarryingPet 切换 激活 / 取消。
  * 被抱宠的免伤/脱战/打断 StateTree 等逻辑在 AMFPetBase::BeginCarried/EndCarried。
  *
  * 复活技能（后续）以本类为前身：目标改"死亡宠物" + 读条 + 复活。
