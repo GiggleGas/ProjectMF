@@ -104,4 +104,10 @@ private:
 
 	/** 命令模式键：已激活则取消（提前退出），否则按 tag 激活 GA_CommandMode（冷却中会被自动挡）。 */
 	void HandleCommandMode();
+
+	/** 抱宠键按下：激活 GA_CarryPet（就近抱起友方宠物）。 */
+	void HandleCarryPetStart();
+
+	/** 抱宠键松开：取消 GA_CarryPet（放下宠物 + 恢复移速）。 */
+	void HandleCarryPetStop();
 };

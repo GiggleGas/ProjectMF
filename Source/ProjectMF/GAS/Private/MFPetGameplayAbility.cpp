@@ -61,6 +61,9 @@ UMFPetGameplayAbility::UMFPetGameplayAbility()
 {
 	// 所有 AI 技能共用同一个 C++ 冷却 GE；时长读自数据资产 CooldownSeconds。
 	CooldownGameplayEffectClass = UMFCooldownGameplayEffect::StaticClass();
+
+	// 被玩家抱起期间（持 State.Carried）禁止宠物自行放技能。
+	ActivationBlockedTags.AddTag(MFGameplayTags::State_Carried);
 }
 
 const FGameplayTagContainer* UMFPetGameplayAbility::GetCooldownTags() const

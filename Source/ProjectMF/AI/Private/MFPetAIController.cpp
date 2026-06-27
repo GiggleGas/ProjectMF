@@ -80,6 +80,23 @@ bool AMFPetAIController::IsStateTreeRunning() const
 	return StateTreeComp && StateTreeComp->IsRunning();
 }
 
+void AMFPetAIController::StopStateTree()
+{
+	if (StateTreeComp && StateTreeComp->IsRunning())
+	{
+		StateTreeComp->StopLogic(TEXT("Carried — interrupt"));
+	}
+}
+
+void AMFPetAIController::ResumeStateTree()
+{
+	// StopLogic 不清除已设资产，StartLogic 即可用原资产重启。
+	if (StateTreeComp && !StateTreeComp->IsRunning())
+	{
+		StateTreeComp->StartLogic();
+	}
+}
+
 void AMFPetAIController::SendStateTreeEvent(FGameplayTag EventTag)
 {
 	if (StateTreeComp && StateTreeComp->IsRunning())

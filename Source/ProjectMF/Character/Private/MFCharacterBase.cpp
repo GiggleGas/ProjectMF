@@ -151,7 +151,7 @@ void AMFCharacterBase::ApplyAttributeInitData(const FMFAttributeInitData& Data)
 	{
 		if (UCharacterMovementComponent* CMC = GetCharacterMovement())
 		{
-			CMC->MaxWalkSpeed = AttributeSet->GetMoveSpeed();
+			CMC->MaxWalkSpeed = AttributeSet->GetMoveSpeed() * MoveSpeedMultiplier;
 		}
 	}
 }
@@ -173,7 +173,19 @@ void AMFCharacterBase::OnMoveSpeedChanged(const FOnAttributeChangeData& Data)
 {
 	if (UCharacterMovementComponent* CMC = GetCharacterMovement())
 	{
-		CMC->MaxWalkSpeed = Data.NewValue;
+		CMC->MaxWalkSpeed = Data.NewValue * MoveSpeedMultiplier;
+	}
+}
+
+void AMFCharacterBase::SetMoveSpeedMultiplier(float InMultiplier)
+{
+	MoveSpeedMultiplier = FMath::Max(InMultiplier, 0.f);
+	if (AttributeSet)
+	{
+		if (UCharacterMovementComponent* CMC = GetCharacterMovement())
+		{
+			CMC->MaxWalkSpeed = AttributeSet->GetMoveSpeed() * MoveSpeedMultiplier;
+		}
 	}
 }
 

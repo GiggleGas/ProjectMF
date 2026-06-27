@@ -30,6 +30,7 @@ namespace
 	{
 		if (!Cand) return false;
 		if (Cand->HasMatchingGameplayTag(MFGameplayTags::State_Dead)) return false;
+		if (Cand->HasMatchingGameplayTag(MFGameplayTags::State_Carried)) return false; // 被抱起免伤
 		if (Filter == EAttackTargetFilter::All) return true;
 		if (!Source) return false;
 		// EnemyOnly 走 AreHostile（中立不被误伤）；AllyOnly 走 AreSameTeam。

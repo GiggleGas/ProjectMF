@@ -68,6 +68,8 @@ namespace MFGameplayTags
 	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Player_SummonPet);
 	/** 命令模式 / 林克时间（GA_CommandMode）。 */
 	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Player_CommandMode);
+	/** 抱起/移动宠物（GA_CarryPet）。 */
+	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Player_CarryPet);
 
 	// --- 宠物 / AI 战斗技能（涵盖宠物 + 敌人 + Boss）---
 	/** 类别：所有 AI 战斗者释放的技能。 */
@@ -221,6 +223,12 @@ namespace MFGameplayTags
 
 	/** 命令模式（林克时间）激活期间持有（GA_CommandMode 的 ActivationOwnedTags）。供输入 toggle 判断。 */
 	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_CommandMode);
+
+	/** 玩家正在抱着宠物期间持有（GA_CarryPet 的 ActivationOwnedTags）。供输入判断当前是否在抱。 */
+	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_CarryingPet);
+
+	/** 宠物被玩家抱起期间持有（免伤/脱战/阻止自身放技能的语义标记）。 */
+	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_Carried);
 
 	/** 命令模式冷却身份标签：GA_CommandMode 结束后施加一段时长，期间 ActivationBlockedTags 拦截再进。 */
 	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Cooldown_Player_CommandMode);

@@ -9,8 +9,11 @@
 #include "MFThreatComponent.h"
 #include "MFPetCommandComponent.h"
 #include "MFLog.h"
+#include "MFGameplayTags.h"
 #include "AbilitySystemComponent.h"
 #include "PaperZDAnimationComponent.h"
+#include "Components/CapsuleComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 // ============================================================
 // 构造
@@ -162,4 +165,62 @@ void AMFPetBase::OnCatchFailed_Implementation(AActor* Catcher)
 
 	// TODO: 切换到逃跑 Behavior Tree 节点或触发逃跑 GE/Tag
 	// 子类在 Super::OnCatchFailed_Implementation(Catcher) 之后添加具体逻辑
+}
+
+// ============================================================
+// 被抱起（GA_CarryPet）
+// ============================================================
+
+void AMFPetBase::BeginCarried()
+{
+	// 抱起瞬间在移动 → 打断 StateTree（落下时恢复）；静止则不打断。
+	if (!GetVelocity().IsNearlyZero())
+	{
+		if (AMFPetAIController* AIC = Cast<AMFPetAIController>(GetController()))
+		{
+			AIC->StopStateTree();
+			bCarryInterruptedStateTree = true;
+		}
+	}
+
+	// 停移动 + 停自身在放的技能（被抱期间不行动）。
+	if (UCharacterMovementComponent* CMC = GetCharacterMovement())
+	{
+		CMC->StopMovementImmediately();
+		CMC->DisableMovement();
+	}
+	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
+	{
+		ASC->CancelAllAbilities();
+		ASC->AddLooseGameplayTag(MFGameplayTags::State_Carried);
+	}
+
+	// 关碰撞：宠物免伤（不在 overlap/trace 里）+ 子弹/area 穿过去只命中玩家 + 不和玩家胶囊顶撞。
+	SetActorEnableCollision(false);
+}
+
+void AMFPetBase::EndCarried(const FVector& DropLocation)
+{
+	// 先落点（此时碰撞仍关，避免落地瞬间挤压），再开碰撞。
+	SetActorLocation(DropLocation, /*bSweep=*/false);
+	SetActorEnableCollision(true);
+
+	if (UCharacterMovementComponent* CMC = GetCharacterMovement())
+	{
+		CMC->SetMovementMode(MOVE_Walking);
+	}
+	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
+	{
+		ASC->RemoveLooseGameplayTag(MFGameplayTags::State_Carried);
+	}
+
+	// 抱起时打断过 StateTree → 落下重启 AI。
+	if (bCarryInterruptedStateTree)
+	{
+		if (AMFPetAIController* AIC = Cast<AMFPetAIController>(GetController()))
+		{
+			AIC->ResumeStateTree();
+		}
+		bCarryInterruptedStateTree = false;
+	}
 }

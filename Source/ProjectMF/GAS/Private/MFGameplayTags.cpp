@@ -45,6 +45,8 @@ namespace MFGameplayTags
 		"GameplayEvent tag for GA_SummonPet. EventMagnitude = slot index (1-5).");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_Player_CommandMode, "MF.Ability.Player.CommandMode",
 		"Command mode / 林克时间 ability (GA_CommandMode).");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_Player_CarryPet, "MF.Ability.Player.CarryPet",
+		"Carry/move pet ability (GA_CarryPet). Hold to carry, release to drop.");
 
 	// ----- 宠物 / AI 战斗技能（宠物 + 敌人 + Boss）-----
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_Pet, "MF.Ability.Pet",
@@ -192,6 +194,16 @@ namespace MFGameplayTags
 		State_CommandMode,
 		"MF.GameplayState.CommandMode",
 		"Owned while GA_CommandMode is active (its ActivationOwnedTags). Used by input to toggle.");
+
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
+		State_CarryingPet,
+		"MF.GameplayState.CarryingPet",
+		"Owned by the player while carrying a pet (GA_CarryPet ActivationOwnedTags).");
+
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
+		State_Carried,
+		"MF.GameplayState.Carried",
+		"Owned by a pet while being carried by the player. Immune/out-of-combat; blocks its own abilities.");
 
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
 		Cooldown_Player_CommandMode,

@@ -157,6 +157,14 @@ void AMFCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 					EI->BindAction(PlayerConfig->CommandClickAction, ETriggerEvent::Completed,
 						CmdComp, &UMFCommandComponent::OnCommandClickCompleted);
 				}
+				if (PlayerConfig->CarryPetAction)
+				{
+					// 按住抱起、松开放下：Started 激活 GA_CarryPet，Completed 取消（→放下）。
+					EI->BindAction(PlayerConfig->CarryPetAction, ETriggerEvent::Started,
+						this, &AMFCharacter::HandleCarryPetStart);
+					EI->BindAction(PlayerConfig->CarryPetAction, ETriggerEvent::Completed,
+						this, &AMFCharacter::HandleCarryPetStop);
+				}
 			}
 		}
 	}
@@ -292,5 +300,24 @@ void AMFCharacter::HandleCommandMode()
 			FGameplayTagContainer(MFGameplayTags::Ability_Player_CommandMode));
 		MF_LOG(LogMFAI, TEXT("[Command] TryActivate(CommandMode)=%d（0 且已授予=被冷却/死亡挡；0 且未授予=需加进 PlayerConfig.DefaultAbilities）。"),
 			bActivated ? 1 : 0);
+	}
+}
+
+void AMFCharacter::HandleCarryPetStart()
+{
+	if (AbilitySystemComponent)
+	{
+		AbilitySystemComponent->TryActivateAbilitiesByTag(
+			FGameplayTagContainer(MFGameplayTags::Ability_Player_CarryPet));
+	}
+}
+
+void AMFCharacter::HandleCarryPetStop()
+{
+	// 松开即放下：取消 GA_CarryPet（→ EndAbility 里 detach + 放下宠物 + 恢复移速）。
+	if (AbilitySystemComponent)
+	{
+		const FGameplayTagContainer CancelTags(MFGameplayTags::Ability_Player_CarryPet);
+		AbilitySystemComponent->CancelAbilities(&CancelTags);
 	}
 }

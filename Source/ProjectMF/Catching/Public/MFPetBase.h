@@ -125,6 +125,23 @@ public:
 	 */
 	virtual void RestoreFromInstance(const FMFPetInstance& Instance);
 
+	// -----------------------------------------------------------------------
+	// 被抱起（GA_CarryPet）
+	// -----------------------------------------------------------------------
+
+	/**
+	 * 进入"被抱起"：关碰撞（免伤 + 子弹/area 穿过去只命中玩家）、停移动、加 State.Carried、停自身技能。
+	 * 抱起瞬间正在移动 → 打断 StateTree（落下时恢复）；静止则不打断。
+	 * 由 GA_CarryPet 在 attach 之后调用。
+	 */
+	void BeginCarried();
+
+	/**
+	 * 退出"被抱起"：恢复碰撞/移动、移除 State.Carried、落到 DropLocation；
+	 * 若之前打断过 StateTree 则重启。由 GA_CarryPet 在 EndAbility（detach 后）调用。
+	 */
+	void EndCarried(const FVector& DropLocation);
+
 protected:
 	// -----------------------------------------------------------------------
 	// 收服状态
@@ -141,6 +158,9 @@ protected:
 	/** ApplyPetConfig 时缓存，供 SerializeToInstance 写入快照使用。 */
 	UPROPERTY()
 	TObjectPtr<const UMFPetConfig> CachedPetConfig;
+
+	/** 被抱起时是否打断过 StateTree（抱起瞬间在移动才会）。EndCarried 据此决定是否重启。 */
+	bool bCarryInterruptedStateTree = false;
 
 	/**
 	 * 玩家指令载体：接收玩家下达的移动/技能指令，并向本宠 StateTree 发打断事件。

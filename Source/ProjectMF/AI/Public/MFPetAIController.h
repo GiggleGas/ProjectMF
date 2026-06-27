@@ -48,6 +48,14 @@ public:
 	UFUNCTION(BlueprintPure, Category = "AI|StateTree")
 	bool IsStateTreeRunning() const;
 
+	/** 停止当前 StateTree 逻辑（保留已设资产，可用 ResumeStateTree 重启）。供"被抱起"等临时打断用。 */
+	UFUNCTION(BlueprintCallable, Category = "AI|StateTree")
+	void StopStateTree();
+
+	/** 重启 StateTree 逻辑（若已设资产且未在运行）。与 StopStateTree 成对，落下宠物时恢复 AI。 */
+	UFUNCTION(BlueprintCallable, Category = "AI|StateTree")
+	void ResumeStateTree();
+
 	/**
 	 * 向本 Controller 的 StateTree 发送一个事件（按 GameplayTag）。
 	 * 薄封装，供 UMFPetCommandComponent 等外部系统在不直接访问 private StateTreeComp 的情况下打断/通知。

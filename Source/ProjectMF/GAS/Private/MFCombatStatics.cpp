@@ -97,8 +97,9 @@ bool UMFCombatStatics::PassesTargetFilter(UAbilitySystemComponent* SourceASC, AA
 	UAbilitySystemComponent* CandidateASC =
 		UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Candidate);
 
-	// 跳过已死亡目标。
-	if (CandidateASC && CandidateASC->HasMatchingGameplayTag(MFGameplayTags::State_Dead))
+	// 跳过已死亡 / 被抱起（免伤）目标。
+	if (CandidateASC && (CandidateASC->HasMatchingGameplayTag(MFGameplayTags::State_Dead) ||
+		CandidateASC->HasMatchingGameplayTag(MFGameplayTags::State_Carried)))
 	{
 		return false;
 	}

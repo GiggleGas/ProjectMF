@@ -55,6 +55,12 @@ public:
 
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 
+	/**
+	 * 设置移速倍率（最终 MaxWalkSpeed = MoveSpeed 属性 × 此倍率）并立即同步。
+	 * 用于负重减速（抱宠）等通用乘法调速；1.0 = 原速。与 MoveSpeed 属性变化兼容（同步时一并相乘）。
+	 */
+	void SetMoveSpeedMultiplier(float InMultiplier);
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -112,6 +118,9 @@ protected:
 
 	/** Flipbook 闪红持续时间（秒）。运行时由各子类从 Config 写入（不再在基类 BP 编辑）。 */
 	float HitFlashDuration = 0.25f;
+
+	/** 移速倍率：MaxWalkSpeed = MoveSpeed × 此值。负重减速（抱宠）等用，1.0=原速。见 SetMoveSpeedMultiplier。 */
+	float MoveSpeedMultiplier = 1.f;
 
 	virtual void ReactToHit_Implementation() override;
 

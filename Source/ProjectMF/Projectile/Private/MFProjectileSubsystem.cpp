@@ -236,8 +236,9 @@ bool UMFProjectileSubsystem::PassesTargetFilter(
 	UAbilitySystemComponent* CandidateASC =
 		UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Candidate);
 
-	// Skip dead actors
-	if (CandidateASC && CandidateASC->HasMatchingGameplayTag(MFGameplayTags::State_Dead))
+	// Skip dead / carried (immune) actors
+	if (CandidateASC && (CandidateASC->HasMatchingGameplayTag(MFGameplayTags::State_Dead) ||
+		CandidateASC->HasMatchingGameplayTag(MFGameplayTags::State_Carried)))
 		return false;
 
 	if (Inst.TargetFilter == EAttackTargetFilter::All) return true;
