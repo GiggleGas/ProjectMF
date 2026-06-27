@@ -1,0 +1,8 @@
+//$ Copyright 2015-25, Code Respawn Technologies Pvt Ltd - All Rights Reserved $//
+
+#include "Core/Utils/DungeonLog.h"
+
+
+DEFINE_LOG_CATEGORY(LogDungeonArchitect);
+DEFINE_LOG_CATEGORY(LogDungeonForge);
+
