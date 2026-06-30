@@ -372,6 +372,10 @@ AMFPetBase* UMFInventoryComponent::SummonPet(FGuid InstanceID, FVector Location)
 		}
 	}
 
+	// 濒死系统：真死（永久损失）/ 复活回场 信号，绑定时带 InstanceID。
+	SpawnedPet->OnTrueDeath.AddUObject(this, &UMFInventoryComponent::HandlePetTrueDeath, InstanceID);
+	SpawnedPet->OnRevived.AddUObject(this, &UMFInventoryComponent::HandlePetRevived, InstanceID);
+
 	MF_LOG(LogMFInventory, TEXT("SummonPet: '%s' (%s) spawned at %s."),
 		*InstancePtr->PetName, *InstancePtr->AIConfigID.ToString(), *Location.ToString());
 	OnPetRosterChanged.Broadcast();
@@ -411,95 +415,49 @@ void UMFInventoryComponent::RecallPet(FGuid InstanceID)
 
 void UMFInventoryComponent::HandlePetDied(FGuid InstanceID)
 {
+	// HP→0：进入濒死（不销毁、不自动复活）。Actor 保留在 ActivePetActors——
+	// 全灭判负只在"全部真死"时触发（濒死宠仍算在场，留抢救窗口）。
 	FMFPetInstance* Inst = FindPetMutable(InstanceID);
-	if (!Inst || Inst->bIsDead)
+	if (!Inst || Inst->bIsDead) return;   // 已真死 / 已移除
+
+	Inst->bIsActive = false;
+
+	if (const TWeakObjectPtr<AMFPetBase>* ActorPtr = ActivePetActors.Find(InstanceID))
 	{
-		return;   // 实例已移除或已在复活中（防重入）
+		if (AMFPetBase* Pet = ActorPtr->Get())
+		{
+			Pet->EnterDowned();   // 起 bleed-out；归零未救 → OnTrueDeath（已在 SummonPet 绑定）
+		}
 	}
 
-	// 从战场移除（延迟到下一帧销毁，避免在 OnDeath 广播中销毁自身 ASC）
-	DestroyPetActorDeferred(InstanceID);
-
-	Inst->bIsActive          = false;
-	Inst->bIsDead            = true;
-	Inst->ReviveTimeRemaining = PetReviveDuration;
-
-	MF_LOG(LogMFInventory, TEXT("HandlePetDied: '%s' down — reviving in %.0fs."),
-		*Inst->PetName, PetReviveDuration);
-
-	if (PetReviveDuration <= 0.f)
-	{
-		ReviveSinglePet(*Inst);   // 立即可再召唤
-	}
-	else
-	{
-		EnsureReviveTickerRunning();
-	}
-
+	MF_LOG(LogMFInventory, TEXT("HandlePetDied: '%s' 濒死。"), *Inst->PetName);
 	OnPetRosterChanged.Broadcast();
 }
 
-void UMFInventoryComponent::OnReviveTick()
+void UMFInventoryComponent::HandlePetTrueDeath(FGuid InstanceID)
 {
-	bool bAnyStillReviving = false;
-	bool bAnyRevivedNow    = false;
-
-	for (FMFPetInstance& Pet : PetSlots)
+	// 濒死读条耗尽未救 → 真死：销毁 Actor + 永久损失（墓碑逻辑随 v3 元层补）。
+	FMFPetInstance* Inst = FindPetMutable(InstanceID);
+	if (Inst)
 	{
-		if (!Pet.bIsDead) continue;
-
-		Pet.ReviveTimeRemaining = FMath::Max(0.f, Pet.ReviveTimeRemaining - 1.f);
-		if (Pet.ReviveTimeRemaining <= 0.f)
-		{
-			ReviveSinglePet(Pet);
-			bAnyRevivedNow = true;
-			MF_LOG(LogMFInventory, TEXT("OnReviveTick: '%s' revived — ready to summon."), *Pet.PetName);
-		}
-		else
-		{
-			bAnyStillReviving = true;
-		}
+		Inst->bIsDead   = true;
+		Inst->bIsActive = false;
 	}
-
-	OnPetReviveTick.Broadcast();           // UI 刷新读秒数字
-	if (bAnyRevivedNow)
-	{
-		OnPetRosterChanged.Broadcast();    // 状态切换，刷新槽位
-	}
-
-	if (!bAnyStillReviving)
-	{
-		if (UWorld* World = GetWorld())
-		{
-			World->GetTimerManager().ClearTimer(ReviveTickHandle);
-		}
-	}
+	DestroyPetActorDeferred(InstanceID);   // 移出 ActivePetActors + 下一帧销毁
+	MF_LOG(LogMFInventory, TEXT("HandlePetTrueDeath: '%s' 真死（永久损失）。"),
+		Inst ? *Inst->PetName : TEXT("?"));
+	OnPetRosterChanged.Broadcast();
 }
 
-void UMFInventoryComponent::EnsureReviveTickerRunning()
+void UMFInventoryComponent::HandlePetRevived(FGuid InstanceID)
 {
-	UWorld* World = GetWorld();
-	if (!World) return;
-
-	if (!World->GetTimerManager().IsTimerActive(ReviveTickHandle))
+	// 复活读条完成 → 回出战。
+	if (FMFPetInstance* Inst = FindPetMutable(InstanceID))
 	{
-		World->GetTimerManager().SetTimer(
-			ReviveTickHandle, this, &UMFInventoryComponent::OnReviveTick,
-			1.f, /*bLoop=*/true, /*FirstDelay=*/1.f);
+		Inst->bIsActive = true;
+		MF_LOG(LogMFInventory, TEXT("HandlePetRevived: '%s' 复活回场。"), *Inst->PetName);
 	}
-}
-
-void UMFInventoryComponent::ReviveSinglePet(FMFPetInstance& Instance) const
-{
-	Instance.bIsDead            = false;
-	Instance.ReviveTimeRemaining = 0.f;
-
-	// 回满血：把快照 Health 设回 MaxHealth（下次召唤 RestoreFromInstance 时生效）。
-	// 不能依赖死亡瞬间快照（Health=0）。
-	if (const float* MaxHP = Instance.AttributeSnapshot.Find(TEXT("MaxHealth")))
-	{
-		Instance.AttributeSnapshot.Add(TEXT("Health"), *MaxHP);
-	}
+	OnPetRosterChanged.Broadcast();
 }
 
 void UMFInventoryComponent::DestroyPetActorDeferred(FGuid InstanceID)

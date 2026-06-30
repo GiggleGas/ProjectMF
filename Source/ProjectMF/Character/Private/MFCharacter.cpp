@@ -163,6 +163,12 @@ void AMFCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 					EI->BindAction(PlayerConfig->CarryPetAction, ETriggerEvent::Started,
 						this, &AMFCharacter::HandleCarryPet);
 				}
+				if (PlayerConfig->RevivePetAction)
+				{
+					// 切换式：按一次开始复活濒死宠读条、再按一次取消。
+					EI->BindAction(PlayerConfig->RevivePetAction, ETriggerEvent::Started,
+						this, &AMFCharacter::HandleRevivePet);
+				}
 			}
 		}
 	}
@@ -315,5 +321,22 @@ void AMFCharacter::HandleCarryPet()
 	{
 		AbilitySystemComponent->TryActivateAbilitiesByTag(
 			FGameplayTagContainer(MFGameplayTags::Ability_Player_CarryPet));
+	}
+}
+
+void AMFCharacter::HandleRevivePet()
+{
+	if (!AbilitySystemComponent) return;
+
+	// 切换式：复活读条中 → 取消；否则 → 就近抱起濒死宠开始复活。
+	if (AbilitySystemComponent->HasMatchingGameplayTag(MFGameplayTags::State_RevivingPet))
+	{
+		const FGameplayTagContainer CancelTags(MFGameplayTags::Ability_Player_RevivePet);
+		AbilitySystemComponent->CancelAbilities(&CancelTags);
+	}
+	else
+	{
+		AbilitySystemComponent->TryActivateAbilitiesByTag(
+			FGameplayTagContainer(MFGameplayTags::Ability_Player_RevivePet));
 	}
 }

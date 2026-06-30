@@ -13,6 +13,9 @@ struct FMFPetInstance;
 class UMFPetConfig;
 class UMFPetCommandComponent;
 
+/** 濒死宠物的真死 / 复活信号（C++ 多播，无参；Inventory 绑定时带 InstanceID payload）。 */
+DECLARE_MULTICAST_DELEGATE(FMFPetLifecycleSignal);
+
 /**
  * AMFPetBase — 可被玩家抓取的宠物 AI 基类。
  *
@@ -142,6 +145,35 @@ public:
 	 */
 	void EndCarried(const FVector& DropLocation);
 
+	// -----------------------------------------------------------------------
+	// 濒死 / 复活（GA_RevivePet）
+	// -----------------------------------------------------------------------
+
+	virtual void Tick(float DeltaSeconds) override;
+
+	/** 进入濒死（倒地）：关碰撞（免伤+可抱）+ 起 bleed-out 倒计时。由 Inventory 在阵亡时调。 */
+	void EnterDowned();
+
+	/** 开始复活读条（暂停 bleed-out）。由 GA_RevivePet 抱起时调，传读条时长。 */
+	void BeginRevive(float InReviveDuration);
+
+	/** 取消复活读条（恢复 bleed-out 倒数）。由 GA_RevivePet 中途放下时调。 */
+	void CancelRevive();
+
+	/** 是否濒死中。 */
+	UFUNCTION(BlueprintPure, Category = "Pet|Downed")
+	bool IsDowned() const { return bDowned; }
+
+	/** 是否正被复活（读条中）。 */
+	UFUNCTION(BlueprintPure, Category = "Pet|Downed")
+	bool IsBeingRevived() const { return bDowned && bBeingRevived; }
+
+	/** 真死信号：bleed-out 归零未被救。Inventory 据此销毁 Actor + 永久损失。 */
+	FMFPetLifecycleSignal OnTrueDeath;
+
+	/** 复活信号：读条完成。Inventory 据此把实例标记回出战。 */
+	FMFPetLifecycleSignal OnRevived;
+
 protected:
 	// -----------------------------------------------------------------------
 	// 收服状态
@@ -162,10 +194,29 @@ protected:
 	/** 被抱起时是否打断过 StateTree（抱起瞬间在移动才会）。EndCarried 据此决定是否重启。 */
 	bool bCarryInterruptedStateTree = false;
 
+	/** 濒死可坚持的时长（秒）；归零未被救则真死。 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Pet|Downed", meta = (ClampMin = "0.5"))
+	float BleedOutDuration = 10.f;
+
 	/**
 	 * 玩家指令载体：接收玩家下达的移动/技能指令，并向本宠 StateTree 发打断事件。
 	 * 仅可被指挥的宠物持有（敌人/Boss 不挂）。指令系统 M0 起。
 	 */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Pet|Command")
 	TObjectPtr<UMFPetCommandComponent> CommandComp;
+
+private:
+	/** 濒死生命周期：真死（销毁 + 永久损失）/ 回血回场。 */
+	void TrueDeath();
+	void ReviveFromDowned();
+
+	/** Debug：濒死/复活时头顶画一条倒计时条（MVP 用，正式 UMG 后补）。 */
+	void DrawDownedBar() const;
+
+	/** 濒死状态机。 */
+	bool  bDowned          = false;
+	bool  bBeingRevived    = false;
+	float BleedOutRemaining = 0.f;
+	float ReviveRemaining   = 0.f;
+	float ReviveTotal       = 0.f;
 };

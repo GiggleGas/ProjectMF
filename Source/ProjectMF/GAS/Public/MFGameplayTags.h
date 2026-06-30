@@ -70,6 +70,8 @@ namespace MFGameplayTags
 	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Player_CommandMode);
 	/** 抱起/移动宠物（GA_CarryPet）。 */
 	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Player_CarryPet);
+	/** 复活宠物（GA_RevivePet）：抱起濒死宠读条复活。 */
+	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Player_RevivePet);
 
 	// --- 宠物 / AI 战斗技能（涵盖宠物 + 敌人 + Boss）---
 	/** 类别：所有 AI 战斗者释放的技能。 */
@@ -229,6 +231,9 @@ namespace MFGameplayTags
 
 	/** 宠物被玩家抱起期间持有（免伤/脱战/阻止自身放技能的语义标记）。 */
 	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_Carried);
+
+	/** 玩家正在复活某宠物期间持有（GA_RevivePet 的 ActivationOwnedTags）。供输入判断切换。 */
+	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_RevivingPet);
 
 	/** 命令模式冷却身份标签：GA_CommandMode 结束后施加一段时长，期间 ActivationBlockedTags 拦截再进。 */
 	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Cooldown_Player_CommandMode);

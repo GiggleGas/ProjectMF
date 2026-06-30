@@ -107,4 +107,7 @@ private:
 
 	/** 抱宠键（切换式）：未抱则激活 GA_CarryPet 抱起，已抱则取消（放下 + 恢复移速）。 */
 	void HandleCarryPet();
+
+	/** 复活键（切换式）：未复活则激活 GA_RevivePet 抱起濒死宠读条，复活中则取消。 */
+	void HandleRevivePet();
 };

@@ -157,23 +157,17 @@ private:
 	// 复活
 	// -----------------------------------------------------------------------
 
-	/** 宠物阵亡后的复活读秒时长（秒），由 GameMode 注入。 */
+	/** 濒死可坚持时长的注入值（保留兼容 GameMode 注入；当前濒死时长在 AMFPetBase.BleedOutDuration）。 */
 	float PetReviveDuration = 5.f;
 
-	/** 复活读秒计时器（1s 循环），仅在至少一只宠物复活中时运行。 */
-	FTimerHandle ReviveTickHandle;
-
-	/** 出战宠物阵亡回调（订阅其 AttributeSet.OnDeath，绑定时附带 InstanceID）。 */
+	/** 出战宠物 HP→0 回调（订阅 AttributeSet.OnDeath）→ 进入濒死（不销毁、不自动复活）。 */
 	void HandlePetDied(FGuid InstanceID);
 
-	/** 复活读秒每秒推进；归零的宠物回满血并清除死亡态；无人复活时停止计时器。 */
-	void OnReviveTick();
+	/** 濒死读条耗尽未救（订阅 AMFPetBase.OnTrueDeath）→ 销毁 Actor + 永久损失。 */
+	void HandlePetTrueDeath(FGuid InstanceID);
 
-	/** 启动复活计时器（若尚未运行）。 */
-	void EnsureReviveTickerRunning();
-
-	/** 让单只宠物立即完成复活：清死亡态、把快照 Health 设回 MaxHealth。 */
-	void ReviveSinglePet(FMFPetInstance& Instance) const;
+	/** 复活读条完成（订阅 AMFPetBase.OnRevived）→ 实例标记回出战。 */
+	void HandlePetRevived(FGuid InstanceID);
 
 	/** 下一帧销毁出战宠物 Actor（避免在 OnDeath 广播过程中销毁自身 ASC）。 */
 	void DestroyPetActorDeferred(FGuid InstanceID);

@@ -83,6 +83,10 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<UInputAction> CarryPetAction;
 
+	/** 复活濒死宠（GA_RevivePet）。切换式：按一次开始复活读条、再按一次取消。 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<UInputAction> RevivePetAction;
+
 	// -----------------------------------------------------------------------
 	// 指令系统 / 林克时间
 	// -----------------------------------------------------------------------
@@ -116,6 +120,10 @@ public:
 	/** 抱起时宠物相对玩家的挂载偏移（本地空间，默认头顶上方）。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "CarryPet")
 	FVector CarryHoldOffset = FVector(0.f, 0.f, 80.f);
+
+	/** 复活濒死宠的读条时长（秒）。GA_RevivePet 抱起后读满即复活。 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "CarryPet", meta = (ClampMin = "0.1"))
+	float ReviveChannelDuration = 3.f;
 
 	// -----------------------------------------------------------------------
 	// UI — 界面配置

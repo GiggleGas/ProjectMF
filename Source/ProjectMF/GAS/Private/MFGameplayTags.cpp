@@ -46,7 +46,9 @@ namespace MFGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_Player_CommandMode, "MF.Ability.Player.CommandMode",
 		"Command mode / 林克时间 ability (GA_CommandMode).");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_Player_CarryPet, "MF.Ability.Player.CarryPet",
-		"Carry/move pet ability (GA_CarryPet). Hold to carry, release to drop.");
+		"Carry/move pet ability (GA_CarryPet). Toggle: press to carry, press again to drop.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_Player_RevivePet, "MF.Ability.Player.RevivePet",
+		"Revive pet ability (GA_RevivePet). Pick up a downed pet and channel to revive.");
 
 	// ----- 宠物 / AI 战斗技能（宠物 + 敌人 + Boss）-----
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_Pet, "MF.Ability.Pet",
@@ -204,6 +206,11 @@ namespace MFGameplayTags
 		State_Carried,
 		"MF.GameplayState.Carried",
 		"Owned by a pet while being carried by the player. Immune/out-of-combat; blocks its own abilities.");
+
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
+		State_RevivingPet,
+		"MF.GameplayState.RevivingPet",
+		"Owned by the player while channeling a pet revive (GA_RevivePet ActivationOwnedTags).");
 
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(
 		Cooldown_Player_CommandMode,

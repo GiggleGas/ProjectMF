@@ -14,6 +14,7 @@
 #include "PaperZDAnimationComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "DrawDebugHelpers.h"
 
 // ============================================================
 // 构造
@@ -223,4 +224,123 @@ void AMFPetBase::EndCarried(const FVector& DropLocation)
 		}
 		bCarryInterruptedStateTree = false;
 	}
+}
+
+// ============================================================
+// 濒死 / 复活（GA_RevivePet）
+// ============================================================
+
+void AMFPetBase::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+
+	if (!bDowned) return;
+
+	if (bBeingRevived)
+	{
+		// 复活读条（被抱起期间，bleed-out 暂停）。
+		ReviveRemaining -= DeltaSeconds;
+		if (ReviveRemaining <= 0.f)
+		{
+			ReviveFromDowned();
+		}
+	}
+	else
+	{
+		// 濒死倒计时，归零未被救 → 真死。
+		BleedOutRemaining -= DeltaSeconds;
+		if (BleedOutRemaining <= 0.f)
+		{
+			TrueDeath();
+			return;
+		}
+	}
+
+	DrawDownedBar();
+}
+
+void AMFPetBase::EnterDowned()
+{
+	if (bDowned) return;
+	bDowned           = true;
+	bBeingRevived     = false;
+	BleedOutRemaining = BleedOutDuration;
+
+	// 关碰撞：濒死宠免伤 + 可被玩家抱起救。基类 HandleDeath 已停技能/禁移动。
+	SetActorEnableCollision(false);
+
+	MF_LOG(LogMFCatch, TEXT("%s 濒死，%.0fs 内未救将真死。"), *GetName(), BleedOutDuration);
+}
+
+void AMFPetBase::BeginRevive(float InReviveDuration)
+{
+	if (!bDowned) return;
+	bBeingRevived   = true;
+	ReviveTotal     = FMath::Max(InReviveDuration, 0.1f);
+	ReviveRemaining = ReviveTotal;
+}
+
+void AMFPetBase::CancelRevive()
+{
+	// 放下：恢复 bleed-out 从剩余继续倒数。
+	bBeingRevived = false;
+}
+
+void AMFPetBase::TrueDeath()
+{
+	bDowned       = false;
+	bBeingRevived = false;
+	MF_LOG(LogMFCatch, TEXT("%s 濒死读条耗尽 → 真死。"), *GetName());
+	OnTrueDeath.Broadcast(); // Inventory 销毁 Actor + 永久损失
+}
+
+void AMFPetBase::ReviveFromDowned()
+{
+	bDowned       = false;
+	bBeingRevived = false;
+
+	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
+	{
+		ASC->RemoveLooseGameplayTag(MFGameplayTags::State_Dead);
+		bool bFound;
+		const float MaxHP = ASC->GetGameplayAttributeValue(UMFAttributeSetBase::GetMaxHealthAttribute(), bFound);
+		if (bFound)
+		{
+			ASC->SetNumericAttributeBase(UMFAttributeSetBase::GetHealthAttribute(), MaxHP);
+		}
+	}
+
+	SetActorEnableCollision(true);
+	if (UCharacterMovementComponent* CMC = GetCharacterMovement())
+	{
+		CMC->SetMovementMode(MOVE_Walking);
+	}
+
+	MF_LOG(LogMFCatch, TEXT("%s 复活回场。"), *GetName());
+	OnRevived.Broadcast(); // Inventory 标记实例回出战
+}
+
+void AMFPetBase::DrawDownedBar() const
+{
+#if ENABLE_DRAW_DEBUG
+	const UWorld* World = GetWorld();
+	if (!World) return;
+
+	const float HeadZ = GetCapsuleComponent()
+		? GetCapsuleComponent()->GetScaledCapsuleHalfHeight() + 40.f : 100.f;
+	const FVector Center = GetActorLocation() + FVector(0.f, 0.f, HeadZ);
+
+	const float HalfW = 40.f;
+	const FVector Left  = Center - FVector(HalfW, 0.f, 0.f);
+	const FVector Right = Center + FVector(HalfW, 0.f, 0.f);
+
+	const float Frac = bBeingRevived
+		? FMath::Clamp(1.f - ReviveRemaining / FMath::Max(ReviveTotal, 0.1f), 0.f, 1.f) // 复活：填充
+		: FMath::Clamp(BleedOutRemaining / FMath::Max(BleedOutDuration, 0.1f), 0.f, 1.f); // 濒死：收缩
+	const FColor Color = bBeingRevived ? FColor::Green : FColor::Red;
+
+	// 底条（灰）+ 进度条（红=濒死剩余 / 绿=复活进度）。
+	DrawDebugLine(World, Left, Right, FColor(60, 60, 60), false, -1.f, 0, 6.f);
+	DrawDebugLine(World, Left, Left + (Right - Left) * Frac, Color, false, -1.f, 0, 6.f);
+#endif
 }
