@@ -86,6 +86,10 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Inventory")
 	UMFInventoryComponent* GetInventoryComponent() const { return InventoryComponent; }
 
+	/** GM/调试：按序击杀一只自己的出战宠（每次一只，走完整死亡→濒死流程）。控制台输入 MFKillNextPet。 */
+	UFUNCTION(Exec)
+	void MFKillNextPet();
+
 private:
 	void HandleMove(const FInputActionValue& Value);
 	void HandlePickStarted();

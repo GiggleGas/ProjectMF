@@ -11,6 +11,7 @@
 #include "MFCommandComponent.h"
 #include "MFPlayerAttributeSet.h"
 #include "MFPetBase.h"
+#include "MFAttributeSetBase.h"
 #include "Abilities/GameplayAbilityTypes.h"
 #include "AbilitySystemComponent.h"
 #include "EngineUtils.h"
@@ -359,4 +360,30 @@ AMFPetBase* AMFCharacter::FindNearestFriendlyPetInReach() const
 		}
 	}
 	return Best;
+}
+
+void AMFCharacter::MFKillNextPet()
+{
+#if !UE_BUILD_SHIPPING
+	if (!InventoryComponent) { return; }
+
+	// 找第一只"存活（非濒死/非死亡）"出战宠，杀之。每次一只 → 按序击杀。
+	for (AMFPetBase* Pet : InventoryComponent->GetActivePetActors())
+	{
+		if (!Pet || Pet->IsDowned()) { continue; }
+
+		UAbilitySystemComponent* ASC = Pet->GetAbilitySystemComponent();
+		if (!ASC || ASC->HasMatchingGameplayTag(MFGameplayTags::State_Dead)) { continue; }
+
+		// HP 清零 + 手动广播 OnDeath → 走完整死亡→濒死流程（HandleDeath + HandlePetDied）。
+		ASC->SetNumericAttributeBase(UMFAttributeSetBase::GetHealthAttribute(), 0.f);
+		if (UMFAttributeSetBase* Set = const_cast<UMFAttributeSetBase*>(ASC->GetSet<UMFAttributeSetBase>()))
+		{
+			Set->OnDeath.Broadcast();
+		}
+		MF_LOG(LogMFCharacter, TEXT("[GM] MFKillNextPet → 击杀 %s（进入濒死）。"), *Pet->GetName());
+		return;
+	}
+	MF_LOG(LogMFCharacter, TEXT("[GM] MFKillNextPet：没有可击杀的存活出战宠。"));
+#endif
 }
