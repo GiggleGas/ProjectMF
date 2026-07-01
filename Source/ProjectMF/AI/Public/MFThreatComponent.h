@@ -143,6 +143,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Threat")
 	void ApplyConfig(const FMFThreatConfig& InConfig);
 
+	/**
+	 * 嘲讽：强制本 AI 锁定 Taunter，持续 Duration 秒（到期自动恢复正常索敌）。
+	 * 由 UGA_Taunt 对半径内每个敌人调用（逐敌定向，无全局 tag，避免误锁）。
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Threat")
+	void ApplyTaunt(AActor* Taunter, float Duration);
+
 	// -----------------------------------------------------------------------
 	// 查询接口
 	// -----------------------------------------------------------------------
@@ -214,6 +221,12 @@ private:
 	/** 设置当前目标，管理 ASC 标签并广播事件。新旧相同时为空操作。 */
 	void SetCurrentTarget(AActor* NewTarget);
 
+	/** 嘲讽到期：清除嘲讽源，恢复正常索敌。 */
+	void OnTauntExpired();
+
+	/** 确保 Actor 在威胁列表中有记录（缺则补，标记在感知范围内）。 */
+	void EnsureRecord(AActor* Actor);
+
 	// -----------------------------------------------------------------------
 	// 威胁列表管理
 	// -----------------------------------------------------------------------
@@ -265,6 +278,10 @@ private:
 	FTimerHandle               EvalTimerHandle;
 	FMFThreatConfig            Config;
 	TArray<FMFThreatRecord>    ThreatRecords;
+
+	/** 嘲讽源（有效期间强制锁定它，越过正常评估）；到期由 TauntTimerHandle 清除。 */
+	TWeakObjectPtr<AActor>     TauntSource;
+	FTimerHandle               TauntTimerHandle;
 
 	UPROPERTY()
 	TObjectPtr<UMFRadarSensingComponent> RadarComp;

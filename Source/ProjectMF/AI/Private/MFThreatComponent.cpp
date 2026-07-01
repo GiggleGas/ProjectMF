@@ -70,6 +70,7 @@ void UMFThreatComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	if (UWorld* World = GetWorld())
 	{
 		World->GetTimerManager().ClearTimer(EvalTimerHandle);
+		World->GetTimerManager().ClearTimer(TauntTimerHandle);
 
 		// 清理所有威胁记录的 GraceTimer
 		for (FMFThreatRecord& Record : ThreatRecords)
@@ -274,6 +275,14 @@ void UMFThreatComponent::EnterLocked(AActor* Target)
 
 void UMFThreatComponent::EvaluateTargets()
 {
+	// 嘲讽守卫：有效嘲讽源期间，始终强制锁定它，越过正常打分（不被感知/宽限事件切走）。
+	if (TauntSource.IsValid())
+	{
+		EnsureRecord(TauntSource.Get());
+		TransitionTo(EMFThreatState::Locked, TauntSource.Get());
+		return;
+	}
+
 	CleanupThreatList();
 
 	const FVector MyLoc    = GetOwner()->GetActorLocation();
@@ -334,6 +343,45 @@ void UMFThreatComponent::SetCurrentTarget(AActor* NewTarget)
 	}
 
 	OnTargetChanged.Broadcast(NewTarget);
+}
+
+// ============================================================
+// 嘲讽
+// ============================================================
+
+void UMFThreatComponent::ApplyTaunt(AActor* Taunter, float Duration)
+{
+	if (!Taunter || Duration <= 0.f) { return; }
+
+	UWorld* World = GetWorld();
+	if (!World) { return; }
+
+	TauntSource = Taunter;
+	EnsureRecord(Taunter);
+	TransitionTo(EMFThreatState::Locked, Taunter);   // 立即强制锁定施法宠
+
+	// 起（或重置）嘲讽计时；到期恢复正常索敌。
+	World->GetTimerManager().SetTimer(
+		TauntTimerHandle, this, &UMFThreatComponent::OnTauntExpired, Duration, /*bLoop=*/false);
+
+	MF_LOG(LogMFAI, TEXT("[Threat] %s 被 %s 嘲讽，强制锁定 %.1fs。"),
+		*GetOwner()->GetName(), *Taunter->GetName(), Duration);
+}
+
+void UMFThreatComponent::OnTauntExpired()
+{
+	TauntSource.Reset();
+	EvaluateTargets();   // 恢复正常评估
+}
+
+void UMFThreatComponent::EnsureRecord(AActor* Actor)
+{
+	if (!Actor || FindRecord(Actor)) { return; }
+
+	FMFThreatRecord NewRecord;
+	NewRecord.Actor          = Actor;
+	NewRecord.bInSensingRange = true;   // 视为在感知内，不启动宽限
+	ThreatRecords.Add(NewRecord);
 }
 
 // ============================================================

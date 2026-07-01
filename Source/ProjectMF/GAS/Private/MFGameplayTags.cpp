@@ -55,6 +55,8 @@ namespace MFGameplayTags
 		"Category: all AI-combatant abilities (pets / enemies / boss).");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_Pet_Melee, "MF.Ability.Pet.Melee",
 		"Melee / AOE attack (UGA_AIAttackBase). STTask_ActivateAttack finds the granted ability by this tag.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_Pet_Taunt, "MF.Ability.Pet.Taunt",
+		"Taunt (UGA_Taunt): instant; forces enemies in radius to lock onto the caster for a duration.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_Pet_Ranged, "MF.Ability.Pet.Ranged",
 		"Category: all ranged attacks. Use specific child tags in StateTree.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_Pet_Ranged_Throw, "MF.Ability.Pet.Ranged.Throw",

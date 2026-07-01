@@ -78,6 +78,8 @@ namespace MFGameplayTags
 	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Pet);
 	/** 近战 / AOE（GA_AIAttackBase）。STTask_ActivateAttack 按此 tag 找已授予技能。 */
 	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Pet_Melee);
+	/** 嘲讽（GA_Taunt）：瞬发，强制半径内敌人锁定施法宠一段时间。 */
+	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Pet_Taunt);
 
 	/** 类别：所有远程攻击（GA_AIRangedAttackBase）。 */
 	PROJECTMF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Pet_Ranged);
