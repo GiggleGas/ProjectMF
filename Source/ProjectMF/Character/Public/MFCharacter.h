@@ -13,6 +13,7 @@ class UMFCameraController;
 class UMFInventoryComponent;
 class UMFPlayerConfig;
 class UMFPlayerAttributeSet;
+class AMFPetBase;
 struct FInputActionValue;
 
 /**
@@ -105,9 +106,11 @@ private:
 	/** 命令模式键：已激活则取消（提前退出），否则按 tag 激活 GA_CommandMode（冷却中会被自动挡）。 */
 	void HandleCommandMode();
 
-	/** 抱宠键（切换式）：未抱则激活 GA_CarryPet 抱起，已抱则取消（放下 + 恢复移速）。 */
-	void HandleCarryPet();
+	/**
+	 * 抱宠/复活统一键（切换式）：抱/复活中则取消；否则就近友方宠——濒死→激活 GA_RevivePet，存活→激活 GA_CarryPet。
+	 */
+	void HandleCarryOrRevive();
 
-	/** 复活键（切换式）：未复活则激活 GA_RevivePet 抱起濒死宠读条，复活中则取消。 */
-	void HandleRevivePet();
+	/** 就近找友方宠（Team.Player + 在 CarryReach 内 + 未被抱）；供 HandleCarryOrRevive 判断死活。 */
+	AMFPetBase* FindNearestFriendlyPetInReach() const;
 };

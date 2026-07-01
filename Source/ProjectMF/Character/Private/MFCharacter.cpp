@@ -10,8 +10,10 @@
 #include "MFPlayerController.h"
 #include "MFCommandComponent.h"
 #include "MFPlayerAttributeSet.h"
+#include "MFPetBase.h"
 #include "Abilities/GameplayAbilityTypes.h"
 #include "AbilitySystemComponent.h"
+#include "EngineUtils.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "EnhancedInputComponent.h"
@@ -159,15 +161,9 @@ void AMFCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 				}
 				if (PlayerConfig->CarryPetAction)
 				{
-					// 切换式：按一次抱起、再按一次放下（参考命令模式 toggle）。
+					// 一个键统一：就近友方宠——濒死→复活，存活→抱起；再按取消/放下（切换式）。
 					EI->BindAction(PlayerConfig->CarryPetAction, ETriggerEvent::Started,
-						this, &AMFCharacter::HandleCarryPet);
-				}
-				if (PlayerConfig->RevivePetAction)
-				{
-					// 切换式：按一次开始复活濒死宠读条、再按一次取消。
-					EI->BindAction(PlayerConfig->RevivePetAction, ETriggerEvent::Started,
-						this, &AMFCharacter::HandleRevivePet);
+						this, &AMFCharacter::HandleCarryOrRevive);
 				}
 			}
 		}
@@ -307,36 +303,60 @@ void AMFCharacter::HandleCommandMode()
 	}
 }
 
-void AMFCharacter::HandleCarryPet()
+void AMFCharacter::HandleCarryOrRevive()
 {
 	if (!AbilitySystemComponent) return;
 
-	// 切换式：已在抱 → 放下（取消 GA）；否则 → 抱起（激活 GA）。
+	// 已在抱 → 放下。
 	if (AbilitySystemComponent->HasMatchingGameplayTag(MFGameplayTags::State_CarryingPet))
 	{
 		const FGameplayTagContainer CancelTags(MFGameplayTags::Ability_Player_CarryPet);
 		AbilitySystemComponent->CancelAbilities(&CancelTags);
+		return;
 	}
-	else
-	{
-		AbilitySystemComponent->TryActivateAbilitiesByTag(
-			FGameplayTagContainer(MFGameplayTags::Ability_Player_CarryPet));
-	}
-}
-
-void AMFCharacter::HandleRevivePet()
-{
-	if (!AbilitySystemComponent) return;
-
-	// 切换式：复活读条中 → 取消；否则 → 就近抱起濒死宠开始复活。
+	// 已在复活 → 取消。
 	if (AbilitySystemComponent->HasMatchingGameplayTag(MFGameplayTags::State_RevivingPet))
 	{
 		const FGameplayTagContainer CancelTags(MFGameplayTags::Ability_Player_RevivePet);
 		AbilitySystemComponent->CancelAbilities(&CancelTags);
+		return;
 	}
-	else
+
+	// 否则：就近友方宠——濒死→复活，存活→抱起。
+	const AMFPetBase* Pet = FindNearestFriendlyPetInReach();
+	if (!Pet) return;
+
+	const FGameplayTag AbilityTag = Pet->IsDowned()
+		? MFGameplayTags::Ability_Player_RevivePet
+		: MFGameplayTags::Ability_Player_CarryPet;
+	AbilitySystemComponent->TryActivateAbilitiesByTag(FGameplayTagContainer(AbilityTag));
+}
+
+AMFPetBase* AMFCharacter::FindNearestFriendlyPetInReach() const
+{
+	UWorld* World = GetWorld();
+	if (!World || !PlayerConfig) return nullptr;
+
+	const float   ReachSq = PlayerConfig->CarryReach * PlayerConfig->CarryReach;
+	const FVector Origin  = GetActorLocation();
+
+	AMFPetBase* Best   = nullptr;
+	float       BestSq = ReachSq;
+	for (TActorIterator<AMFPetBase> It(World); It; ++It)
 	{
-		AbilitySystemComponent->TryActivateAbilitiesByTag(
-			FGameplayTagContainer(MFGameplayTags::Ability_Player_RevivePet));
+		AMFPetBase* Pet = *It;
+		if (!Pet) { continue; }
+
+		const UAbilitySystemComponent* PetASC = Pet->GetAbilitySystemComponent();
+		if (!PetASC || !PetASC->HasMatchingGameplayTag(MFGameplayTags::Team_Player)) { continue; }
+		if (PetASC->HasMatchingGameplayTag(MFGameplayTags::State_Carried)) { continue; } // 已被抱
+
+		const float DistSq = FVector::DistSquared(Pet->GetActorLocation(), Origin);
+		if (DistSq <= BestSq)
+		{
+			BestSq = DistSq;
+			Best   = Pet;
+		}
 	}
+	return Best;
 }

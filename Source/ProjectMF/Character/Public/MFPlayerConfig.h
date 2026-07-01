@@ -79,13 +79,9 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<UInputAction> CommandClickAction;
 
-	/** 抱起/移动宠物（GA_CarryPet）。切换式：按一次抱起、再按一次放下。 */
+	/** 抱宠/复活统一键。切换式：就近友方宠——死了→复活、活着→抱起；再按取消/放下。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<UInputAction> CarryPetAction;
-
-	/** 复活濒死宠（GA_RevivePet）。切换式：按一次开始复活读条、再按一次取消。 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
-	TObjectPtr<UInputAction> RevivePetAction;
 
 	// -----------------------------------------------------------------------
 	// 指令系统 / 林克时间
