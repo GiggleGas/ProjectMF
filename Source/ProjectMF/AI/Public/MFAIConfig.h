@@ -11,6 +11,7 @@
 class UMFGameplayAbilityBase;
 class UGameplayEffect;
 class UMFOverheadWidget;
+class UMFLootTable;
 
 /**
  * 技能释放模式：决定该技能由 AI 自主触发还是等玩家指令。
@@ -96,4 +97,15 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat",
 		meta = (ClampMin = "0.05", ClampMax = "2.0"))
 	float HitFlashDuration = 0.25f;
+
+	// -----------------------------------------------------------------------
+	// Loot — 死亡掉落
+	// -----------------------------------------------------------------------
+
+	/**
+	 * 死亡掉落表（空 = 不掉落）。
+	 * 玩家阵营（MF.Team.Player，含召唤宠）死亡不掉落——AMFAICharacter::HandleDeath 过滤。
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Loot")
+	TObjectPtr<UMFLootTable> LootTable;
 };

@@ -90,6 +90,14 @@ public:
 	UFUNCTION(Exec)
 	void MFKillNextPet();
 
+	/** GM/调试：在脚下生成掉落物。控制台输入 MFSpawnLoot Item.Resource.Meat 3。 */
+	UFUNCTION(Exec)
+	void MFSpawnLoot(const FString& ItemID, int32 Count = 1);
+
+	/** GM/调试：在脚下按掉落表资产名 roll 一次（验概率/分布）。控制台输入 MFDropTable LT_TestPet。 */
+	UFUNCTION(Exec)
+	void MFDropTable(const FString& TableAssetName);
+
 private:
 	void HandleMove(const FInputActionValue& Value);
 	void HandlePickStarted();

@@ -77,10 +77,10 @@ struct PROJECTMF_API FMFInventorySlot
 	GENERATED_BODY()
 
 	/** 引用 UMFItemDatabase 中的物品定义。 */
-	UPROPERTY(BlueprintReadOnly, Category = "Inventory")
+	UPROPERTY(BlueprintReadOnly, Category = "Inventory", SaveGame)
 	FName ItemID;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Inventory")
+	UPROPERTY(BlueprintReadOnly, Category = "Inventory", SaveGame)
 	int32 Count = 0;
 
 	FString GetDebugString() const

@@ -12,6 +12,10 @@
 #include "MFPlayerAttributeSet.h"
 #include "MFPetBase.h"
 #include "MFAttributeSetBase.h"
+#include "MFItemDatabase.h"
+#include "MFLootSubsystem.h"
+#include "MFLootTable.h"
+#include "AssetRegistry/AssetRegistryModule.h"
 #include "Abilities/GameplayAbilityTypes.h"
 #include "AbilitySystemComponent.h"
 #include "EngineUtils.h"
@@ -385,5 +389,53 @@ void AMFCharacter::MFKillNextPet()
 		return;
 	}
 	MF_LOG(LogMFCharacter, TEXT("[GM] MFKillNextPet：没有可击杀的存活出战宠。"));
+#endif
+}
+
+void AMFCharacter::MFSpawnLoot(const FString& ItemID, int32 Count)
+{
+#if !UE_BUILD_SHIPPING
+	const FName ItemName(*ItemID);
+
+	// 先查 ItemDatabase——未注册的物品生成后也捡不进背包，直接报错更早暴露配置问题。
+	if (!InventoryComponent || !InventoryComponent->ItemDatabase ||
+		!InventoryComponent->ItemDatabase->ContainsItem(ItemName))
+	{
+		MF_LOG_ERROR(LogMFLoot, TEXT("[GM] MFSpawnLoot：ItemDatabase 中不存在 %s。"), *ItemID);
+		return;
+	}
+
+	if (UMFLootSubsystem* Loot = GetWorld()->GetSubsystem<UMFLootSubsystem>())
+	{
+		FMFLootResult Result;
+		Result.ItemID = ItemName;
+		Result.Count  = FMath::Max(Count, 1);
+		Loot->SpawnLoot({ Result }, GetActorLocation());
+		MF_LOG(LogMFLoot, TEXT("[GM] MFSpawnLoot → %s x%d。"), *ItemID, Result.Count);
+	}
+#endif
+}
+
+void AMFCharacter::MFDropTable(const FString& TableAssetName)
+{
+#if !UE_BUILD_SHIPPING
+	// AssetRegistry 按资产名查 UMFLootTable（不限路径，方便调试）。
+	const FAssetRegistryModule& AssetRegistry =
+		FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+	TArray<FAssetData> Assets;
+	AssetRegistry.Get().GetAssetsByClass(UMFLootTable::StaticClass()->GetClassPathName(), Assets);
+
+	for (const FAssetData& Asset : Assets)
+	{
+		if (Asset.AssetName.ToString() != TableAssetName) { continue; }
+
+		if (UMFLootSubsystem* Loot = GetWorld()->GetSubsystem<UMFLootSubsystem>())
+		{
+			Loot->DropFromTable(Cast<UMFLootTable>(Asset.GetAsset()), GetActorLocation());
+			MF_LOG(LogMFLoot, TEXT("[GM] MFDropTable → %s roll 一次。"), *TableAssetName);
+		}
+		return;
+	}
+	MF_LOG_ERROR(LogMFLoot, TEXT("[GM] MFDropTable：找不到掉落表资产 %s。"), *TableAssetName);
 #endif
 }

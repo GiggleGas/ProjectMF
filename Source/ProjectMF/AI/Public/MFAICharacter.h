@@ -13,6 +13,7 @@ class UWidgetComponent;
 class UMFOverheadWidget;
 class UMFCombatAttributeSet;
 class UMFAIConfig;
+class UMFLootTable;
 
 /**
  * Base class for all AI-controlled characters in ProjectMF.
@@ -92,6 +93,13 @@ protected:
 	 */
 	virtual void ApplyGASConfig() override;
 
+	/**
+	 * 死亡处理：基类流程（State.Dead / 停技能 / 禁移动）之后按 AIConfig::LootTable 生成掉落。
+	 * 玩家阵营（MF.Team.Player，含召唤宠——濒死/真死走 Inventory 链）不掉落；
+	 * 被捕捉的野宠经 GA_CatchPet 销毁不触发 OnDeath，天然不掉落。
+	 */
+	virtual void HandleDeath() override;
+
 	// -----------------------------------------------------------------------
 	// AMFCharacterBase camera interface
 	// -----------------------------------------------------------------------
@@ -120,6 +128,13 @@ protected:
 	 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI")
 	TObjectPtr<UMFAIConfig> AIConfig;
+
+	/**
+	 * 死亡掉落表缓存。由 ApplyConfigGAS 从 Config 复制——关卡摆放与 Manager 生成
+	 * 两条注入路径共用该漏斗（Manager 路径不回写 AIConfig 成员，故不能在 HandleDeath 读 AIConfig）。
+	 */
+	UPROPERTY()
+	TObjectPtr<UMFLootTable> DeathLootTable;
 
 	// -----------------------------------------------------------------------
 	// GAS — Combat attributes (AI-only)

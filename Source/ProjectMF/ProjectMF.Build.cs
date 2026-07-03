@@ -76,5 +76,9 @@ public class ProjectMF : ModuleRules
 		// Meta (局外元层：存档 / GameInstance 子系统 / 交接结构)
 		PublicIncludePaths.Add(Path.Combine(ModuleDirectory, "Meta", "Public"));
 		PrivateIncludePaths.Add(Path.Combine(ModuleDirectory, "Meta", "Private"));
+
+		// Loot (掉落物系统：掉落表 / 地面拾取物 / 采集点)
+		PublicIncludePaths.Add(Path.Combine(ModuleDirectory, "Loot", "Public"));
+		PrivateIncludePaths.Add(Path.Combine(ModuleDirectory, "Loot", "Private"));
     }
 }

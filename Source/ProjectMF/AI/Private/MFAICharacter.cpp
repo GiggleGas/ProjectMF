@@ -2,6 +2,8 @@
 
 #include "MFAICharacter.h"
 #include "MFAIConfig.h"
+#include "MFGameplayTags.h"
+#include "MFLootSubsystem.h"
 #include "MFRadarSensingComponent.h"
 #include "MFThreatComponent.h"
 #include "MFCombatAttributeSet.h"
@@ -117,12 +119,40 @@ void AMFAICharacter::ApplyConfigGAS(const UMFAIConfig* Config)
 	}
 
 	HitFlashDuration = Config->HitFlashDuration;
+	DeathLootTable   = Config->LootTable;
 }
 
 void AMFAICharacter::ApplyGASConfig()
 {
 	// 关卡直接摆放路径：AIConfig 已在 BeginPlay 前由 BP 设置；Manager 路径走 ApplyAIConfig。
 	ApplyConfigGAS(AIConfig);
+}
+
+// ---------------------------------------------------------------------------
+// Death → Loot
+// ---------------------------------------------------------------------------
+
+void AMFAICharacter::HandleDeath()
+{
+	// Super 打上 State.Dead 前先记录：已带 tag 说明是重复广播，不重复掉落。
+	const bool bAlreadyDead = AbilitySystemComponent &&
+		AbilitySystemComponent->HasMatchingGameplayTag(MFGameplayTags::State_Dead);
+
+	Super::HandleDeath();
+
+	if (bAlreadyDead || !DeathLootTable) return;
+
+	// 玩家阵营（召唤宠）不掉落——其死亡走 Inventory 濒死/真死链，掉落只属于野怪/野宠/Boss。
+	if (AbilitySystemComponent &&
+		AbilitySystemComponent->HasMatchingGameplayTag(MFGameplayTags::Team_Player))
+	{
+		return;
+	}
+
+	if (UMFLootSubsystem* Loot = GetWorld()->GetSubsystem<UMFLootSubsystem>())
+	{
+		Loot->DropFromTable(DeathLootTable, GetActorLocation());
+	}
 }
 
 // ---------------------------------------------------------------------------
