@@ -55,7 +55,8 @@
 **A. 局内基础**
 - [x] **A1 掉落物系统**：通用掉落表 DataAsset + 怪/采集点掉落生成 + 拾取进 `ResourceSlots` + 来源标记（既定起手）— C++ 完成+编译通过，剩编辑器配置
 - [ ] **A1.5 背包格子管理（饥荒式）**：固定格子数 + 每格堆叠上限 + 同种物品多格堆叠 + 溢出掉地 + 丢弃 + 格子 UI（**不做 Tarkov 式网格 Tetris**）。见 `Backpack_GridInventory_Design.md`。排 A1 后、B1 前（背包数据模型定型才好序列化存档）
-- [ ] **A1.7 任务系统（Quest）**：DataTable 配置（RowName=唯一 QuestID）+ 三种类型（收集 N 物资/击杀 N 生物/收集 N 宠物）+ 进度追踪 + 任务列表 UI + `OnAllQuestsCompleted`。见 `QuestSystem_Design.md`。**统一目标追踪层**，目标点作为第四种"到点交互"类型上报本系统
+- [ ] **A1.8 打造合成（Crafting）**：DataTable 配方（RowName=唯一配方 ID）+ 合成逻辑 + 合成 UI（背包内页）+ 产出宠物消耗品/食物（喂宠回血/临时增伤，复用 GAS）。见 `CraftingSystem_Design.md`。**月底测试版 W2**（换入，替任务系统位置）
+- [ ] **A1.7 任务系统（Quest）**：DataTable 配置（RowName=唯一 QuestID）+ 三种类型（收集 N 物资/击杀 N 生物/收集 N 宠物）+ 进度追踪 + 任务列表 UI + `OnAllQuestsCompleted`。见 `QuestSystem_Design.md`。**统一目标追踪层**，目标点作为第四种"到点交互"类型上报本系统。⚠️ **月底测试版后移**：推迟到测试后与元层一起做完整 MVP
 - [ ] **A2 目标点/交互底层**：目标点 Marker（世界交互，2D 外观）+「到点操作」→ 上报 `QuestSubsystem::NotifyInteractPoint`（**计数职责并入 A1.7 Quest，不再独立 ObjectiveSubsystem**）。见 `ObjectiveSystem_Design.md`（需按 Quest 收敛微调）
 - [ ] **A3 手工大平图白盒**：一张图 + `AMFSpawnAIManager` 散点铺怪/资源/可捕捉宠（局内=开放大图已拍板，地牢已废）
 
