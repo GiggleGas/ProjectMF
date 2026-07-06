@@ -14,6 +14,7 @@ class UMFInventoryComponent;
 class UMFPlayerConfig;
 class UMFPlayerAttributeSet;
 class AMFPetBase;
+class AMFLootPickup;
 struct FInputActionValue;
 
 /**
@@ -92,7 +93,7 @@ public:
 
 	/** GM/调试：在脚下生成掉落物。控制台输入 MFSpawnLoot Item.Resource.Meat 3。 */
 	UFUNCTION(Exec)
-	void MFSpawnLoot(const FString& ItemID, int32 Count = 1);
+	void MFSpawnLoot(int32 ItemID, int32 Count = 1);
 
 	/** GM/调试：在脚下按掉落表资产名 roll 一次（验概率/分布）。控制台输入 MFDropTable LT_TestPet。 */
 	UFUNCTION(Exec)
@@ -125,4 +126,7 @@ private:
 
 	/** 就近找友方宠（Team.Player + 在 CarryReach 内 + 未被抱）；供 HandleCarryOrRevive 判断死活。 */
 	AMFPetBase* FindNearestFriendlyPetInReach() const;
+
+	/** 就近找掉落物（CarryReach 内最近）；供 HandleCarryOrRevive 优先拾取。 */
+	AMFLootPickup* FindNearestLootPickupInReach() const;
 };

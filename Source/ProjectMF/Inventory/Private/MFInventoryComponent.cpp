@@ -1,7 +1,8 @@
 // Copyright ProjectMF. All Rights Reserved.
 
 #include "MFInventoryComponent.h"
-#include "MFItemDatabase.h"
+#include "MFItemStatics.h"
+#include "MFItemSettings.h"
 #include "MFAIRegistry.h"
 #include "MFPetConfig.h"
 #include "MFPetBase.h"
@@ -82,27 +83,27 @@ UMFInventoryComponent::UMFInventoryComponent()
 // 资源
 // ============================================================
 
-int32 UMFInventoryComponent::AddResource(FName ItemID, int32 Count)
+int32 UMFInventoryComponent::AddResource(int32 ItemID, int32 Count)
 {
-	if (Count <= 0 || ItemID.IsNone())
+	if (Count <= 0 || ItemID <= 0)
 	{
 		MF_LOG_WARNING(LogMFInventory,
-			TEXT("AddResource: invalid args (ID='%s', Count=%d)."), *ItemID.ToString(), Count);
+			TEXT("AddResource: invalid args (ID=%d, Count=%d)."), ItemID, Count);
 		return 0;
 	}
 
-	const FMFItemDef* Def = ItemDatabase ? ItemDatabase->FindItem(ItemID) : nullptr;
+	const FMFItemDef* Def = UMFItemStatics::FindItem(UMFItemSettings::GetItemTable(), ItemID);
 	if (!Def)
 	{
 		MF_LOG_WARNING(LogMFInventory,
-			TEXT("AddResource: ItemID '%s' not found in database."), *ItemID.ToString());
+			TEXT("AddResource: ItemID %d not found in database."), ItemID);
 		return 0;
 	}
 
 	if (Def->ItemType != EMFItemType::Resource)
 	{
 		MF_LOG_WARNING(LogMFInventory,
-			TEXT("AddResource: '%s' is not a Resource type."), *ItemID.ToString());
+			TEXT("AddResource: %d is not a Resource type."), ItemID);
 		return 0;
 	}
 
@@ -124,8 +125,8 @@ int32 UMFInventoryComponent::AddResource(FName ItemID, int32 Count)
 		if (MaxResourceSlots > 0 && ResourceSlots.Num() >= MaxResourceSlots)
 		{
 			MF_LOG_WARNING(LogMFInventory,
-				TEXT("AddResource: Backpack full (%d slots). '%s' x%d lost."),
-				MaxResourceSlots, *ItemID.ToString(), Remaining);
+				TEXT("AddResource: Backpack full (%d slots). #%d x%d lost."),
+				MaxResourceSlots, ItemID, Remaining);
 		}
 		else
 		{
@@ -140,15 +141,15 @@ int32 UMFInventoryComponent::AddResource(FName ItemID, int32 Count)
 	const int32 ActualAdded = Count - Remaining;
 	if (ActualAdded > 0)
 	{
-		MF_LOG(LogMFInventory, TEXT("AddResource: +%d '%s' (total: %d)."),
-			ActualAdded, *ItemID.ToString(), GetResourceCount(ItemID));
+		MF_LOG(LogMFInventory, TEXT("AddResource: +%d #%d (total: %d)."),
+			ActualAdded, ItemID, GetResourceCount(ItemID));
 		OnInventoryChanged.Broadcast();
 	}
 
 	return ActualAdded;
 }
 
-bool UMFInventoryComponent::RemoveResource(FName ItemID, int32 Count)
+bool UMFInventoryComponent::RemoveResource(int32 ItemID, int32 Count)
 {
 	if (Count <= 0 || !HasResource(ItemID, Count))
 	{
@@ -171,13 +172,13 @@ bool UMFInventoryComponent::RemoveResource(FName ItemID, int32 Count)
 		}
 	}
 
-	MF_LOG(LogMFInventory, TEXT("RemoveResource: -%d '%s' (remaining: %d)."),
-		Count, *ItemID.ToString(), GetResourceCount(ItemID));
+	MF_LOG(LogMFInventory, TEXT("RemoveResource: -%d #%d (remaining: %d)."),
+		Count, ItemID, GetResourceCount(ItemID));
 	OnInventoryChanged.Broadcast();
 	return true;
 }
 
-int32 UMFInventoryComponent::GetResourceCount(FName ItemID) const
+int32 UMFInventoryComponent::GetResourceCount(int32 ItemID) const
 {
 	int32 Total = 0;
 	for (const FMFInventorySlot& Slot : ResourceSlots)
@@ -187,12 +188,12 @@ int32 UMFInventoryComponent::GetResourceCount(FName ItemID) const
 	return Total;
 }
 
-bool UMFInventoryComponent::HasResource(FName ItemID, int32 Count) const
+bool UMFInventoryComponent::HasResource(int32 ItemID, int32 Count) const
 {
 	return GetResourceCount(ItemID) >= Count;
 }
 
-int32 UMFInventoryComponent::FindResourceSlotIndex(FName ItemID) const
+int32 UMFInventoryComponent::FindResourceSlotIndex(int32 ItemID) const
 {
 	for (int32 i = 0; i < ResourceSlots.Num(); ++i)
 	{

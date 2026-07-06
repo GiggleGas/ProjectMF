@@ -6,20 +6,19 @@
 #include "MFSceneActorBase.h"
 #include "MFLootPickup.generated.h"
 
-class USphereComponent;
-class AMFCharacter;
+class UPaperSpriteComponent;
 
 /**
- * AMFLootPickup — 地面掉落物（一个实例 = 一种 ItemID × Count）。
+ * AMFLootPickup — 地面掉落物（一个实例 = 一件物品）。
  *
- * 渲染沿用 AMFSceneActorBase 的 2D 管线（Flipbook/PaperZD），外观在 BP 子类配置；
- * 也可在 BP 实现 OnLootInitialized 按 ItemID 切换外观。
+ * 渲染沿用 AMFSceneActorBase 的 2D 管线；场景外观由物品总表的 WorldSprite 决定
+ * （InitLoot 时按 ItemID 填入），一个类通吃所有物品。
  *
  * 生命周期（由 UMFLootSubsystem 生成，勿直接摆放）：
- *   Scatter（出生小抛物线散开）→ Idle（待拾取）→ Magnet（玩家进入感应半径，加速飞向玩家）
- *   → 到达 → AddResource：全部入包销毁；背包满则扣除已入包部分、原地回落冷却后重试。
+ *   Scatter（出生小抛物线散开）→ Idle（静止待拾取）→ PickUp()（玩家主动拾取后销毁）。
  *
- * 拾取触发者：MVP 仅玩家 Pawn（AMFCharacter）。宠物/劳作拾取留扩展。
+ * 拾取 = 玩家主动交互（空格键，见 AMFCharacter::HandleCarryOrRevive 里的就近拾取）；
+ * 当前无背包，PickUp() 虚空销毁，将来接背包时在此 AddResource。
  */
 UCLASS(Blueprintable)
 class PROJECTMF_API AMFLootPickup : public AMFSceneActorBase
@@ -33,10 +32,13 @@ public:
 	 * 初始化掉落内容并启动出生散开。由 UMFLootSubsystem 在 SpawnActor 后立即调用。
 	 * @param LandLocation  散开落点（已对齐地面）。与当前位置相同则跳过散开直接 Idle。
 	 */
-	void InitLoot(FName InItemID, int32 InCount, const FVector& LandLocation);
+	void InitLoot(int32 InItemID, int32 InCount, const FVector& LandLocation);
+
+	/** 玩家主动拾取：当前无背包 → 虚空销毁。将来接背包时在此 AddResource(ItemID, Count)。 */
+	void PickUp();
 
 	UFUNCTION(BlueprintPure, Category = "Loot")
-	FName GetItemID() const { return ItemID; }
+	int32 GetItemID() const { return ItemID; }
 
 	UFUNCTION(BlueprintPure, Category = "Loot")
 	int32 GetCount() const { return Count; }
@@ -45,37 +47,13 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
 
-	/** BP 外观钩子：InitLoot 后调用，可按 ItemID/Count 切换 Flipbook 或缩放。 */
+	/** BP 外观钩子：InitLoot 后调用，可按 ItemID/Count 切换外观或缩放。 */
 	UFUNCTION(BlueprintImplementableEvent, Category = "Loot")
-	void OnLootInitialized(FName InItemID, int32 InCount);
+	void OnLootInitialized(int32 InItemID, int32 InCount);
 
-	// -----------------------------------------------------------------------
-	// 组件
-	// -----------------------------------------------------------------------
-
-	/** 拾取感应球（overlap Pawn）。半径由 MagnetRadius 写入。 */
+	/** 场景 2D 外观：显示物品的 WorldSprite（InitLoot 时按 ItemID 从总表取）。 */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	TObjectPtr<USphereComponent> MagnetSphere;
-
-	// -----------------------------------------------------------------------
-	// 手感配置（BP 子类调）
-	// -----------------------------------------------------------------------
-
-	/** 吸附感应半径（cm）。 */
-	UPROPERTY(EditDefaultsOnly, Category = "Loot", meta = (ClampMin = "10.0"))
-	float MagnetRadius = 120.f;
-
-	/** 吸附初速（cm/s）。 */
-	UPROPERTY(EditDefaultsOnly, Category = "Loot", meta = (ClampMin = "0.0"))
-	float MagnetInitialSpeed = 350.f;
-
-	/** 吸附加速度（cm/s²）。 */
-	UPROPERTY(EditDefaultsOnly, Category = "Loot", meta = (ClampMin = "0.0"))
-	float MagnetAcceleration = 3000.f;
-
-	/** 判定入包的距离（到玩家中心，cm）。 */
-	UPROPERTY(EditDefaultsOnly, Category = "Loot", meta = (ClampMin = "5.0"))
-	float AbsorbDistance = 40.f;
+	TObjectPtr<UPaperSpriteComponent> SpriteComponent;
 
 	/** 出生散开飞行时长（秒）。 */
 	UPROPERTY(EditDefaultsOnly, Category = "Loot", meta = (ClampMin = "0.0", ClampMax = "2.0"))
@@ -89,20 +67,16 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Loot", meta = (ClampMin = "0.0"))
 	float Lifetime = 300.f;
 
-	/** 背包满回落后，再次尝试吸附的冷却（秒）。 */
-	UPROPERTY(EditDefaultsOnly, Category = "Loot", meta = (ClampMin = "0.1"))
-	float RetryCooldown = 1.f;
+	/** Sprite 面向相机的 yaw 偏移（度）。Paper2D XZ 平面 sprite 通常 -90。 */
+	UPROPERTY(EditDefaultsOnly, Category = "Loot")
+	float BillboardYawOffset = -90.f;
 
 private:
-	// -----------------------------------------------------------------------
-	// 运行时状态
-	// -----------------------------------------------------------------------
-
-	enum class EPickupState : uint8 { Scatter, Idle, Magnet };
+	enum class EPickupState : uint8 { Scatter, Idle };
 
 	EPickupState State = EPickupState::Idle;
 
-	FName ItemID;
+	int32 ItemID = 0;
 	int32 Count = 0;
 
 	/** 散开插值：起点 / 落点 / 已飞时间。 */
@@ -110,24 +84,8 @@ private:
 	FVector ScatterEnd   = FVector::ZeroVector;
 	float   ScatterTime  = 0.f;
 
-	/** 吸附目标（玩家）与当前速度。 */
-	TWeakObjectPtr<AMFCharacter> MagnetTarget;
-	float MagnetSpeed = 0.f;
-
-	/** 背包满回落的冷却截止时间（世界秒）。 */
-	float RetryReadyTime = 0.f;
-
-	UFUNCTION()
-	void OnMagnetBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
-		UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep,
-		const FHitResult& SweepResult);
-
 	void TickScatter(float DeltaTime);
-	void TickIdle();
-	void TickMagnet(float DeltaTime);
 
-	void StartMagnet(AMFCharacter* Target);
-
-	/** 尝试把内容加入目标背包。全部入包 → 销毁；部分/失败 → 回落冷却。 */
-	void TryGiveTo(AMFCharacter* Target);
+	/** 让 Sprite 面向玩家相机（简易 billboard），任何相机角度都可见。 */
+	void UpdateBillboard();
 };

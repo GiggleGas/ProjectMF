@@ -9,7 +9,6 @@
 #include "MFItemTypes.h"
 #include "MFInventoryComponent.generated.h"
 
-class UMFItemDatabase;
 class UDataTable;
 class AMFPetBase;
 
@@ -41,9 +40,6 @@ public:
 	// -----------------------------------------------------------------------
 	// 配置（由 AMFCharacter::BeginPlay 从 PlayerConfig 注入，勿在此处直接设置）
 	// -----------------------------------------------------------------------
-
-	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Config")
-	TObjectPtr<UMFItemDatabase> ItemDatabase;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Config")
 	TObjectPtr<UDataTable> AIRegistry;
@@ -78,17 +74,17 @@ public:
 
 	/** 添加资源，相同 ItemID 自动叠加。返回实际添加数量。 */
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Resource")
-	int32 AddResource(FName ItemID, int32 Count);
+	int32 AddResource(int32 ItemID, int32 Count);
 
 	/** 移除资源。数量不足时不做任何修改，返回 false。 */
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Resource")
-	bool RemoveResource(FName ItemID, int32 Count);
+	bool RemoveResource(int32 ItemID, int32 Count);
 
 	UFUNCTION(BlueprintPure, Category = "Inventory|Resource")
-	int32 GetResourceCount(FName ItemID) const;
+	int32 GetResourceCount(int32 ItemID) const;
 
 	UFUNCTION(BlueprintPure, Category = "Inventory|Resource")
-	bool HasResource(FName ItemID, int32 Count = 1) const;
+	bool HasResource(int32 ItemID, int32 Count = 1) const;
 
 	UFUNCTION(BlueprintPure, Category = "Inventory|Resource")
 	const TArray<FMFInventorySlot>& GetResourceSlots() const { return ResourceSlots; }
@@ -176,7 +172,7 @@ private:
 	// 辅助
 	// -----------------------------------------------------------------------
 
-	int32 FindResourceSlotIndex(FName ItemID) const;
+	int32 FindResourceSlotIndex(int32 ItemID) const;
 
 	/** 返回可修改的宠物实例指针，未找到返回 nullptr。 */
 	FMFPetInstance* FindPetMutable(FGuid InstanceID);

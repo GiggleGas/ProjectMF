@@ -12,8 +12,10 @@
 #include "MFPlayerAttributeSet.h"
 #include "MFPetBase.h"
 #include "MFAttributeSetBase.h"
-#include "MFItemDatabase.h"
+#include "MFItemStatics.h"
+#include "MFItemSettings.h"
 #include "MFLootSubsystem.h"
+#include "MFLootPickup.h"
 #include "MFLootTable.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "Abilities/GameplayAbilityTypes.h"
@@ -61,7 +63,6 @@ void AMFCharacter::BeginPlay()
 	// GAS（属性/技能/标签/受击闪光）改由 ApplyGASConfig 在 InitAbilitySystemComponent 内从 PlayerConfig 应用。
 	if (PlayerConfig && InventoryComponent)
 	{
-		InventoryComponent->ItemDatabase          = PlayerConfig->ItemDatabase;
 		InventoryComponent->AIRegistry            = PlayerConfig->AIRegistry;
 		InventoryComponent->MaxResourceSlots      = PlayerConfig->MaxResourceSlots;
 		InventoryComponent->MaxPetSlots           = PlayerConfig->MaxPetSlots;
@@ -327,6 +328,13 @@ void AMFCharacter::HandleCarryOrRevive()
 		return;
 	}
 
+	// 优先：就近掉落物 → 拾取（当前无背包，虚空消失）。
+	if (AMFLootPickup* Loot = FindNearestLootPickupInReach())
+	{
+		Loot->PickUp();
+		return;
+	}
+
 	// 否则：就近友方宠——濒死→复活，存活→抱起。
 	const AMFPetBase* Pet = FindNearestFriendlyPetInReach();
 	if (!Pet) return;
@@ -366,6 +374,31 @@ AMFPetBase* AMFCharacter::FindNearestFriendlyPetInReach() const
 	return Best;
 }
 
+AMFLootPickup* AMFCharacter::FindNearestLootPickupInReach() const
+{
+	UWorld* World = GetWorld();
+	if (!World || !PlayerConfig) return nullptr;
+
+	const float   ReachSq = PlayerConfig->CarryReach * PlayerConfig->CarryReach;
+	const FVector Origin  = GetActorLocation();
+
+	AMFLootPickup* Best   = nullptr;
+	float          BestSq = ReachSq;
+	for (TActorIterator<AMFLootPickup> It(World); It; ++It)
+	{
+		AMFLootPickup* Loot = *It;
+		if (!Loot) { continue; }
+
+		const float DistSq = FVector::DistSquared(Loot->GetActorLocation(), Origin);
+		if (DistSq <= BestSq)
+		{
+			BestSq = DistSq;
+			Best   = Loot;
+		}
+	}
+	return Best;
+}
+
 void AMFCharacter::MFKillNextPet()
 {
 #if !UE_BUILD_SHIPPING
@@ -392,26 +425,23 @@ void AMFCharacter::MFKillNextPet()
 #endif
 }
 
-void AMFCharacter::MFSpawnLoot(const FString& ItemID, int32 Count)
+void AMFCharacter::MFSpawnLoot(int32 ItemID, int32 Count)
 {
 #if !UE_BUILD_SHIPPING
-	const FName ItemName(*ItemID);
-
-	// 先查 ItemDatabase——未注册的物品生成后也捡不进背包，直接报错更早暴露配置问题。
-	if (!InventoryComponent || !InventoryComponent->ItemDatabase ||
-		!InventoryComponent->ItemDatabase->ContainsItem(ItemName))
+	// 先查总表——未注册的物品生成后也捡不进背包，直接报错更早暴露配置问题。
+	if (!UMFItemStatics::ContainsItem(UMFItemSettings::GetItemTable(), ItemID))
 	{
-		MF_LOG_ERROR(LogMFLoot, TEXT("[GM] MFSpawnLoot：ItemDatabase 中不存在 %s。"), *ItemID);
+		MF_LOG_ERROR(LogMFLoot, TEXT("[GM] MFSpawnLoot：物品总表中不存在 #%d。"), ItemID);
 		return;
 	}
 
 	if (UMFLootSubsystem* Loot = GetWorld()->GetSubsystem<UMFLootSubsystem>())
 	{
 		FMFLootResult Result;
-		Result.ItemID = ItemName;
+		Result.ItemID = ItemID;
 		Result.Count  = FMath::Max(Count, 1);
 		Loot->SpawnLoot({ Result }, GetActorLocation());
-		MF_LOG(LogMFLoot, TEXT("[GM] MFSpawnLoot → %s x%d。"), *ItemID, Result.Count);
+		MF_LOG(LogMFLoot, TEXT("[GM] MFSpawnLoot → #%d x%d。"), ItemID, Result.Count);
 	}
 #endif
 }

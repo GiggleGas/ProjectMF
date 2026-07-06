@@ -13,7 +13,6 @@ class UInputAction;
 class UMFGameplayAbilityBase;
 class UGameplayEffect;
 class UMFMainHUDWidget;
-class UMFItemDatabase;
 class UDataTable;
 
 /**
@@ -169,10 +168,6 @@ public:
 	// -----------------------------------------------------------------------
 	// Inventory — 背包配置
 	// -----------------------------------------------------------------------
-
-	/** 全局资源物品数据库（资源类物品的 MaxStackSize / 校验用）。 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
-	TObjectPtr<UMFItemDatabase> ItemDatabase;
 
 	/**
 	 * AI 全局注册表 DataTable（行结构 FMFAIRegistryRow）。

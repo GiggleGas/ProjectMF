@@ -3,8 +3,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Engine/DataTable.h"
 #include "MFPetBase.h"
 #include "MFItemTypes.generated.h"
+
+class UPaperSprite;
 
 // ============================================================
 // EMFItemType
@@ -25,29 +28,30 @@ enum class EMFItemType : uint8
 // ============================================================
 
 /**
- * FMFItemDef — 可叠加资源类物品的静态定义，存储在 UMFItemDatabase DataAsset 中。
+ * FMFItemDef — 物品静态定义，作为物品总表 DataTable（DT_ItemDatabase）的行结构。
  *
- * 命名规范（ItemID）：
- *   资源  →  Item.Resource.Wood / Item.Resource.Stone
- *   装备  →  Item.Equipment.Sword
+ * 主键 = DataTable 的 RowName，用数字字符串（"1001"/"1002"…）；该数字即 ItemID。
+ * 其他系统（背包 slot / 掉落表 / 配方）一律用 int32 ItemID 索引，经 UMFItemStatics 查表。
  *
- * 注意：宠物类物品不再经过 ItemDatabase，改由 DT_AIRegistry + UMFPetConfig 统一管理。
+ * 注意：宠物类物品不经过本表，由 DT_AIRegistry + UMFPetConfig 统一管理。
  * 运行时只读，不随游戏状态变化。
  */
 USTRUCT(BlueprintType)
-struct PROJECTMF_API FMFItemDef
+struct PROJECTMF_API FMFItemDef : public FTableRowBase
 {
 	GENERATED_BODY()
 
-	/** 全局唯一 ID（主键），用于所有系统间的引用。 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
-	FName ItemID;
-
+	/** 显示名（RowName 是数字主键，可读名放这里）。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
 	FText DisplayName;
 
+	/** UI 图标（背包 / 合成界面用）。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
 	TObjectPtr<UTexture2D> Icon = nullptr;
+
+	/** 掉落到场景中的 2D 外观 Sprite（Paper2D）。掉落物 Actor 用它在场景展示。 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
+	TObjectPtr<UPaperSprite> WorldSprite = nullptr;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
 	EMFItemType ItemType = EMFItemType::Resource;
@@ -76,16 +80,16 @@ struct PROJECTMF_API FMFInventorySlot
 {
 	GENERATED_BODY()
 
-	/** 引用 UMFItemDatabase 中的物品定义。 */
+	/** 数字 ItemID（= 物品总表 DataTable 的 RowName）。0 = 空格。 */
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory", SaveGame)
-	FName ItemID;
+	int32 ItemID = 0;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory", SaveGame)
 	int32 Count = 0;
 
 	FString GetDebugString() const
 	{
-		return FString::Printf(TEXT("[Resource] %s x%d"), *ItemID.ToString(), Count);
+		return FString::Printf(TEXT("[Resource] #%d x%d"), ItemID, Count);
 	}
 };
 

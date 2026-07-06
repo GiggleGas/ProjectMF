@@ -20,9 +20,9 @@ struct PROJECTMF_API FMFLootEntry
 {
 	GENERATED_BODY()
 
-	/** 掉落物品 ID，引用 UMFItemDatabase 定义（规范 Item.Resource.*）。 */
+	/** 掉落物品的数字 ItemID（= 物品总表 DataTable 的 RowName）。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Loot")
-	FName ItemID;
+	int32 ItemID = 0;
 
 	/** 独立命中概率（0~1，1=必掉）。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Loot",
@@ -48,7 +48,7 @@ struct PROJECTMF_API FMFLootResult
 	GENERATED_BODY()
 
 	UPROPERTY(BlueprintReadOnly, Category = "Loot")
-	FName ItemID;
+	int32 ItemID = 0;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Loot")
 	int32 Count = 0;
