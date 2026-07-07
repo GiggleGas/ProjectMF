@@ -7,6 +7,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "MFItemStatics.h"
 #include "MFItemSettings.h"
+#include "MFInventoryComponent.h"
 #include "MFLog.h"
 
 AMFLootPickup::AMFLootPickup()
@@ -59,12 +60,45 @@ void AMFLootPickup::InitLoot(int32 InItemID, int32 InCount, const FVector& LandL
 	OnLootInitialized(ItemID, Count);
 }
 
-void AMFLootPickup::PickUp()
+int32 AMFLootPickup::TryPickUpInto(UMFInventoryComponent* Inv)
 {
-	// 虚空拾取（当前无背包）：捡起即消失。
-	// 将来接背包时改为 AddResource(ItemID, Count) 成功后再 Destroy。
-	MF_LOG(LogMFLoot, TEXT("拾取 #%d x%d（虚空，无背包）。"), ItemID, Count);
-	Destroy();
+	if (!Inv) return 0;
+
+	const int32 Added = Inv->AddResource(ItemID, Count);
+	if (Added >= Count)
+	{
+		MF_LOG(LogMFLoot, TEXT("拾取 #%d x%d 入包。"), ItemID, Count);
+		Destroy();
+		return Added;
+	}
+
+	// 背包满 / 只装下一部分：扣掉已入的，剩余重新抛一次散落（弹起重落，明确反馈）。
+	Count -= Added;
+	MF_LOG(LogMFLoot, TEXT("拾取 #%d 背包满，剩 x%d 弹回。"), ItemID, Count);
+	BounceOut();
+	return Added;
+}
+
+void AMFLootPickup::BounceOut()
+{
+	const FVector Cur = GetActorLocation();
+
+	const FVector2D Off = FMath::RandPointInCircle(BounceRadius);
+	FVector Land = Cur + FVector(Off.X, Off.Y, 0.f);
+
+	// 向下 trace 对齐地面。
+	FHitResult Hit;
+	const FVector TraceStart = Land + FVector(0, 0, 100.f);
+	const FVector TraceEnd   = Land - FVector(0, 0, 1000.f);
+	if (GetWorld() && GetWorld()->LineTraceSingleByChannel(Hit, TraceStart, TraceEnd, ECC_Visibility))
+	{
+		Land.Z = Hit.ImpactPoint.Z + 5.f;
+	}
+
+	ScatterStart = Cur;
+	ScatterEnd   = Land;
+	ScatterTime  = 0.f;
+	State        = EPickupState::Scatter;
 }
 
 // ---------------------------------------------------------------------------

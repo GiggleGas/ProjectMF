@@ -89,6 +89,13 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Inventory|Resource")
 	const TArray<FMFInventorySlot>& GetResourceSlots() const { return ResourceSlots; }
 
+	/** 按 MaxResourceSlots 预填固定格数（空格 ItemID=0）。由 AMFCharacter 注入 MaxResourceSlots 后调用。 */
+	void InitResourceSlots();
+
+	/** 丢弃某格：内容经 UMFLootSubsystem 掉回 owner 脚下，然后置空该格。空格/越界返回 false。 */
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Resource")
+	bool DropSlot(int32 SlotIndex);
+
 	// -----------------------------------------------------------------------
 	// 宠物接口
 	// -----------------------------------------------------------------------
@@ -171,8 +178,6 @@ private:
 	// -----------------------------------------------------------------------
 	// 辅助
 	// -----------------------------------------------------------------------
-
-	int32 FindResourceSlotIndex(int32 ItemID) const;
 
 	/** 返回可修改的宠物实例指针，未找到返回 nullptr。 */
 	FMFPetInstance* FindPetMutable(FGuid InstanceID);

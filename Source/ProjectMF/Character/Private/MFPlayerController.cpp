@@ -34,6 +34,10 @@ void AMFPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
 
+	// 常显鼠标 + 游戏与 UI 并存输入模式（背包点击/拖动需要）。
+	bShowMouseCursor = true;
+	SetInputMode(FInputModeGameAndUI());
+
 	AddInputMappingContext();
 
 	if (PlayerConfig && PlayerConfig->MainHUDClass)

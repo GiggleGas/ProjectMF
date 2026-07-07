@@ -2,10 +2,12 @@
 
 #include "MFMainHUDWidget.h"
 #include "MFPetSlotWidget.h"
+#include "MFBackpackWidget.h"
 #include "MFOverheadWidget.h"
 #include "MFCharacter.h"
 #include "MFInventoryComponent.h"
 #include "MFGameLoopConfig.h"
+#include "MFLog.h"
 #include "MFPetBase.h"
 #include "AbilitySystemComponent.h"
 #include "Components/TextBlock.h"
@@ -76,6 +78,16 @@ void UMFMainHUDWidget::InitPlayerHUD(AMFCharacter* Player)
 		Inv->OnPetRosterChanged.AddDynamic(this, &UMFMainHUDWidget::OnPetRosterChanged);
 		Inv->OnPetReviveTick.AddDynamic(this,    &UMFMainHUDWidget::OnPetReviveTick);
 		RefreshPetSlots();
+
+		if (BackpackWidget)
+		{
+			BackpackWidget->InitBackpack(Inv);
+		}
+		else
+		{
+			MF_LOG_WARNING(LogMFInventory,
+				TEXT("[HUD] BackpackWidget 未绑定：检查 WBP_MainHUD 里 WBP_Backpack 是否命名为 'BackpackWidget'。"));
+		}
 	}
 }
 

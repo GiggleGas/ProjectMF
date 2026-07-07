@@ -12,6 +12,7 @@ class UOverlay;
 class UPanelWidget;
 class UMFOverheadWidget;
 class UMFPetSlotWidget;
+class UMFBackpackWidget;
 class AMFCharacter;
 class UMFInventoryComponent;
 
@@ -59,6 +60,10 @@ public:
 	/** 宠物卡槽容器（HorizontalBox / WrapBox 均可）。动态填入 WBP_PetSlot。 */
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UPanelWidget> PetSlotList;
+
+	/** 背包格子栏（可选）。Designer 放 WBP_Backpack 命名 "BackpackWidget"。 */
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UMFBackpackWidget> BackpackWidget;
 
 	/** "[ Tab ] 开启 Boss 战" 提示，满足条件时短暂显示。可选。 */
 	UPROPERTY(meta = (BindWidgetOptional))

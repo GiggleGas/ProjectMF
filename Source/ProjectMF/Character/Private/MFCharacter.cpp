@@ -67,6 +67,7 @@ void AMFCharacter::BeginPlay()
 		InventoryComponent->MaxResourceSlots      = PlayerConfig->MaxResourceSlots;
 		InventoryComponent->MaxPetSlots           = PlayerConfig->MaxPetSlots;
 		InventoryComponent->SummonedPetTeamTags   = PlayerConfig->SummonedPetTeamTags;
+		InventoryComponent->InitResourceSlots();
 	}
 
 	Super::BeginPlay();
@@ -328,10 +329,10 @@ void AMFCharacter::HandleCarryOrRevive()
 		return;
 	}
 
-	// 优先：就近掉落物 → 拾取（当前无背包，虚空消失）。
+	// 优先：就近掉落物 → 拾取入包（满则弹回，见 TryPickUpInto）。
 	if (AMFLootPickup* Loot = FindNearestLootPickupInReach())
 	{
-		Loot->PickUp();
+		Loot->TryPickUpInto(InventoryComponent);
 		return;
 	}
 

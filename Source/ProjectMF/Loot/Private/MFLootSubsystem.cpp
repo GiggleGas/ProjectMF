@@ -63,17 +63,13 @@ void UMFLootSubsystem::SpawnLoot(const TArray<FMFLootResult>& Results, const FVe
 
 	for (const FMFLootResult& Result : Results)
 	{
-		// 每件物品一个独立掉落物散开（无背包堆叠，散开更直观，也便于逐个拾取）。
-		const int32 NumItems = FMath::Max(Result.Count, 1);
-		for (int32 i = 0; i < NumItems; ++i)
-		{
-			AMFLootPickup* Pickup = World->SpawnActor<AMFLootPickup>(
-				PickupClass, Location, FRotator::ZeroRotator, SpawnParams);
-			if (!Pickup) continue;
+		// 一个掉落物 = 一堆（带数量）；捡起时整堆进背包，无需逐个生成。
+		AMFLootPickup* Pickup = World->SpawnActor<AMFLootPickup>(
+			PickupClass, Location, FRotator::ZeroRotator, SpawnParams);
+		if (!Pickup) continue;
 
-			Pickup->InitLoot(Result.ItemID, 1,
-				ResolveLandLocation(Location, Settings->ScatterRadius));
-		}
+		Pickup->InitLoot(Result.ItemID, Result.Count,
+			ResolveLandLocation(Location, Settings->ScatterRadius));
 	}
 }
 

@@ -3,6 +3,7 @@
 #include "MFInventoryComponent.h"
 #include "MFItemStatics.h"
 #include "MFItemSettings.h"
+#include "MFLootSubsystem.h"
 #include "MFAIRegistry.h"
 #include "MFPetConfig.h"
 #include "MFPetBase.h"
@@ -49,6 +50,7 @@ static void PrintInventoryDebug(const TArray<FString>& Args, UWorld* World)
 
 	for (int32 i = Resources.Num() - 1; i >= 0; --i)
 	{
+		if (Resources[i].ItemID <= 0 || Resources[i].Count <= 0) continue; // 跳过空格
 		GEngine->AddOnScreenDebugMessage(-1, 10.f, FColor::White,
 			FString::Printf(TEXT("  [%d] %s"), i, *Resources[i].GetDebugString()));
 	}
@@ -83,6 +85,22 @@ UMFInventoryComponent::UMFInventoryComponent()
 // 资源
 // ============================================================
 
+void UMFInventoryComponent::InitResourceSlots()
+{
+	if (MaxResourceSlots <= 0)
+	{
+		MF_LOG_WARNING(LogMFInventory,
+			TEXT("InitResourceSlots: MaxResourceSlots<=0（未在 PlayerConfig 配置），回退默认 20。"));
+		MaxResourceSlots = 20;
+	}
+	// 预填固定格数，空格 = 默认构造（ItemID=0, Count=0）。下标即格位。
+	ResourceSlots.Empty(MaxResourceSlots);
+	ResourceSlots.SetNum(MaxResourceSlots);
+
+	// 通知 UI 按新容量重建格子（HUD 可能早于本函数初始化，需据此补建 N 格空位）。
+	OnInventoryChanged.Broadcast();
+}
+
 int32 UMFInventoryComponent::AddResource(int32 ItemID, int32 Count)
 {
 	if (Count <= 0 || ItemID <= 0)
@@ -100,41 +118,38 @@ int32 UMFInventoryComponent::AddResource(int32 ItemID, int32 Count)
 		return 0;
 	}
 
-	if (Def->ItemType != EMFItemType::Resource)
+	// 可叠加类才进背包格：资源 + 消耗品（打造产出）。
+	if (Def->ItemType != EMFItemType::Resource && Def->ItemType != EMFItemType::Consumable)
 	{
 		MF_LOG_WARNING(LogMFInventory,
-			TEXT("AddResource: %d is not a Resource type."), ItemID);
+			TEXT("AddResource: %d 非可叠加类（Resource/Consumable），拒绝。"), ItemID);
 		return 0;
 	}
 
-	const int32 MaxStack = Def->MaxStackSize;
+	const int32 MaxStack = FMath::Max(Def->MaxStackSize, 1);
 	int32 Remaining = Count;
 
-	const int32 SlotIdx = FindResourceSlotIndex(ItemID);
-	if (SlotIdx != INDEX_NONE)
+	// 第一遍：填所有未满的同种格（从前往后）。
+	for (FMFInventorySlot& Slot : ResourceSlots)
 	{
-		FMFInventorySlot& Slot = ResourceSlots[SlotIdx];
-		const int32 Space = MaxStack - Slot.Count;
-		const int32 Added = FMath::Min(Space, Remaining);
-		Slot.Count += Added;
-		Remaining  -= Added;
+		if (Remaining <= 0) break;
+		if (Slot.ItemID == ItemID && Slot.Count < MaxStack)
+		{
+			const int32 Move = FMath::Min(MaxStack - Slot.Count, Remaining);
+			Slot.Count += Move;
+			Remaining  -= Move;
+		}
 	}
 
-	if (Remaining > 0)
+	// 第二遍：占空格新建堆。
+	for (FMFInventorySlot& Slot : ResourceSlots)
 	{
-		if (MaxResourceSlots > 0 && ResourceSlots.Num() >= MaxResourceSlots)
+		if (Remaining <= 0) break;
+		if (Slot.ItemID <= 0 || Slot.Count <= 0)
 		{
-			MF_LOG_WARNING(LogMFInventory,
-				TEXT("AddResource: Backpack full (%d slots). #%d x%d lost."),
-				MaxResourceSlots, ItemID, Remaining);
-		}
-		else
-		{
-			FMFInventorySlot NewSlot;
-			NewSlot.ItemID = ItemID;
-			NewSlot.Count  = FMath::Min(Remaining, MaxStack);
-			ResourceSlots.Add(NewSlot);
-			Remaining -= NewSlot.Count;
+			Slot.ItemID = ItemID;
+			Slot.Count  = FMath::Min(MaxStack, Remaining);
+			Remaining  -= Slot.Count;
 		}
 	}
 
@@ -145,6 +160,7 @@ int32 UMFInventoryComponent::AddResource(int32 ItemID, int32 Count)
 			ActualAdded, ItemID, GetResourceCount(ItemID));
 		OnInventoryChanged.Broadcast();
 	}
+	// Remaining>0 表示背包满、剩余未入包（返回值 < Count，调用方据此弹回/留地）。
 
 	return ActualAdded;
 }
@@ -166,9 +182,11 @@ bool UMFInventoryComponent::RemoveResource(int32 ItemID, int32 Count)
 		ResourceSlots[i].Count -= Removed;
 		ToRemove               -= Removed;
 
-		if (ResourceSlots[i].Count == 0)
+		if (ResourceSlots[i].Count <= 0)
 		{
-			ResourceSlots.RemoveAt(i);
+			// 置空保留格位（固定索引数组，不塌缩）。
+			ResourceSlots[i].ItemID = 0;
+			ResourceSlots[i].Count  = 0;
 		}
 	}
 
@@ -193,13 +211,30 @@ bool UMFInventoryComponent::HasResource(int32 ItemID, int32 Count) const
 	return GetResourceCount(ItemID) >= Count;
 }
 
-int32 UMFInventoryComponent::FindResourceSlotIndex(int32 ItemID) const
+bool UMFInventoryComponent::DropSlot(int32 SlotIndex)
 {
-	for (int32 i = 0; i < ResourceSlots.Num(); ++i)
+	if (!ResourceSlots.IsValidIndex(SlotIndex)) return false;
+
+	FMFInventorySlot& Slot = ResourceSlots[SlotIndex];
+	if (Slot.ItemID <= 0 || Slot.Count <= 0) return false; // 空格
+
+	// 掉回 owner 脚下（复用掉落管线，可再捡）。
+	if (UWorld* World = GetWorld())
 	{
-		if (ResourceSlots[i].ItemID == ItemID) return i;
+		if (UMFLootSubsystem* Loot = World->GetSubsystem<UMFLootSubsystem>())
+		{
+			FMFLootResult Result;
+			Result.ItemID = Slot.ItemID;
+			Result.Count  = Slot.Count;
+			const FVector Origin = GetOwner() ? GetOwner()->GetActorLocation() : FVector::ZeroVector;
+			Loot->SpawnLoot({ Result }, Origin);
+		}
 	}
-	return INDEX_NONE;
+
+	Slot.ItemID = 0;
+	Slot.Count  = 0;
+	OnInventoryChanged.Broadcast();
+	return true;
 }
 
 // ============================================================

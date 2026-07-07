@@ -7,6 +7,7 @@
 #include "MFLootPickup.generated.h"
 
 class UPaperSpriteComponent;
+class UMFInventoryComponent;
 
 /**
  * AMFLootPickup — 地面掉落物（一个实例 = 一件物品）。
@@ -34,8 +35,12 @@ public:
 	 */
 	void InitLoot(int32 InItemID, int32 InCount, const FVector& LandLocation);
 
-	/** 玩家主动拾取：当前无背包 → 虚空销毁。将来接背包时在此 AddResource(ItemID, Count)。 */
-	void PickUp();
+	/**
+	 * 玩家主动拾取 → 尝试入包。全部入包则销毁；背包满 / 只装下一部分则扣掉已入部分、
+	 * 剩余「重新抛一次散落」（BounceOut，弹起重落），给"装不下弹回来"的反馈。
+	 * @return 实际入包数量。
+	 */
+	int32 TryPickUpInto(UMFInventoryComponent* Inv);
 
 	UFUNCTION(BlueprintPure, Category = "Loot")
 	int32 GetItemID() const { return ItemID; }
@@ -71,6 +76,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Loot")
 	float BillboardYawOffset = -90.f;
 
+	/** 背包满弹回时的散落半径（cm）。 */
+	UPROPERTY(EditDefaultsOnly, Category = "Loot", meta = (ClampMin = "0.0"))
+	float BounceRadius = 80.f;
+
 private:
 	enum class EPickupState : uint8 { Scatter, Idle };
 
@@ -88,4 +97,7 @@ private:
 
 	/** 让 Sprite 面向玩家相机（简易 billboard），任何相机角度都可见。 */
 	void UpdateBillboard();
+
+	/** 背包满/部分入包时：从当前位置重新抛到附近随机落点，重播散开。 */
+	void BounceOut();
 };
