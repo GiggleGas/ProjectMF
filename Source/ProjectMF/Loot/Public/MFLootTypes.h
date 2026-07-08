@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "MFItemKey.h"
 #include "MFLootTypes.generated.h"
 
 // ============================================================
@@ -20,9 +21,9 @@ struct PROJECTMF_API FMFLootEntry
 {
 	GENERATED_BODY()
 
-	/** 掉落物品的数字 ItemID（= 物品总表 DataTable 的 RowName）。 */
+	/** 掉落物品（编辑器下拉选择）。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Loot")
-	int32 ItemID = 0;
+	FMFItemKey Item;
 
 	/** 独立命中概率（0~1，1=必掉）。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Loot",

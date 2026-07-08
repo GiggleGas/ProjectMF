@@ -18,7 +18,8 @@ TArray<FMFLootResult> UMFLootSubsystem::RollTable(const UMFLootTable* Table) con
 
 	for (const FMFLootEntry& Entry : Table->Entries)
 	{
-		if (Entry.ItemID <= 0) continue;
+		const int32 EntryItemID = Entry.Item.ItemID;
+		if (EntryItemID <= 0) continue;
 		if (FMath::FRand() > Entry.Chance) continue;
 
 		const int32 Max   = FMath::Max(Entry.CountMin, Entry.CountMax);
@@ -27,7 +28,7 @@ TArray<FMFLootResult> UMFLootSubsystem::RollTable(const UMFLootTable* Table) con
 
 		// 同 ItemID 合并成一个 Result（生成时也只出一个 Pickup）。
 		FMFLootResult* Existing = Results.FindByPredicate(
-			[&Entry](const FMFLootResult& R) { return R.ItemID == Entry.ItemID; });
+			[EntryItemID](const FMFLootResult& R) { return R.ItemID == EntryItemID; });
 		if (Existing)
 		{
 			Existing->Count += Count;
@@ -35,7 +36,7 @@ TArray<FMFLootResult> UMFLootSubsystem::RollTable(const UMFLootTable* Table) con
 		else
 		{
 			FMFLootResult& NewResult = Results.AddDefaulted_GetRef();
-			NewResult.ItemID = Entry.ItemID;
+			NewResult.ItemID = EntryItemID;
 			NewResult.Count  = Count;
 		}
 	}
