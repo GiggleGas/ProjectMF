@@ -11,6 +11,8 @@
 #include "AbilitySystemComponent.h"
 #include "GameplayEffect.h"
 #include "GameplayEffectTypes.h"
+#include "MFSpriteVisualComponent.h"
+#include "MFLog.h"
 #include "PaperFlipbookComponent.h"
 #include "PaperZDAnimationComponent.h"
 #include "PaperFlipbook.h"
@@ -72,6 +74,9 @@ AMFCharacterBase::AMFCharacterBase()
 	// Set the AnimBP class in the derived Blueprint.
 	AnimationComponent = CreateDefaultSubobject<UPaperZDAnimationComponent>(TEXT("AnimationComponent"));
 	AnimationComponent->InitRenderComponent(FlipbookComponent);
+
+	// --- 2D 表现能力组件（S1 引入，S2 起接管 billboard/闪光/碰撞） ---
+	SpriteVisual = CreateDefaultSubobject<UMFSpriteVisualComponent>(TEXT("SpriteVisual"));
 }
 
 void AMFCharacterBase::BeginPlay()
@@ -89,6 +94,19 @@ void AMFCharacterBase::BeginPlay()
 	if (bAutoUpdateCollisionFromFlipbook)
 	{
 		UpdateCollisionFromFlipbook();
+	}
+
+	// 2D 表现组件绑定：目标 Flipbook + 碰撞胶囊；相机源复用子类已实现的 GetBillboardCameraForward
+	// （玩家=相机前向，AI=PlayerCameraManager）。S1 不接管 tick，仅供 exec 验收。
+	if (SpriteVisual)
+	{
+		SpriteVisual->InitVisual(FlipbookComponent, GetCapsuleComponent());
+
+		TWeakObjectPtr<AMFCharacterBase> WeakThis(this);
+		SpriteVisual->SetCameraForwardProvider([WeakThis](FVector& OutForward) -> bool
+		{
+			return WeakThis.IsValid() ? WeakThis->GetBillboardCameraForward(OutForward) : false;
+		});
 	}
 }
 
@@ -298,6 +316,43 @@ void AMFCharacterBase::UpdateBillboard()
 	// Build a rotation where local +Y (Paper2D sprite normal) points toward the camera.
 	const FRotator BillRot = FRotationMatrix::MakeFromYZ(ToCam, FVector::UpVector).Rotator();
 	FlipbookComponent->SetWorldRotation(BillRot);
+}
+
+// ---------------------------------------------------------------------------
+// S1 验收 exec —— 单独触发组件三块能力，对比与现有实现是否一致
+// ---------------------------------------------------------------------------
+
+void AMFCharacterBase::MFSVBillboard()
+{
+#if !UE_BUILD_SHIPPING
+	if (SpriteVisual)
+	{
+		SpriteVisual->TickBillboard();
+		MF_LOG(LogMFVisual, TEXT("[%s] MFSVBillboard：已触发组件 billboard（开 MF.SpriteVisual.Debug 1 看朝向箭头/日志）。"), *GetName());
+	}
+#endif
+}
+
+void AMFCharacterBase::MFSVFlash()
+{
+#if !UE_BUILD_SHIPPING
+	if (SpriteVisual)
+	{
+		SpriteVisual->FlashColor(FLinearColor::Blue, 0.5f);
+		MF_LOG(LogMFVisual, TEXT("[%s] MFSVFlash：闪蓝 0.5s（应自动复位白色）。"), *GetName());
+	}
+#endif
+}
+
+void AMFCharacterBase::MFSVCollision()
+{
+#if !UE_BUILD_SHIPPING
+	if (SpriteVisual)
+	{
+		SpriteVisual->FitCollisionToFlipbook(CollisionRadiusScale);
+		MF_LOG(LogMFVisual, TEXT("[%s] MFSVCollision：已触发组件碰撞拟合（比对 Radius 日志与现有一致）。"), *GetName());
+	}
+#endif
 }
 
 // ---------------------------------------------------------------------------

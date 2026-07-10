@@ -17,6 +17,8 @@ PROJECTMF_API DECLARE_LOG_CATEGORY_EXTERN(LogMFSpawnAI,   Log, All);  // AI生�
 PROJECTMF_API DECLARE_LOG_CATEGORY_EXTERN(LogMFAI,        Log, All);  // AI感知/决策系统
 PROJECTMF_API DECLARE_LOG_CATEGORY_EXTERN(LogMFGameLoop,  Log, All);  // 游戏大循环
 PROJECTMF_API DECLARE_LOG_CATEGORY_EXTERN(LogMFLoot,      Log, All);  // 掉落物系统
+PROJECTMF_API DECLARE_LOG_CATEGORY_EXTERN(LogMFCraft,     Log, All);  // 打造合成
+PROJECTMF_API DECLARE_LOG_CATEGORY_EXTERN(LogMFVisual,    Log, All);  // 2D 表现层(billboard/闪光/碰撞自适应)
 
 // ============================================================
 // Screen Log Helper

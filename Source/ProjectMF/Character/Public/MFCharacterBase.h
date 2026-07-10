@@ -17,6 +17,7 @@ class UAbilitySystemComponent;
 class UMFAttributeSetBase;
 class UMFGameplayAbilityBase;
 class UGameplayEffect;
+class UMFSpriteVisualComponent;
 struct FOnAttributeChangeData;
 
 /**
@@ -60,6 +61,23 @@ public:
 	 * 用于负重减速（抱宠）等通用乘法调速；1.0 = 原速。与 MoveSpeed 属性变化兼容（同步时一并相乘）。
 	 */
 	void SetMoveSpeedMultiplier(float InMultiplier);
+
+	// -----------------------------------------------------------------------
+	// S1 验收 exec（2D 表现组件抽取）——见 Docs/SceneObject_UnifiedSprite_Architecture.md
+	// 玩家角色上输入即可；配合 MF.SpriteVisual.Debug 1 看 log/调试图元。
+	// -----------------------------------------------------------------------
+
+	/** 组件计算并应用一次 billboard，验证朝向与现有一致。控制台 MFSVBillboard。 */
+	UFUNCTION(Exec)
+	void MFSVBillboard();
+
+	/** 组件闪蓝 0.5s 并自动复位，验证闪光 + 定时器。控制台 MFSVFlash。 */
+	UFUNCTION(Exec)
+	void MFSVFlash();
+
+	/** 组件从 Flipbook 拟合碰撞球一次，log 半径应与现有 UpdateCollisionFromFlipbook 一致。控制台 MFSVCollision。 */
+	UFUNCTION(Exec)
+	void MFSVCollision();
 
 protected:
 	virtual void BeginPlay() override;
@@ -138,6 +156,14 @@ protected:
 	/** PaperZD animation component: owns the AnimInstance and drives FlipbookComponent. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UPaperZDAnimationComponent> AnimationComponent;
+
+	/**
+	 * 2D 表现能力组件（billboard / 闪光 / 碰撞自适应）。
+	 * S1 引入并挂载、由 exec 单独验证；S2 起由它接管、删除本类内的旧实现。
+	 * 见 Docs/SceneObject_UnifiedSprite_Architecture.md。
+	 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UMFSpriteVisualComponent> SpriteVisual;
 
 	// -----------------------------------------------------------------------
 	// Character State
