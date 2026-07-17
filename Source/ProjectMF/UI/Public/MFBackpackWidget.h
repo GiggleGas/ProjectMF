@@ -57,6 +57,7 @@ private:
 
 	UFUNCTION() void HandleInventoryChanged();
 	UFUNCTION() void HandleSlotDiscard(int32 SlotIndex);
+	UFUNCTION() void HandleSlotUse(int32 SlotIndex);
 
 	UPROPERTY() TWeakObjectPtr<UMFInventoryComponent> BoundInventory;
 	UPROPERTY() TArray<TObjectPtr<UMFItemSlotWidget>> SlotWidgets;

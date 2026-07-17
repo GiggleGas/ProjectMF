@@ -134,6 +134,10 @@ public:
 	// 配置（关卡编辑器编辑）
 	// ----------------------------------------------------------------
 
+	/** 是否在 BeginPlay 自动执行生成。false = 等外部调用 SpawnNow() 触发。 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SpawnAI")
+	bool bAutoSpawn = true;
+
 	/** 生成规则列表，每条 Entry 独立处理。 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SpawnAI")
 	TArray<FMFSpawnEntry> SpawnEntries;
@@ -153,6 +157,10 @@ public:
 	/** NavMesh 单点查询失败时的最大重试次数。 */
 	UPROPERTY(EditAnywhere, Category = "SpawnAI|Nav", meta = (ClampMin = 1))
 	int32 NavQueryRetries = 5;
+
+	/** 手动触发一次生成（bAutoSpawn=false 时由外部调用）。 */
+	UFUNCTION(BlueprintCallable, Category = "SpawnAI")
+	void SpawnNow();
 
 protected:
 	virtual void BeginPlay() override;

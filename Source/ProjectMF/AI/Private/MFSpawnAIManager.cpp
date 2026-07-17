@@ -29,6 +29,14 @@ AMFSpawnAIManager::AMFSpawnAIManager()
 void AMFSpawnAIManager::BeginPlay()
 {
 	Super::BeginPlay();
+	if (bAutoSpawn)
+	{
+		RunSpawnPass();
+	}
+}
+
+void AMFSpawnAIManager::SpawnNow()
+{
 	RunSpawnPass();
 }
 

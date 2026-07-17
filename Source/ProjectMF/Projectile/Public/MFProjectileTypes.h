@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "MFAttackTypes.h"           // EAttackTargetFilter
 
-class UStaticMesh;
+class UPaperFlipbook;
 class UGameplayEffect;
 
 // ============================================================================
@@ -16,6 +16,7 @@ class UGameplayEffect;
 enum class EMFProjectileResolveReason : uint8
 {
 	HitTarget,   // 命中了通过 PassesTargetFilter 的目标
+	HitGround,   // 抛物线下坠命中地面 / 到达指定落点（玩家投掷生成区域用）
 	MaxRange,    // 飞行距离达到 MaxRange，未命中目标
 	Cancelled,   // GA 主动取消（EndAbility bWasCancelled=true）
 };
@@ -66,17 +67,21 @@ struct FMFProjectileHandle
 /**
  * All parameters needed to start simulating one projectile.
  * The GA fills this and passes it to UMFProjectileSubsystem::Launch.
- * Direction must be pre-computed and normalized by the GA.
+ *
+ * 弹道用**速度矢量 + 重力**表达（统一直线与抛物线）：
+ *   直线（AI 投掷/落石/弹幕）：Velocity = Dir*Speed, GravityZ = 0
+ *   抛物线（玩家投掷消耗品）  ：Velocity = 反算初速度, GravityZ > 0
  */
 struct FMFProjectileLaunchParams
 {
 	FVector                         Origin          = FVector::ZeroVector;
-	FVector                         Direction       = FVector::ForwardVector; // must be normalized
-	float                           Speed           = 800.f;    // cm/s
-	float                           MaxRange        = 1500.f;   // cm
+	FVector                         Velocity        = FVector::ForwardVector; // cm/s，含方向与大小
+	float                           GravityZ        = 0.f;      // cm/s²，0=直线，>0=抛物线下坠
+	float                           MaxRange        = 1500.f;   // cm（按累计路程判定）
 	float                           CollisionRadius = 15.f;     // sweep sphere radius
 
-	UStaticMesh*                    Mesh            = nullptr;  // used for ISM slot
+	UPaperFlipbook*                 Flipbook        = nullptr;  // 2D 外观（Flipbook 池渲染；单帧=静态）
+	float                           VisualScale     = 1.f;      // 投射物视觉缩放
 	TWeakObjectPtr<AActor>          Instigator;                 // ignored in filter + sweep
 	TSubclassOf<UGameplayEffect>    DamageGE;
 	float                           DamageMultiplier = 1.f;
@@ -93,7 +98,7 @@ struct FMFProjectileLaunchParams
  * Live simulation state for one projectile inside UMFProjectileSubsystem.
  * Stored in a flat TArray; bActive=false means the slot is free.
  *
- * GC note: Mesh and DamageGE are raw/TSubclassOf pointers without UPROPERTY.
+ * GC note: Flipbook and DamageGE are raw/TSubclassOf pointers without UPROPERTY.
  * They are safe during normal gameplay because both originate from DataAssets
  * that are strongly referenced by the GA (which is on a live ASC).
  */
@@ -103,14 +108,14 @@ struct FMFProjectileInstance
 	bool                            bActive          = false;
 
 	FVector                         CurrentPos       = FVector::ZeroVector;
-	FVector                         Direction        = FVector::ForwardVector;
-	float                           Speed            = 0.f;
+	FVector                         Velocity         = FVector::ZeroVector;  // cm/s，每帧受 GravityZ 影响
+	float                           GravityZ         = 0.f;
 	float                           MaxRange         = 0.f;
 	float                           DistanceTraveled = 0.f;
 	float                           CollisionRadius  = 15.f;
 
-	UStaticMesh*                    Mesh             = nullptr;
-	int32                           ISMInstanceIndex = -1;      // -1 = no ISM slot
+	UPaperFlipbook*                 Flipbook         = nullptr;
+	int32                           SlotIndex        = -1;      // Flipbook 池 slot，-1 = 无
 
 	TWeakObjectPtr<AActor>          Instigator;
 	TSubclassOf<UGameplayEffect>    DamageGE;
@@ -124,13 +129,13 @@ struct FMFProjectileInstance
 		UID              = InUID;
 		bActive          = true;
 		CurrentPos       = Params.Origin;
-		Direction        = Params.Direction;
-		Speed            = Params.Speed;
+		Velocity         = Params.Velocity;
+		GravityZ         = Params.GravityZ;
 		MaxRange         = Params.MaxRange;
 		DistanceTraveled = 0.f;
 		CollisionRadius  = Params.CollisionRadius;
-		Mesh             = Params.Mesh;
-		ISMInstanceIndex = -1;
+		Flipbook         = Params.Flipbook;
+		SlotIndex        = -1;
 		Instigator       = Params.Instigator;
 		DamageGE         = Params.DamageGE;
 		DamageMultiplier = Params.DamageMultiplier;
@@ -143,13 +148,13 @@ struct FMFProjectileInstance
 		UID              = 0;
 		bActive          = false;
 		CurrentPos       = FVector::ZeroVector;
-		Direction        = FVector::ForwardVector;
-		Speed            = 0.f;
+		Velocity         = FVector::ZeroVector;
+		GravityZ         = 0.f;
 		MaxRange         = 0.f;
 		DistanceTraveled = 0.f;
 		CollisionRadius  = 15.f;
-		Mesh             = nullptr;
-		ISMInstanceIndex = -1;
+		Flipbook         = nullptr;
+		SlotIndex        = -1;
 		Instigator       = nullptr;
 		DamageGE         = nullptr;
 		DamageMultiplier = 1.f;

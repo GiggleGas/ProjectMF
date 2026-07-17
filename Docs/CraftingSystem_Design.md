@@ -1,6 +1,6 @@
 # 打造合成系统（Crafting）设计方案
 
-> 2026-07-06 ｜ 月底玩家测试版 W2 任务（替换原任务系统）｜ 状态：方案待评审，未动代码
+> 2026-07-06 立项 ｜ 2026-07-08 对齐现状（背包 A1.5、FMFItemKey 下拉均已完成）｜ 月底玩家测试版 W2 ｜ 状态：方案就绪，待开工
 > 范围：配方配置（唯一 ID）+ 合成逻辑 + 合成 UI（背包内一页）+ 产出宠物消耗品/食物 + 喂宠使用（回血/临时增益）。
 > 产出用途（2026-07-06 用户拍板）：**宠物消耗品/食物**——采集物→合成食物/药→对宠物使用回血或临时 buff。装备/战斗道具留后。
 
@@ -14,13 +14,13 @@
 
 | 现有资产 | 对接方式 |
 |---|---|
-| 背包（A1.5）`ResourceSlots` + `AddResource`/`RemoveResource` | 合成扣料走 `RemoveResource`，产出入包走 `AddResource`。**依赖 A1.5 先完成** |
-| `FMFItemDef.ItemType` 已有 `Consumable` 枚举（预留） | 产出的食物 = `Consumable` 类物品，进 ItemDatabase |
-| `FMFItemDef` + `MaxStackSize` | 消耗品也能叠加进背包格子（格子只存 ItemID+Count，不区分类型） |
-| GAS：`GE_Heal`（濒死/治疗已有回血）/ `OutgoingDamageMultiplier` + `Data_OutgoingDamageMult` SetByCaller | 消耗品的"回血/临时增伤"直接复用现有 GE，零新战斗数值 |
+| 背包（A1.5 ✅ 已完成）`ResourceSlots` + `AddResource`/`RemoveResource` | 合成扣料走 `RemoveResource`，产出入包走 `AddResource` |
+| `AddResource` 已放开 `Resource` + `Consumable`（背包 A1.5 时改）| **前置已就绪**，消耗品能进背包，无需再改 |
+| `FMFItemKey` 下拉（f8f1dc0 ✅）| 配方引用物品用它——编辑器下拉选，不手输数字 |
+| `FMFItemDef.ItemType=Consumable` + `MaxStackSize` | 产出食物 = Consumable 类物品，进 DT_Item，能叠加进背包 |
+| GAS 就绪：`Healing` 元属性（改它 → PostGameplayEffectExecute 消费 → Health+= 并闪绿，伤害对称）；`OutgoingDamageMultiplier` | 回血/增伤的 C++ 底层现成；`GE_Heal`/`GE_AttackUp` 是蓝图 GE 资产（编辑器建）。**GE_Heal 用固定值 Modifier 改 `Healing`（如 +50），别用 SetByCaller——UseConsumable 不设 magnitude，SetByCaller 会得 0** |
+| 施加 GE 模式：`MFCombatStatics.cpp` `Source->MakeOutgoingSpec(GE, Level, Ctx)` → ApplyToTarget | 喂宠 ApplyGE 照此写 |
 | `InventoryComponent::GetActivePetActors()` | 喂食目标=场上召唤宠，已有获取接口 |
-
-**⚠️ 需处理的现有约束**：`AddResource` 当前有 `if (Def->ItemType != EMFItemType::Resource) return 0`（[MFInventoryComponent.cpp:102](../Source/ProjectMF/Inventory/Private/MFInventoryComponent.cpp#L102)）——消耗品进不了包。放开为接受 `Resource` + `Consumable`（都是可叠加物品），或在 A1.5 背包重构时泛化为 `AddStackableItem`。列为打造的前置改动。
 
 ## 3. 配置方案
 
@@ -30,9 +30,9 @@
 
 ```cpp
 USTRUCT(BlueprintType)
-struct FMFItemCount   // 复用于配方输入
+struct FMFItemCount   // 复用于配方输入（物品 + 数量）
 {
-    UPROPERTY(EditDefaultsOnly) FName ItemID;
+    UPROPERTY(EditDefaultsOnly) FMFItemKey Item;   // 下拉选物品（f8f1dc0）
     UPROPERTY(EditDefaultsOnly, meta=(ClampMin=1)) int32 Count = 1;
 };
 
@@ -42,8 +42,8 @@ struct FMFRecipeDef : public FTableRowBase
     /** 需要消耗的资源（全部满足才可合成）。 */
     UPROPERTY(EditDefaultsOnly) TArray<FMFItemCount> Inputs;
 
-    /** 产出物品 ID（引用 ItemDatabase，通常 Consumable 类）。 */
-    UPROPERTY(EditDefaultsOnly) FName OutputItemID;
+    /** 产出物品（下拉选，通常 Consumable 类）。 */
+    UPROPERTY(EditDefaultsOnly) FMFItemKey Output;
 
     UPROPERTY(EditDefaultsOnly, meta=(ClampMin=1)) int32 OutputCount = 1;
 
@@ -51,6 +51,8 @@ struct FMFRecipeDef : public FTableRowBase
     UPROPERTY(EditDefaultsOnly) FText DisplayName;
 };
 ```
+
+Inputs/Output 都用 `FMFItemKey` → 编辑器里配配方全是**下拉点选**（正是刚做下拉的用武之地）；运行时取 `.Item.ItemID`/`.Output.ItemID` 走背包接口。
 
 ### 3.2 消耗品的"使用效果"：ItemDef 加一字段
 
@@ -84,8 +86,8 @@ TSubclassOf<UGameplayEffect> UseEffect;
 ### 4.1 `UMFCraftingComponent`（挂玩家，仿 InventoryComponent 注入模式）
 
 ```cpp
-// 配置（PlayerConfig 注入 RecipeLibrary DataTable）
-UPROPERTY() TObjectPtr<UDataTable> RecipeLibrary;
+// 配方库 DataTable：来源同 ItemDatabase 模式——放全局 UMFCraftingSettings（config=Game），
+// GetRecipeTable() 静态取（与 UMFItemSettings::GetItemTable 一致，单一数据源，不走 PlayerConfig 注入）。
 
 // 查询
 UFUNCTION(BlueprintPure) bool CanCraft(FName RecipeID) const;   // 背包料够？
@@ -94,11 +96,11 @@ UFUNCTION(BlueprintPure) TArray<FName> GetAllRecipes() const;
 // 执行：扣料（RemoveResource）+ 产出入包（AddResource）
 UFUNCTION(BlueprintCallable) bool Craft(FName RecipeID);
 
-// 背包/合成状态变化时广播，UI 刷新可合成高亮
-FOnCraftableChanged OnCraftableChanged;   // 订阅 Inventory.OnInventoryChanged 转发
+// 背包变化时广播，UI 刷新可合成高亮（订阅 Inventory.OnInventoryChanged 转发）
+FOnCraftableChanged OnCraftableChanged;
 ```
 
-合成逻辑极轻：`CanCraft` 遍历 Inputs 查 `HasResource`；`Craft` 先校验再逐项 `RemoveResource` + `AddResource(OutputItemID, OutputCount)`。
+合成逻辑极轻：`CanCraft` 遍历 Inputs 查 `HasResource(In.Item.ItemID, In.Count)`；`Craft` 先校验再逐项 `RemoveResource` + `AddResource(Recipe.Output.ItemID, OutputCount)`。组件挂玩家（仿 InventoryComponent），拿 owner 的 InventoryComponent 操作背包。
 
 ### 4.2 消耗品使用（喂宠）
 
@@ -124,10 +126,10 @@ FOnCraftableChanged OnCraftableChanged;   // 订阅 Inventory.OnInventoryChanged
 
 | 步 | 内容 | 验证 |
 |---|---|---|
-| 1 | `FMFRecipeDef`/`FMFItemCount` + `DT_RecipeLibrary` + `FMFItemDef` 加 `UseEffect` + **AddResource 放开 Consumable** + `LogMFCraft` | 编译过；消耗品能进背包 |
-| 2 | `UMFCraftingComponent`（CanCraft/Craft）+ PlayerConfig 注入 RecipeLibrary + exec `MFCraft <RecipeID>` | `MFCraft Recipe_HealSnack` 扣料产出食物 |
-| 3 | 消耗品使用（对全体召唤宠 ApplyGE）+ `UMFCraftingWidget` 合成页 + 背包嵌入 | 合成→喂宠→宠物回血/增伤 |
-| 4 | （编辑器）DT 配方 + ItemDatabase 消耗品条目 + GE_Heal/GE_AttackUp | 见验收 |
+| 1 | `FMFRecipeDef`/`FMFItemCount`（用 FMFItemKey）+ `FMFItemDef` 加 `UseEffect` + `UMFCraftingSettings`（全局配方库）+ `LogMFCraft` | 编译过（AddResource 放开 Consumable 已完成，本步不含）|
+| 2 | `UMFCraftingComponent`（CanCraft/Craft，走 owner 背包）+ exec `MFCraft <RecipeID>` | `MFCraft Recipe_HealSnack` 扣料产出食物入包 |
+| 3 | 消耗品使用（背包格子点用 → 对全体召唤宠 MakeOutgoingSpec+ApplyGE）+ `UMFCraftingWidget` 合成页嵌背包 | 合成→喂宠→宠物回血/增伤 |
+| 4 | （编辑器）DT_Item 加消耗品条目（配 UseEffect）+ DT_RecipeLibrary 下拉配配方 + GE_Heal/GE_AttackUp 蓝图 GE + MF Crafting Settings 指配方库 | 见验收 |
 
 **验收标准**：采集够料后打开背包合成页 → 料够的配方高亮 → 合成"治疗零食"扣料并入包 → 点击使用 → 场上召唤宠回血；"力量零食"→ 宠物临时增伤（时限后消失）；料不够时配方置灰不可合成。
 

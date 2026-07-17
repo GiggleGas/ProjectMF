@@ -3,6 +3,7 @@
 #include "MFMainHUDWidget.h"
 #include "MFPetSlotWidget.h"
 #include "MFBackpackWidget.h"
+#include "MFCraftingWidget.h"
 #include "MFOverheadWidget.h"
 #include "MFCharacter.h"
 #include "MFInventoryComponent.h"
@@ -87,6 +88,11 @@ void UMFMainHUDWidget::InitPlayerHUD(AMFCharacter* Player)
 		{
 			MF_LOG_WARNING(LogMFInventory,
 				TEXT("[HUD] BackpackWidget 未绑定：检查 WBP_MainHUD 里 WBP_Backpack 是否命名为 'BackpackWidget'。"));
+		}
+
+		if (CraftingWidget)
+		{
+			CraftingWidget->InitCrafting(Player->GetCraftingComponent());
 		}
 	}
 }

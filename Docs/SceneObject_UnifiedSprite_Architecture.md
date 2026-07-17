@@ -45,9 +45,20 @@
 └──────────────────────────────┴──────────────────────────────┘
 ```
 
-### 3.0 载体规范：统一 `PaperFlipbook`
+### 3.0 载体规范：统一 `PaperFlipbook`（整个基底，2026-07-13 定调）
 
-淘汰散用的 `PaperSpriteComponent`，统一到 `PaperFlipbookComponent`：**单帧 flipbook 就是静态 sprite**，零额外成本，换来 billboard/闪光/朝向逻辑只写一份、掉落物和角色走同一条渲染路。（投射物 sprite 池也用 flipbook，将来弹药想加飞行动画/旋转直接配。）
+**所有出现在场景中、需要表现的 actor（角色/投掷物/掉落物/树木/石块/区域特效/捕捉球…）一律用 `PaperFlipbook` 实现**——单帧 flipbook 就是静态图，零额外成本；billboard/闪光/朝向逻辑只写一份，全场景一条渲染路。
+
+**字段规则（载体的真正源头）**：数据资产/配置里凡是"场景外观"字段，类型一律 `TObjectPtr<UPaperFlipbook>`——字段是什么类型，美术就配什么资产，系统就长回什么样。现存两处偏差字段及归属排期：
+- `FMFItemDef.WorldSprite`（UPaperSprite）→ `WorldFlipbook`，**并入 S5**（该结构体 S5 本就要动，DT_Item 只重配一遍）
+- `UMFRangedAttackDataBase.ProjectileMesh`（UStaticMesh）→ `ProjectileFlipbook`，**S4**
+
+**边界（明确豁免，避免过度统一）**：
+- 地形/关卡几何——游戏是 2D 角色 + 3D 场景，地面/墙体/关卡结构仍是 3D，不属"场景 actor 表现"；
+- UI——图标（`UTexture2D`）、UMG、飘字。
+- 未来若确需 3D 场景 actor（如巨型 Boss 用模型），必须在 §4 决策表显式加行，不允许静默偏离。
+
+**准入检查（S4–S6 期间生效）**：新增的任何代码/配置不得引入 `UPaperSprite`/`UStaticMesh` 场景外观；S7 只清历史存量，不清新增。
 
 ### 3.1 第1层：`UMFSpriteVisualComponent`（把表现能力从 CharacterBase 抽出来）
 
@@ -108,10 +119,10 @@ class UMFSpriteVisualComponent : public UActorComponent
 | **S1 表现组件** | 抽 `UMFSpriteVisualComponent`（billboard / 闪光 / 碰撞自适应 / 朝向，相机源用委托注入） | 无依赖，先建。单元自测 billboard 数学与原 `CharacterBase` 一致 |
 | **S2 角色系接入** | `AMFCharacterBase` 改为持有并驱动组件，删自身重复的 billboard/闪光/碰撞代码 | 依赖 S1。**回归**：玩家/宠/怪 表现、受击闪红、治疗闪绿、碰撞尺寸全不变 |
 | **S3 场景物接入** | `AMFSceneActorBase` 升级为持组件；掉落物删自造 billboard/抛物线改用组件；采集节点接入 | 依赖 S1。**回归**：掉落物散开抛物线 + billboard 不变 |
-| **S4 投射物 sprite 池** | 投射物 subsystem ISM→`PaperFlipbook` 池 + 弹道矢量化；三类远程攻击（投掷/落石/弹幕）迁 sprite；池内联组件的 billboard 轻量版 | 依赖 S1（复用 billboard 算法）。**回归**：现有 AI 远程攻击行为不变 |
-| **S5 玩家投掷消耗品** | 接《纯 Sprite 投射物子系统》§4：`UMFThrowableData` + `FMFItemDef` 换 `ThrowableData` + 抛物线投掷 + 落点回血场 | 依赖 S4 |
+| **S4 投射物 flipbook 池** | 投射物 subsystem ISM→`PaperFlipbookComponent` 池 + 弹道矢量化；`ProjectileMesh`→`ProjectileFlipbook`；三类远程攻击（投掷/落石/弹幕）资产迁 flipbook；池内联组件的 billboard 轻量版 | 依赖 S1（复用 billboard 算法）。**回归**：现有 AI 远程攻击行为不变 |
+| **S5 玩家投掷消耗品 + 物品外观迁基底** | 接《纯 Flipbook 投射物子系统》§4：`UMFThrowableData` + `FMFItemDef` 换 `ThrowableData` **并同步 `WorldSprite`→`WorldFlipbook`**（同一结构体一次改、DT_Item 一次重配）；掉落物切基类 Flipbook、删 S3 的 sprite 覆盖（自动获得闪光/碰撞能力）；抛物线投掷 + 落点回血场 | 依赖 S4。**回归**：掉落物散开/拾取/billboard 照常 |
 | **S6 捕捉球去 mesh** | `AMFCatchBallActor` StaticMesh → `AMFSceneActorBase`（sprite + 抛物线 + 组件） | 依赖 S1、S3。**回归**：抓宠投掷/命中/收球流程不变 |
-| **S7 载体收尾** | 全项目残留 `PaperSpriteComponent` 收敛到 `PaperFlipbook`（单帧）；清干净 mesh/ISM 死代码 | 最后做，影响面收敛 |
+| **S7 载体收尾 + 类型锁基底** | 全项目残留 `PaperSpriteComponent`/`UPaperSprite` 扫尾；`InitVisual` 从 `USceneComponent` **收紧回 `UPaperFlipbookComponent`**（S3 泛化是给 sprite 掉落物让路的过渡妥协，S5 迁完即无必要——编译期锁死基底比约定可靠）；清干净 mesh/ISM 死代码 | 最后做，影响面收敛 |
 
 > **工期提示（需知情）**：S1–S7 是纯架构/技术债重构，本身不直接产出月底玩家测试版内容，会占用当前 W3「大地图 + 整合」的时间（见 `PlayerTest_July_Plan.md`）。收益是此后所有场景物体开发都在统一地基上、不再重造。若测试版工期吃紧，可考虑先做 S4+S5（当前投掷需求，本就要做），S1–S3、S6–S7 的纯重构压到测试后——但用户已选"现在整体推进"，此处仅作风险标注。
 

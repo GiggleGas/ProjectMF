@@ -75,6 +75,9 @@ TStatId UMFProjectileSubsystem::GetStatId() const
 
 void UMFProjectileSubsystem::Tick(float DeltaTime)
 {
+	// 每帧刷新一次相机前向，供本帧所有 slot 的 billboard 复用。
+	if (Renderer) Renderer->RefreshCamera();
+
 	// Snapshot count: instances added by OnResolved callbacks this frame are skipped
 	const int32 Count = Instances.Num();
 	for (int32 i = 0; i < Count; ++i)
@@ -121,11 +124,10 @@ FMFProjectileHandle UMFProjectileSubsystem::Launch(const FMFProjectileLaunchPara
 	FMFProjectileInstance& Inst = Instances[SlotIdx];
 	Inst.InitFromParams(Params, NextUID);
 
-	// Acquire ISM slot for visual representation
-	if (Renderer && Params.Mesh)
+	// 取一个 Flipbook 池 slot 作视觉表现。
+	if (Renderer && Params.Flipbook)
 	{
-		const FTransform InitTransform(FQuat::Identity, Params.Origin, FVector::OneVector);
-		Inst.ISMInstanceIndex = Renderer->AcquireSlot(Params.Mesh, InitTransform);
+		Inst.SlotIndex = Renderer->AcquireSlot(Params.Flipbook, Params.Origin, Params.VisualScale);
 	}
 
 	FMFProjectileHandle Handle;
@@ -149,7 +151,9 @@ void UMFProjectileSubsystem::Cancel(FMFProjectileHandle Handle)
 
 void UMFProjectileSubsystem::TickInstance(FMFProjectileInstance& Inst, float DeltaTime)
 {
-	const FVector Step   = Inst.Direction * (Inst.Speed * DeltaTime);
+	// 弹道积分（半隐式欧拉）：先加重力再步进。GravityZ=0 → Velocity 不变 → 直线（与旧行为一致）。
+	Inst.Velocity.Z -= Inst.GravityZ * DeltaTime;
+	const FVector Step   = Inst.Velocity * DeltaTime;
 	const FVector NewPos = Inst.CurrentPos + Step;
 
 	// ---- 1. Sweep trace (sphere) ----------------------------------------
@@ -160,6 +164,12 @@ void UMFProjectileSubsystem::TickInstance(FMFProjectileInstance& Inst, float Del
 
 	FCollisionObjectQueryParams ObjParams;
 	ObjParams.AddObjectTypesToQuery(ECC_Pawn);
+	if (Inst.GravityZ > 0.f)
+	{
+		// 抛物线投掷物：额外检测地面/静物，下坠命中 → HitGround（落点生成区域）。
+		// 直线攻击（GravityZ=0）不加此项，命中判定与旧行为完全一致。
+		ObjParams.AddObjectTypesToQuery(ECC_WorldStatic);
+	}
 
 	const FCollisionShape Shape = FCollisionShape::MakeSphere(Inst.CollisionRadius);
 
@@ -174,6 +184,19 @@ void UMFProjectileSubsystem::TickInstance(FMFProjectileInstance& Inst, float Del
 			ResolveInstance(Inst, EMFProjectileResolveReason::HitTarget, Candidate);
 			return; // Inst is reset — never access it again
 		}
+
+		// 抛物线命中无 ASC 的静物（地面/墙）→ 落地。命中友方/中立 pawn 则穿过继续飞。
+		if (Inst.GravityZ > 0.f)
+		{
+			UAbilitySystemComponent* CandASC = Candidate ?
+				UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Candidate) : nullptr;
+			if (!CandASC)
+			{
+				Inst.CurrentPos = HitResult.ImpactPoint;   // 用精确落点作最终位置
+				ResolveInstance(Inst, EMFProjectileResolveReason::HitGround, nullptr);
+				return;
+			}
+		}
 	}
 
 	// ---- 2. Max range check ---------------------------------------------
@@ -184,13 +207,12 @@ void UMFProjectileSubsystem::TickInstance(FMFProjectileInstance& Inst, float Del
 		return;
 	}
 
-	// ---- 3. Advance position + update ISM --------------------------------
+	// ---- 3. Advance position + update visual -----------------------------
 	Inst.CurrentPos = NewPos;
 
-	if (Renderer && Inst.ISMInstanceIndex >= 0 && Inst.Mesh)
+	if (Renderer && Inst.SlotIndex >= 0)
 	{
-		const FRotator FacingRot = Inst.Direction.ToOrientationRotator();
-		Renderer->UpdateSlot(Inst.Mesh, Inst.ISMInstanceIndex, FTransform(FacingRot, NewPos));
+		Renderer->UpdateSlot(Inst.SlotIndex, NewPos);
 	}
 }
 
@@ -207,9 +229,9 @@ void UMFProjectileSubsystem::ResolveInstance(
 	Result.HitActor      = HitActor;
 	Result.FinalPosition = Inst.CurrentPos;
 
-	// Release ISM slot
-	if (Renderer && Inst.ISMInstanceIndex >= 0 && Inst.Mesh)
-		Renderer->ReleaseSlot(Inst.Mesh, Inst.ISMInstanceIndex);
+	// 释放 Flipbook 池 slot
+	if (Renderer && Inst.SlotIndex >= 0)
+		Renderer->ReleaseSlot(Inst.SlotIndex);
 
 	// Move callback out so Reset() doesn't unbind it first
 	FOnProjectileResolved Callback = MoveTemp(Inst.OnResolved);

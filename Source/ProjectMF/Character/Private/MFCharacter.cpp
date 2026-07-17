@@ -16,6 +16,10 @@
 #include "MFItemSettings.h"
 #include "MFLootSubsystem.h"
 #include "MFLootPickup.h"
+#include "MFCraftingComponent.h"
+#include "MFCombatStatics.h"
+#include "MFThrowableData.h"
+#include "MFProjectileSubsystem.h"
 #include "MFLootTable.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "Abilities/GameplayAbilityTypes.h"
@@ -50,6 +54,9 @@ AMFCharacter::AMFCharacter()
 
 	// --- Inventory ---
 	InventoryComponent = CreateDefaultSubobject<UMFInventoryComponent>(TEXT("InventoryComponent"));
+
+	// --- Crafting ---
+	CraftingComponent = CreateDefaultSubobject<UMFCraftingComponent>(TEXT("CraftingComponent"));
 
 	// --- Player-only AttributeSet ---
 	PlayerAttributeSet = CreateDefaultSubobject<UMFPlayerAttributeSet>(TEXT("PlayerAttributeSet"));
@@ -469,4 +476,149 @@ void AMFCharacter::MFDropTable(const FString& TableAssetName)
 	}
 	MF_LOG_ERROR(LogMFLoot, TEXT("[GM] MFDropTable：找不到掉落表资产 %s。"), *TableAssetName);
 #endif
+}
+
+void AMFCharacter::MFCraft(const FString& RecipeID)
+{
+#if !UE_BUILD_SHIPPING
+	if (CraftingComponent)
+	{
+		const bool bOK = CraftingComponent->Craft(FName(*RecipeID));
+		MF_LOG(LogMFCraft, TEXT("[GM] MFCraft %s → %s"), *RecipeID, bOK ? TEXT("成功") : TEXT("失败"));
+	}
+#endif
+}
+
+void AMFCharacter::MFUseItem(int32 ItemID)
+{
+#if !UE_BUILD_SHIPPING
+	TryUseConsumable(ItemID);
+#endif
+}
+
+// ---------------------------------------------------------------------------
+// 消耗品使用 / 投掷落点
+// ---------------------------------------------------------------------------
+
+void AMFCharacter::TryUseConsumable(int32 ItemID)
+{
+	const FMFItemDef* Def = UMFItemStatics::FindItem(UMFItemSettings::GetItemTable(), ItemID);
+	if (!Def) return;
+
+	if (Def->ThrowableData)
+	{
+		BeginThrowConsumable(ItemID, Def->ThrowableData);   // 投掷模式（玩家瞄准地面 → 抛物线扔出）
+	}
+	else if (InventoryComponent)
+	{
+		InventoryComponent->UseConsumable(ItemID);          // 直接对全体召唤宠
+	}
+}
+
+void AMFCharacter::BeginThrowConsumable(int32 ItemID, const UMFThrowableData* ThrowableData)
+{
+	PendingThrowItemID = ItemID;
+	PendingThrowable   = ThrowableData;
+	bThrowAiming       = true;
+	MF_LOG(LogMFInventory, TEXT("投掷瞄准：#%d。左键点地面投掷，右键取消。"), ItemID);
+}
+
+void AMFCharacter::TickThrowAiming()
+{
+	APlayerController* PC = Cast<APlayerController>(GetController());
+	if (!PC)
+	{
+		bThrowAiming = false;
+		return;
+	}
+
+	// 右键取消。
+	if (PC->WasInputKeyJustPressed(EKeys::RightMouseButton))
+	{
+		bThrowAiming = false;
+		MF_LOG(LogMFInventory, TEXT("投掷已取消。"));
+		return;
+	}
+
+	// 左键确认落点：取地面点 → 抛物线扔出投射物。
+	if (PC->WasInputKeyJustPressed(EKeys::LeftMouseButton))
+	{
+		FHitResult Hit;
+		if (PC->GetHitResultUnderCursor(ECC_Visibility, false, Hit))
+		{
+			LaunchThrowable(Hit.ImpactPoint);
+		}
+		bThrowAiming = false;
+	}
+}
+
+void AMFCharacter::LaunchThrowable(const FVector& InTarget)
+{
+	if (!PendingThrowable || !InventoryComponent) return;
+
+	UWorld* World = GetWorld();
+	UMFProjectileSubsystem* Subsystem = World ? World->GetSubsystem<UMFProjectileSubsystem>() : nullptr;
+	if (!Subsystem) return;
+
+	const FVector Origin = GetActorLocation();
+
+	// 水平方向 + 距离；落点超 MaxRange 沿方向夹到最远处。
+	FVector Flat = InTarget - Origin;
+	const float DeltaZ = Flat.Z;
+	Flat.Z = 0.f;
+	float HorizDist = Flat.Size();
+	const FVector HorizDir = (HorizDist > KINDA_SMALL_NUMBER) ? (Flat / HorizDist) : GetActorForwardVector();
+	if (HorizDist > PendingThrowable->MaxRange)
+	{
+		HorizDist = PendingThrowable->MaxRange;
+	}
+
+	// 扣消耗品（失败则不投）。
+	if (!InventoryComponent->RemoveResource(PendingThrowItemID, 1)) return;
+
+	// 反算抛物线：给定 Speed(水平) + ArcHeight(顶高)，求初速度矢量与重力。
+	const float Speed     = PendingThrowable->Speed;
+	const float ArcHeight = PendingThrowable->ArcHeight;
+	const float T         = FMath::Max(HorizDist / Speed, 0.1f);       // 飞行时长（防除零）
+	const float GravityZ  = (ArcHeight > 0.f) ? (8.f * ArcHeight) / (T * T) : 980.f;
+	const float Vz        = GravityZ * T * 0.5f + DeltaZ / T;
+
+	FVector Velocity = HorizDir * Speed;
+	Velocity.Z = Vz;
+
+	const int32 ThrownItemID = PendingThrowItemID;
+	UMFAreaEffectData* ImpactArea = PendingThrowable->ImpactArea;
+
+	FMFProjectileLaunchParams Params;
+	Params.Origin          = Origin;
+	Params.Velocity        = Velocity;
+	Params.GravityZ        = GravityZ;
+	Params.MaxRange        = FMath::Max(HorizDist * 3.f, 2000.f);   // 保底射程：确保下坠撞地前不被路程截断
+	Params.CollisionRadius = 15.f;
+	Params.Flipbook        = PendingThrowable->FlightFlipbook;
+	Params.VisualScale     = PendingThrowable->VisualScale;
+	Params.Instigator      = this;
+
+	// 落地（或撞到东西）时在落点生成区域效果；取消不生成。
+	TWeakObjectPtr<AMFCharacter> WeakThis(this);
+	Params.OnResolved.BindLambda([WeakThis, ImpactArea](const FMFProjectileResult& Result)
+	{
+		if (Result.Reason == EMFProjectileResolveReason::Cancelled) return;
+		if (WeakThis.IsValid() && ImpactArea)
+		{
+			UMFCombatStatics::SpawnAreaEffect(WeakThis.Get(), ImpactArea, Result.FinalPosition);
+		}
+	});
+
+	Subsystem->Launch(Params);
+	MF_LOG(LogMFInventory, TEXT("投掷 #%d → 抛物线飞行（落地生成回血场）。"), ThrownItemID);
+}
+
+void AMFCharacter::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+	if (bThrowAiming)
+	{
+		TickThrowAiming();
+	}
 }

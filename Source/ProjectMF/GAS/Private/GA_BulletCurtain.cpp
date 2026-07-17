@@ -142,11 +142,11 @@ void UGA_BulletCurtain::FireBurst()
 
 		FMFProjectileLaunchParams Params;
 		Params.Origin           = Origin;
-		Params.Direction        = Direction;
-		Params.Speed            = BulletCurtainData->Speed;
+		Params.Velocity         = Direction * BulletCurtainData->Speed;   // 直线：速度矢量 = 方向×速度
+		Params.GravityZ         = 0.f;
 		Params.MaxRange         = BulletCurtainData->MaxRange;
 		Params.CollisionRadius  = BulletCurtainData->CollisionRadius;
-		Params.Mesh             = BulletCurtainData->ProjectileMesh;
+		Params.Flipbook         = BulletCurtainData->ProjectileFlipbook;
 		Params.Instigator       = Instigator;
 		Params.DamageGE         = BulletCurtainData->DamageGE;
 		Params.DamageMultiplier = BulletCurtainData->DamageMultiplier;

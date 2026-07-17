@@ -96,6 +96,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Resource")
 	bool DropSlot(int32 SlotIndex);
 
+	/**
+	 * 使用一个消耗品：对全体召唤宠施加其 UseEffect，成功后扣 1 个。
+	 * 料不足 / 非消耗品 / 无 UseEffect / 场上无宠 → 不消耗，返回 false。
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Resource")
+	bool UseConsumable(int32 ItemID);
+
 	// -----------------------------------------------------------------------
 	// 宠物接口
 	// -----------------------------------------------------------------------

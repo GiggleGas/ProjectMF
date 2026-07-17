@@ -255,9 +255,6 @@ protected:
 	 */
 	virtual void UpdateAnimation();
 
-	/** Rotate FlipbookComponent to always face the billboard camera. */
-	void UpdateBillboard();
-
 	/** Console-var-gated debug visualization (arrows + screen text). */
 	virtual void DrawDebug() const;
 
@@ -280,8 +277,6 @@ protected:
 	FVector2D GetDirectionalInput() const;
 
 private:
-	FTimerHandle HitFlashTimerHandle;
-
 	void OnHealthChangedCallback(float OldHealth, float NewHealth);
 
 	/** MoveSpeed 属性变化 → 写入 CharacterMovement->MaxWalkSpeed。 */
@@ -289,8 +284,4 @@ private:
 
 	/** State.Stunned 标签变化 → 进入眩晕禁动+打断 / 解除恢复行走。 */
 	void OnStunnedTagChanged(const FGameplayTag CallbackTag, int32 NewCount);
-
-	/** 将 Flipbook 染成指定颜色并启动复位定时器（受击/治疗闪光共用）。 */
-	void FlashSpriteColor(const FLinearColor& Color);
-	void ResetHitFlashColor();
 };

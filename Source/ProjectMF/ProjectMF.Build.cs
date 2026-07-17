@@ -80,5 +80,9 @@ public class ProjectMF : ModuleRules
 		// Loot (掉落物系统：掉落表 / 地面拾取物 / 采集点)
 		PublicIncludePaths.Add(Path.Combine(ModuleDirectory, "Loot", "Public"));
 		PrivateIncludePaths.Add(Path.Combine(ModuleDirectory, "Loot", "Private"));
+
+		// Crafting (打造合成：配方 / 合成组件 / 全局配方库)
+		PublicIncludePaths.Add(Path.Combine(ModuleDirectory, "Crafting", "Public"));
+		PrivateIncludePaths.Add(Path.Combine(ModuleDirectory, "Crafting", "Private"));
     }
 }

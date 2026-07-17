@@ -14,7 +14,7 @@
  * after every burst).
  *
  * Common fields (AttackAnim, DamageGE, DamageMultiplier, TargetFilter, Speed,
- * MaxRange, CollisionRadius, ProjectileMesh) are inherited from
+ * MaxRange, CollisionRadius, ProjectileFlipbook) are inherited from
  * UMFRangedAttackDataBase. This class only adds the burst pattern.
  * (AnimToSpawnDelay is inherited but unused — bullet-curtain fires immediately.)
  */

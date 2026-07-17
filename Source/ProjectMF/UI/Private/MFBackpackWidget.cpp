@@ -3,6 +3,7 @@
 #include "MFBackpackWidget.h"
 #include "MFItemSlotWidget.h"
 #include "MFInventoryComponent.h"
+#include "MFCharacter.h"
 #include "Components/PanelWidget.h"
 #include "Blueprint/DragDropOperation.h"
 
@@ -39,6 +40,7 @@ void UMFBackpackWidget::BuildSlots(int32 NumSlots)
 		if (!NewSlot) continue;
 
 		NewSlot->OnSlotDiscardRequested.AddDynamic(this, &UMFBackpackWidget::HandleSlotDiscard);
+		NewSlot->OnSlotUseRequested.AddDynamic(this, &UMFBackpackWidget::HandleSlotUse);
 		SlotGrid->AddChild(NewSlot);   // 排布由容器决定（VerticalBox 单列 / WrapBox 多列…）
 		SlotWidgets.Add(NewSlot);
 	}
@@ -83,6 +85,22 @@ void UMFBackpackWidget::HandleSlotDiscard(int32 SlotIndex)
 	if (UMFInventoryComponent* Inv = BoundInventory.Get())
 	{
 		Inv->DropSlot(SlotIndex);
+	}
+}
+
+void UMFBackpackWidget::HandleSlotUse(int32 SlotIndex)
+{
+	UMFInventoryComponent* Inv = BoundInventory.Get();
+	if (!Inv) return;
+
+	const TArray<FMFInventorySlot>& Slots = Inv->GetResourceSlots();
+	if (!Slots.IsValidIndex(SlotIndex)) return;
+
+	// 走玩家统一入口：配了 ThrowableData 的消耗品进投掷瞄准，否则直接对全体召唤宠。
+	// 非消耗品在 TryUseConsumable 内自然被拒，无副作用。
+	if (AMFCharacter* Player = Cast<AMFCharacter>(Inv->GetOwner()))
+	{
+		Player->TryUseConsumable(Slots[SlotIndex].ItemID);
 	}
 }
 

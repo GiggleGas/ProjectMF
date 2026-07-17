@@ -33,20 +33,20 @@ UMFSpriteVisualComponent::UMFSpriteVisualComponent()
 
 void UMFSpriteVisualComponent::InitVisual(UPaperFlipbookComponent* InFlipbook, UCapsuleComponent* InCapsule)
 {
-	TargetFlipbook = InFlipbook;
-	TargetCapsule  = InCapsule;
+	Flipbook      = InFlipbook;
+	TargetCapsule = InCapsule;
 
 	const AActor* Owner = GetOwner();
-	if (!TargetFlipbook)
+	if (!Flipbook)
 	{
-		MF_LOG_WARNING(LogMFVisual, TEXT("[%s] InitVisual：未绑定 Flipbook，billboard/闪光将无目标。"),
+		MF_LOG_WARNING(LogMFVisual, TEXT("[%s] InitVisual：未绑定 Flipbook，表现将不更新。"),
 			Owner ? *Owner->GetName() : TEXT("?"));
 	}
 	else
 	{
 		UE_LOG(LogMFVisual, Log, TEXT("[%s] InitVisual：Flipbook=%s  Capsule=%s"),
 			Owner ? *Owner->GetName() : TEXT("?"),
-			*TargetFlipbook->GetName(),
+			*Flipbook->GetName(),
 			InCapsule ? *InCapsule->GetName() : TEXT("<none>"));
 	}
 }
@@ -72,7 +72,7 @@ void UMFSpriteVisualComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 
 void UMFSpriteVisualComponent::TickBillboard()
 {
-	if (!TargetFlipbook) return;
+	if (!Flipbook) return;
 
 	FVector CamForward;
 	if (!CameraForwardProvider || !CameraForwardProvider(CamForward))
@@ -85,13 +85,13 @@ void UMFSpriteVisualComponent::TickBillboard()
 
 	// 让 sprite 局部 +Y（Paper2D 法线）指向相机。
 	const FRotator BillRot = FRotationMatrix::MakeFromYZ(ToCam, FVector::UpVector).Rotator();
-	TargetFlipbook->SetWorldRotation(BillRot);
+	Flipbook->SetWorldRotation(BillRot);
 
 #if ENABLE_DRAW_DEBUG
 	if (GSpriteVisualDebug)
 	{
 		const AActor* Owner = GetOwner();
-		const FVector Origin = TargetFlipbook->GetComponentLocation();
+		const FVector Origin = Flipbook->GetComponentLocation();
 		if (const UWorld* World = GetWorld())
 		{
 			// 洋红箭头 = sprite 当前法线朝向（应指向相机）。
@@ -111,13 +111,13 @@ void UMFSpriteVisualComponent::TickBillboard()
 
 void UMFSpriteVisualComponent::FlashColor(const FLinearColor& Color, float Duration)
 {
-	if (!TargetFlipbook)
+	if (!Flipbook)
 	{
 		MF_LOG_WARNING(LogMFVisual, TEXT("FlashColor：无绑定 Flipbook，忽略。"));
 		return;
 	}
 
-	TargetFlipbook->SetSpriteColor(Color);
+	Flipbook->SetSpriteColor(Color);
 
 	const AActor* Owner = GetOwner();
 	UE_LOG(LogMFVisual, Log, TEXT("[%s] FlashColor: (%.2f,%.2f,%.2f) for %.2fs"),
@@ -133,9 +133,9 @@ void UMFSpriteVisualComponent::FlashColor(const FLinearColor& Color, float Durat
 
 void UMFSpriteVisualComponent::ResetColorToWhite()
 {
-	if (TargetFlipbook)
+	if (Flipbook)
 	{
-		TargetFlipbook->SetSpriteColor(FLinearColor::White);
+		Flipbook->SetSpriteColor(FLinearColor::White);
 	}
 }
 
@@ -146,16 +146,16 @@ void UMFSpriteVisualComponent::ResetColorToWhite()
 void UMFSpriteVisualComponent::FitCollisionToFlipbook(float RadiusScale)
 {
 	UCapsuleComponent* Capsule = TargetCapsule.Get();
-	if (!Capsule || !TargetFlipbook)
+	if (!Capsule || !Flipbook)
 	{
 		MF_LOG_WARNING(LogMFVisual, TEXT("FitCollisionToFlipbook：缺少 Capsule 或 Flipbook，跳过。"));
 		return;
 	}
 
-	const UPaperFlipbook* Flipbook = TargetFlipbook->GetFlipbook();
-	if (!Flipbook || Flipbook->GetNumKeyFrames() == 0) return;
+	const UPaperFlipbook* FlipbookAsset = Flipbook->GetFlipbook();
+	if (!FlipbookAsset || FlipbookAsset->GetNumKeyFrames() == 0) return;
 
-	const UPaperSprite* Sprite = Flipbook->GetKeyFrameChecked(0).Sprite;
+	const UPaperSprite* Sprite = FlipbookAsset->GetKeyFrameChecked(0).Sprite;
 	if (!Sprite) return;
 
 	const float PixelsPerUnit = Sprite->GetPixelsPerUnrealUnit();
@@ -170,7 +170,7 @@ void UMFSpriteVisualComponent::FitCollisionToFlipbook(float RadiusScale)
 	Capsule->SetCapsuleSize(NewRadius, NewRadius, /*bUpdateOverlaps=*/true);
 
 	// 把 sprite 下移 Radius，令其局部原点落在碰撞球底部（视觉落脚点对齐物理）。
-	TargetFlipbook->SetRelativeLocation(FVector(0.f, 0.f, -NewRadius));
+	Flipbook->SetRelativeLocation(FVector(0.f, 0.f, -NewRadius));
 
 	const AActor* Owner = GetOwner();
 	UE_LOG(LogMFVisual, Log,

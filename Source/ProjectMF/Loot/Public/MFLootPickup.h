@@ -6,14 +6,13 @@
 #include "MFSceneActorBase.h"
 #include "MFLootPickup.generated.h"
 
-class UPaperSpriteComponent;
 class UMFInventoryComponent;
 
 /**
  * AMFLootPickup — 地面掉落物（一个实例 = 一件物品）。
  *
- * 渲染沿用 AMFSceneActorBase 的 2D 管线；场景外观由物品总表的 WorldSprite 决定
- * （InitLoot 时按 ItemID 填入），一个类通吃所有物品。
+ * 渲染沿用 AMFSceneActorBase 的 2D 管线（基类 FlipbookComponent + billboard 组件）；
+ * 场景外观由物品总表的 WorldFlipbook 决定（InitLoot 时按 ItemID 填入），一个类通吃所有物品。
  *
  * 生命周期（由 UMFLootSubsystem 生成，勿直接摆放）：
  *   Scatter（出生小抛物线散开）→ Idle（静止待拾取）→ PickUp()（玩家主动拾取后销毁）。
@@ -56,10 +55,6 @@ protected:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Loot")
 	void OnLootInitialized(int32 InItemID, int32 InCount);
 
-	/** 场景 2D 外观：显示物品的 WorldSprite（InitLoot 时按 ItemID 从总表取）。 */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	TObjectPtr<UPaperSpriteComponent> SpriteComponent;
-
 	/** 出生散开飞行时长（秒）。 */
 	UPROPERTY(EditDefaultsOnly, Category = "Loot", meta = (ClampMin = "0.0", ClampMax = "2.0"))
 	float ScatterDuration = 0.35f;
@@ -71,10 +66,6 @@ protected:
 	/** 存在时长（秒），超时自动消失。0 = 永久。 */
 	UPROPERTY(EditDefaultsOnly, Category = "Loot", meta = (ClampMin = "0.0"))
 	float Lifetime = 300.f;
-
-	/** Sprite 面向相机的 yaw 偏移（度）。Paper2D XZ 平面 sprite 通常 -90。 */
-	UPROPERTY(EditDefaultsOnly, Category = "Loot")
-	float BillboardYawOffset = -90.f;
 
 	/** 背包满弹回时的散落半径（cm）。 */
 	UPROPERTY(EditDefaultsOnly, Category = "Loot", meta = (ClampMin = "0.0"))
@@ -94,9 +85,6 @@ private:
 	float   ScatterTime  = 0.f;
 
 	void TickScatter(float DeltaTime);
-
-	/** 让 Sprite 面向玩家相机（简易 billboard），任何相机角度都可见。 */
-	void UpdateBillboard();
 
 	/** 背包满/部分入包时：从当前位置重新抛到附近随机落点，重播散开。 */
 	void BounceOut();

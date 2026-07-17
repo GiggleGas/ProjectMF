@@ -15,12 +15,12 @@
  *   Direction = (0, 0, -1)
  *   Speed     = downward travel speed
  *   MaxRange resolved = "hit ground"
- *   ProjectileMesh = boulder mesh
+ *   ProjectileFlipbook = boulder 2D 外观
  *
  * On landing, a sphere overlap at the final position triggers area damage in ImpactRadius.
  *
  * Common fields (AttackAnim, DamageGE, DamageMultiplier, TargetFilter, AnimToSpawnDelay,
- * Speed, MaxRange, CollisionRadius, ProjectileMesh) are inherited from
+ * Speed, MaxRange, CollisionRadius, ProjectileFlipbook) are inherited from
  * UMFRangedAttackDataBase. This class only adds the landing impact radius.
  */
 UCLASS(BlueprintType)

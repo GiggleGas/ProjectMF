@@ -7,7 +7,9 @@
 #include "MFPetBase.h"
 #include "MFItemTypes.generated.h"
 
-class UPaperSprite;
+class UPaperFlipbook;
+class UGameplayEffect;
+class UMFThrowableData;
 
 // ============================================================
 // EMFItemType
@@ -49,9 +51,9 @@ struct PROJECTMF_API FMFItemDef : public FTableRowBase
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
 	TObjectPtr<UTexture2D> Icon = nullptr;
 
-	/** 掉落到场景中的 2D 外观 Sprite（Paper2D）。掉落物 Actor 用它在场景展示。 */
+	/** 掉落到场景中的 2D 外观（Flipbook；单帧=静态图，多帧=动画）。掉落物 Actor 用它在场景展示。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
-	TObjectPtr<UPaperSprite> WorldSprite = nullptr;
+	TObjectPtr<UPaperFlipbook> WorldFlipbook = nullptr;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
 	EMFItemType ItemType = EMFItemType::Resource;
@@ -65,6 +67,17 @@ struct PROJECTMF_API FMFItemDef : public FTableRowBase
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
 	FText Description;
+
+	/** 消耗品使用时对目标宠物直接施加的 GE（仅 Consumable；空 = 无此效果）。 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Consumable")
+	TSubclassOf<UGameplayEffect> UseEffect;
+
+	/**
+	 * 消耗品的投掷参数（抛物线飞行物 + 落点区域）。
+	 * 配了它 = **投掷模式**（玩家瞄准地面 → 抛物线扔出 → 落点生成区域），优先于 UseEffect。
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Consumable")
+	TObjectPtr<UMFThrowableData> ThrowableData;
 };
 
 // ============================================================

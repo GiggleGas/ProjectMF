@@ -8,6 +8,7 @@
 
 class UPaperFlipbookComponent;
 class UPaperZDAnimationComponent;
+class UMFSpriteVisualComponent;
 
 /**
  * 场景 Actor 渲染基类：一个能播放 PaperZD / PaperFlipbook 2D 帧动画的轻量 Actor。
@@ -32,6 +33,18 @@ public:
 	UPaperZDAnimationComponent* GetAnimationComponent() const { return AnimationComponent; }
 
 protected:
+	virtual void BeginPlay() override;
+
+	/**
+	 * 表现 Flipbook（billboard + 闪光 + 碰撞拟合的目标；默认 = FlipbookComponent）。
+	 * 用其他 Flipbook 的子类覆盖。
+	 */
+	virtual UPaperFlipbookComponent* GetVisualFlipbook() const { return FlipbookComponent; }
+
+	/** 2D 表现能力组件（billboard 面向相机；场景物默认只用 billboard）。 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UMFSpriteVisualComponent> SpriteVisual;
+
 	/** 2D 渲染目标（由 PaperZD 驱动；简单单循环表现也可直接设其 Flipbook 不用 PaperZD）。 */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UPaperFlipbookComponent> FlipbookComponent;

@@ -67,6 +67,17 @@ FReply UMFItemSlotWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, c
 	return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
 }
 
+FReply UMFItemSlotWidget::NativeOnMouseButtonDoubleClick(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+{
+	// 双击：使用（消耗品）。非消耗品由容器侧 UseConsumable 自然拒绝。
+	if (InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && CurrentItemID > 0)
+	{
+		OnSlotUseRequested.Broadcast(SlotIndex);
+		return FReply::Handled();
+	}
+	return Super::NativeOnMouseButtonDoubleClick(InGeometry, InMouseEvent);
+}
+
 void UMFItemSlotWidget::NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent, UDragDropOperation*& OutOperation)
 {
 	if (CurrentItemID <= 0) return; // 空格不拖

@@ -2,8 +2,9 @@
 
 #include "MFProjectileRenderer.h"
 
-#include "Components/InstancedStaticMeshComponent.h"
-#include "Engine/StaticMesh.h"
+#include "PaperFlipbookComponent.h"
+#include "Camera/PlayerCameraManager.h"
+#include "Kismet/GameplayStatics.h"
 
 AMFProjectileRenderer::AMFProjectileRenderer()
 {
@@ -14,72 +15,79 @@ AMFProjectileRenderer::AMFProjectileRenderer()
 }
 
 // ============================================================================
-// Public API
+// Camera / billboard
 // ============================================================================
 
-int32 AMFProjectileRenderer::AcquireSlot(UStaticMesh* Mesh, const FTransform& InitialTransform)
+void AMFProjectileRenderer::RefreshCamera()
 {
-	UInstancedStaticMeshComponent* ISM = GetOrCreateISM(Mesh);
-	if (!ISM) return -1;
+	if (const APlayerCameraManager* PCM = UGameplayStatics::GetPlayerCameraManager(this, 0))
+	{
+		CachedCamForward = PCM->GetCameraRotation().Vector();
+	}
+}
 
-	TArray<int32>& FreeSlots = FreeSlotMap.FindOrAdd(Mesh);
+FRotator AMFProjectileRenderer::GetBillboardRotation() const
+{
+	// sprite 局部 +Y（Paper2D 法线）指向相机；与 UMFSpriteVisualComponent::TickBillboard 一致。
+	const FVector ToCam = -CachedCamForward;
+	if (ToCam.IsNearlyZero()) return FRotator::ZeroRotator;
+	return FRotationMatrix::MakeFromYZ(ToCam, FVector::UpVector).Rotator();
+}
+
+// ============================================================================
+// Pool
+// ============================================================================
+
+int32 AMFProjectileRenderer::AllocateComponent()
+{
 	if (FreeSlots.Num() > 0)
 	{
-		const int32 Idx = FreeSlots.Pop(EAllowShrinking::No);
-		// bWorldSpace=true: InitialTransform is in world space
-		ISM->UpdateInstanceTransform(Idx, InitialTransform, true, true);
-		return Idx;
+		return FreeSlots.Pop(EAllowShrinking::No);
 	}
 
-	// AddInstance with bWorldSpace=true
-	return ISM->AddInstance(InitialTransform, true);
+	// 新建一个 Flipbook 组件挂根并注册（只增不删，索引恒定）。
+	UPaperFlipbookComponent* NewComp = NewObject<UPaperFlipbookComponent>(this);
+	NewComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	NewComp->SetCastShadow(false);
+	NewComp->SetupAttachment(GetRootComponent());
+	NewComp->RegisterComponent();
+
+	return Pool.Add(NewComp);
 }
 
-void AMFProjectileRenderer::UpdateSlot(UStaticMesh* Mesh, int32 SlotIndex, const FTransform& NewTransform)
+int32 AMFProjectileRenderer::AcquireSlot(UPaperFlipbook* Flipbook, const FVector& WorldLocation, float Scale)
 {
-	if (SlotIndex < 0) return;
+	if (!Flipbook) return -1;
 
-	UInstancedStaticMeshComponent* ISM = GetOrCreateISM(Mesh);
-	if (!ISM) return;
+	const int32 Idx = AllocateComponent();
+	UPaperFlipbookComponent* Comp = Pool.IsValidIndex(Idx) ? Pool[Idx].Get() : nullptr;
+	if (!Comp) return -1;
 
-	ISM->UpdateInstanceTransform(SlotIndex, NewTransform, true, true);
+	Comp->SetFlipbook(Flipbook);
+	Comp->SetWorldScale3D(FVector(Scale));
+	Comp->SetWorldLocationAndRotation(WorldLocation, GetBillboardRotation().Quaternion());
+	Comp->SetVisibility(true);
+	return Idx;
 }
 
-void AMFProjectileRenderer::ReleaseSlot(UStaticMesh* Mesh, int32 SlotIndex)
+void AMFProjectileRenderer::UpdateSlot(int32 SlotIndex, const FVector& WorldLocation)
 {
-	if (SlotIndex < 0) return;
+	if (!Pool.IsValidIndex(SlotIndex)) return;
 
-	UInstancedStaticMeshComponent* ISM = GetOrCreateISM(Mesh);
-	if (!ISM) return;
-
-	// Scale=0 makes the instance invisible without disturbing other indices
-	static const FTransform HiddenTransform(FQuat::Identity, FVector::ZeroVector, FVector::ZeroVector);
-	ISM->UpdateInstanceTransform(SlotIndex, HiddenTransform, true, true);
-
-	FreeSlotMap.FindOrAdd(Mesh).Add(SlotIndex);
+	if (UPaperFlipbookComponent* Comp = Pool[SlotIndex].Get())
+	{
+		Comp->SetWorldLocationAndRotation(WorldLocation, GetBillboardRotation().Quaternion());
+	}
 }
 
-// ============================================================================
-// Private
-// ============================================================================
-
-UInstancedStaticMeshComponent* AMFProjectileRenderer::GetOrCreateISM(UStaticMesh* Mesh)
+void AMFProjectileRenderer::ReleaseSlot(int32 SlotIndex)
 {
-	if (!Mesh) return nullptr;
+	if (!Pool.IsValidIndex(SlotIndex)) return;
 
-	if (TObjectPtr<UInstancedStaticMeshComponent>* Found = ISMMap.Find(Mesh))
-		return Found->Get();
-
-	// Dynamic component creation: attach to root, then register
-	const FName CompName = *FString::Printf(TEXT("ISM_%s"), *GetNameSafe(Mesh));
-	UInstancedStaticMeshComponent* NewISM =
-		NewObject<UInstancedStaticMeshComponent>(this, UInstancedStaticMeshComponent::StaticClass(), CompName);
-
-	NewISM->SetStaticMesh(Mesh);
-	NewISM->SetCastShadow(false);
-	NewISM->SetupAttachment(GetRootComponent());
-	NewISM->RegisterComponent();
-
-	ISMMap.Add(Mesh, NewISM);
-	return NewISM;
+	if (UPaperFlipbookComponent* Comp = Pool[SlotIndex].Get())
+	{
+		Comp->SetVisibility(false);
+		Comp->SetFlipbook(nullptr);
+	}
+	FreeSlots.Add(SlotIndex);
 }

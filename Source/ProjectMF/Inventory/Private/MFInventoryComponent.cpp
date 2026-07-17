@@ -4,6 +4,7 @@
 #include "MFItemStatics.h"
 #include "MFItemSettings.h"
 #include "MFLootSubsystem.h"
+#include "GameplayEffect.h"
 #include "MFAIRegistry.h"
 #include "MFPetConfig.h"
 #include "MFPetBase.h"
@@ -209,6 +210,45 @@ int32 UMFInventoryComponent::GetResourceCount(int32 ItemID) const
 bool UMFInventoryComponent::HasResource(int32 ItemID, int32 Count) const
 {
 	return GetResourceCount(ItemID) >= Count;
+}
+
+bool UMFInventoryComponent::UseConsumable(int32 ItemID)
+{
+	if (!HasResource(ItemID, 1)) return false;
+
+	const FMFItemDef* Def = UMFItemStatics::FindItem(UMFItemSettings::GetItemTable(), ItemID);
+	if (!Def || Def->ItemType != EMFItemType::Consumable || !Def->UseEffect)
+	{
+		MF_LOG_WARNING(LogMFInventory, TEXT("UseConsumable: #%d 非消耗品或未配 UseEffect。"), ItemID);
+		return false;
+	}
+
+	// 对全体召唤宠施加 UseEffect（GE 里配好回血/增伤数值）。
+	int32 Affected = 0;
+	for (AMFPetBase* Pet : GetActivePetActors())
+	{
+		if (!Pet) continue;
+		UAbilitySystemComponent* ASC = Pet->GetAbilitySystemComponent();
+		if (!ASC) continue;
+
+		FGameplayEffectContextHandle Ctx = ASC->MakeEffectContext();
+		const FGameplayEffectSpecHandle Spec = ASC->MakeOutgoingSpec(Def->UseEffect, 1.f, Ctx);
+		if (Spec.IsValid())
+		{
+			ASC->ApplyGameplayEffectSpecToSelf(*Spec.Data.Get());
+			++Affected;
+		}
+	}
+
+	if (Affected == 0)
+	{
+		MF_LOG_WARNING(LogMFInventory, TEXT("UseConsumable: #%d 场上无可施加的召唤宠，未消耗。"), ItemID);
+		return false;
+	}
+
+	RemoveResource(ItemID, 1);
+	MF_LOG(LogMFInventory, TEXT("UseConsumable: #%d 用于 %d 只宠。"), ItemID, Affected);
+	return true;
 }
 
 bool UMFInventoryComponent::DropSlot(int32 SlotIndex)

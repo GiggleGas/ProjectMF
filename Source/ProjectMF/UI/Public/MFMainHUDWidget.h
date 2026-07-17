@@ -13,6 +13,7 @@ class UPanelWidget;
 class UMFOverheadWidget;
 class UMFPetSlotWidget;
 class UMFBackpackWidget;
+class UMFCraftingWidget;
 class AMFCharacter;
 class UMFInventoryComponent;
 
@@ -64,6 +65,10 @@ public:
 	/** 背包格子栏（可选）。Designer 放 WBP_Backpack 命名 "BackpackWidget"。 */
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UMFBackpackWidget> BackpackWidget;
+
+	/** 合成页（可选）。Designer 放 WBP_Crafting 命名 "CraftingWidget"。 */
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UMFCraftingWidget> CraftingWidget;
 
 	/** "[ Tab ] 开启 Boss 战" 提示，满足条件时短暂显示。可选。 */
 	UPROPERTY(meta = (BindWidgetOptional))

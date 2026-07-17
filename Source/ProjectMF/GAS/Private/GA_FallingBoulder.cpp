@@ -74,11 +74,11 @@ void UGA_FallingBoulder::SpawnProjectile_Implementation(AActor* Target)
 
 	FMFProjectileLaunchParams Params;
 	Params.Origin          = SpawnPos;
-	Params.Direction       = FVector::DownVector;          // straight down
-	Params.Speed           = BoulderData->Speed;
+	Params.Velocity        = FVector::DownVector * BoulderData->Speed;   // 直落：向下速度矢量
+	Params.GravityZ        = 0.f;
 	Params.MaxRange        = BoulderData->MaxRange;        // MaxRange hit = landed
 	Params.CollisionRadius = BoulderData->CollisionRadius;
-	Params.Mesh            = BoulderData->ProjectileMesh;
+	Params.Flipbook        = BoulderData->ProjectileFlipbook;
 	Params.Instigator      = GetAvatarActorFromActorInfo();
 	Params.DamageGE        = BoulderData->DamageGE;
 	Params.DamageMultiplier = BoulderData->DamageMultiplier;

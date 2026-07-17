@@ -6,7 +6,7 @@
 #include "MFAttackDataBase.h"
 #include "MFRangedAttackDataBase.generated.h"
 
-class UStaticMesh;
+class UPaperFlipbook;
 class UMFAreaEffectData;
 
 /**
@@ -17,9 +17,9 @@ class UMFAreaEffectData;
  * 各自专有的字段。
  *
  * 落石（UMFFallingBoulderData）复用语义：
- *   MaxRange       = 下落高度（生成点离地高度，也是落地判定距离）
- *   Speed          = 下落速度
- *   ProjectileMesh = 落石网格
+ *   MaxRange           = 下落高度（生成点离地高度，也是落地判定距离）
+ *   Speed              = 下落速度
+ *   ProjectileFlipbook = 落石 2D 外观
  */
 UCLASS(Abstract, BlueprintType)
 class PROJECTMF_API UMFRangedAttackDataBase : public UMFAttackDataBase
@@ -44,9 +44,9 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Ranged|Projectile", meta = (ClampMin = "1.0"))
 	float CollisionRadius = 15.f;
 
-	/** 通过 ISM 渲染的投射物网格。留空则为隐形投射物。 */
+	/** 投射物 2D 外观（Flipbook 池渲染，面向相机；单帧=静态，多帧=飞行动画）。留空则为隐形投射物。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Ranged|Projectile")
-	TObjectPtr<UStaticMesh> ProjectileMesh;
+	TObjectPtr<UPaperFlipbook> ProjectileFlipbook;
 
 	/**
 	 * 命中 / 落地时在落点生成的持续区域（可空）。撞击瞬时伤害照常，此区域是叠加。

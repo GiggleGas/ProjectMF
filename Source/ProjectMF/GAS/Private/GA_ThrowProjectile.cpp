@@ -75,11 +75,11 @@ void UGA_ThrowProjectile::SpawnProjectile_Implementation(AActor* Target)
 
 	FMFProjectileLaunchParams Params;
 	Params.Origin          = Origin;
-	Params.Direction       = Direction;
-	Params.Speed           = ProjectileData->Speed;
+	Params.Velocity        = Direction * ProjectileData->Speed;   // 直线：速度矢量 = 方向×速度
+	Params.GravityZ        = 0.f;
 	Params.MaxRange        = ProjectileData->MaxRange;
 	Params.CollisionRadius = ProjectileData->CollisionRadius;
-	Params.Mesh            = ProjectileData->ProjectileMesh;
+	Params.Flipbook        = ProjectileData->ProjectileFlipbook;
 	Params.Instigator      = Avatar;
 	Params.DamageGE        = ProjectileData->DamageGE;
 	Params.DamageMultiplier = ProjectileData->DamageMultiplier;
@@ -132,6 +132,9 @@ void UGA_ThrowProjectile::HandleProjectileResolved(const FMFProjectileResult& Re
 			}
 		}
 		break;
+
+	case EMFProjectileResolveReason::HitGround:
+		break;   // AI 直线投掷不产生（GravityZ=0）；玩家抛物线投掷走独立回调（S5）
 
 	case EMFProjectileResolveReason::Cancelled:
 		break;

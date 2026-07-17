@@ -39,6 +39,9 @@ public:
 	/** 请求丢弃委托（容器订阅 → DropSlot）。右键 或 拖出背包松开触发。 */
 	FOnMFItemSlotDiscard OnSlotDiscardRequested;
 
+	/** 请求使用委托（容器订阅 → UseConsumable）。双击触发（同 int32 SlotIndex 签名）。 */
+	FOnMFItemSlotDiscard OnSlotUseRequested;
+
 	// -----------------------------------------------------------------------
 	// Widget Bindings — name Designer widgets to match exactly
 	// -----------------------------------------------------------------------
@@ -65,6 +68,7 @@ protected:
 	UWidget* OnMakeDragVisual();
 
 	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+	virtual FReply NativeOnMouseButtonDoubleClick(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 	virtual void NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent, UDragDropOperation*& OutOperation) override;
 
 private:

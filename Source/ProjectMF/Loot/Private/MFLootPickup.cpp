@@ -1,10 +1,8 @@
 // Copyright ProjectMF. All Rights Reserved.
 
 #include "MFLootPickup.h"
-#include "PaperSpriteComponent.h"
-#include "PaperSprite.h"
-#include "Camera/PlayerCameraManager.h"
-#include "Kismet/GameplayStatics.h"
+#include "PaperFlipbookComponent.h"
+#include "PaperFlipbook.h"
 #include "MFItemStatics.h"
 #include "MFItemSettings.h"
 #include "MFInventoryComponent.h"
@@ -12,13 +10,10 @@
 
 AMFLootPickup::AMFLootPickup()
 {
-	// 需要 tick 驱动出生散开 + billboard。
+	// 需要 tick 驱动出生散开（billboard 由基类 UMFSpriteVisualComponent 接管）。
 	PrimaryActorTick.bCanEverTick = true;
 
-	// 场景外观：单张 Sprite（掉落图标一般静态），资产在 InitLoot 时按物品填入。
-	SpriteComponent = CreateDefaultSubobject<UPaperSpriteComponent>(TEXT("SpriteComponent"));
-	SpriteComponent->SetupAttachment(GetRootComponent());
-	SpriteComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	// 场景外观走基类 FlipbookComponent（AMFSceneActorBase 已创建/挂载/设无碰撞），InitLoot 时按物品填 WorldFlipbook。
 }
 
 void AMFLootPickup::BeginPlay()
@@ -36,17 +31,17 @@ void AMFLootPickup::InitLoot(int32 InItemID, int32 InCount, const FVector& LandL
 	ItemID = InItemID;
 	Count  = FMath::Max(InCount, 1);
 
-	// 场景外观由物品总表的 WorldSprite 决定——一个 pickup 类通吃所有物品，
-	// 加物品只需在总表配 WorldSprite，无需为每种物品做一个掉落物蓝图。
+	// 场景外观由物品总表的 WorldFlipbook 决定——一个 pickup 类通吃所有物品，
+	// 加物品只需在总表配 WorldFlipbook，无需为每种物品做一个掉落物蓝图。
 	if (const FMFItemDef* Def = UMFItemStatics::FindItem(UMFItemSettings::GetItemTable(), ItemID))
 	{
-		if (Def->WorldSprite)
+		if (Def->WorldFlipbook && FlipbookComponent)
 		{
-			SpriteComponent->SetSprite(Def->WorldSprite);
+			FlipbookComponent->SetFlipbook(Def->WorldFlipbook);
 		}
 		else
 		{
-			MF_LOG_WARNING(LogMFLoot, TEXT("物品 #%d 未配 WorldSprite，掉落物将不可见。"), ItemID);
+			MF_LOG_WARNING(LogMFLoot, TEXT("物品 #%d 未配 WorldFlipbook，掉落物将不可见。"), ItemID);
 		}
 	}
 
@@ -113,8 +108,7 @@ void AMFLootPickup::Tick(float DeltaTime)
 	{
 		TickScatter(DeltaTime);
 	}
-
-	UpdateBillboard();
+	// billboard 由基类 UMFSpriteVisualComponent 接管（BillboardTarget = SpriteComponent）。
 }
 
 void AMFLootPickup::TickScatter(float DeltaTime)
@@ -133,14 +127,3 @@ void AMFLootPickup::TickScatter(float DeltaTime)
 	}
 }
 
-void AMFLootPickup::UpdateBillboard()
-{
-	const APlayerCameraManager* PCM = UGameplayStatics::GetPlayerCameraManager(this, 0);
-	if (!PCM) return;
-
-	FVector ToCam = PCM->GetCameraLocation() - GetActorLocation();
-	ToCam.Z = 0.f;
-	if (ToCam.IsNearlyZero()) return;
-
-	SetActorRotation(FRotator(0.f, ToCam.Rotation().Yaw + BillboardYawOffset, 0.f));
-}

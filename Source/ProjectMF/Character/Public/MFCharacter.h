@@ -11,10 +11,12 @@ class USpringArmComponent;
 class UCameraComponent;
 class UMFCameraController;
 class UMFInventoryComponent;
+class UMFCraftingComponent;
 class UMFPlayerConfig;
 class UMFPlayerAttributeSet;
 class AMFPetBase;
 class AMFLootPickup;
+class UMFThrowableData;
 struct FInputActionValue;
 
 /**
@@ -79,6 +81,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UMFInventoryComponent> InventoryComponent;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UMFCraftingComponent> CraftingComponent;
+
 	/** Player-only attribute set. Extension point for player-specific GAS attributes. */
 	UPROPERTY()
 	TObjectPtr<UMFPlayerAttributeSet> PlayerAttributeSet;
@@ -86,6 +91,14 @@ protected:
 public:
 	UFUNCTION(BlueprintPure, Category = "Inventory")
 	UMFInventoryComponent* GetInventoryComponent() const { return InventoryComponent; }
+
+	UFUNCTION(BlueprintPure, Category = "Crafting")
+	UMFCraftingComponent* GetCraftingComponent() const { return CraftingComponent; }
+
+	/** 使用消耗品：配了 ThrowableData → 进投掷瞄准抛物线扔出；否则直接对宠 UseConsumable。 */
+	void TryUseConsumable(int32 ItemID);
+
+	virtual void Tick(float DeltaTime) override;
 
 	/** GM/调试：按序击杀一只自己的出战宠（每次一只，走完整死亡→濒死流程）。控制台输入 MFKillNextPet。 */
 	UFUNCTION(Exec)
@@ -98,6 +111,14 @@ public:
 	/** GM/调试：在脚下按掉落表资产名 roll 一次（验概率/分布）。控制台输入 MFDropTable LT_TestPet。 */
 	UFUNCTION(Exec)
 	void MFDropTable(const FString& TableAssetName);
+
+	/** GM/调试：合成一个配方。控制台输入 MFCraft Recipe_HealSnack。 */
+	UFUNCTION(Exec)
+	void MFCraft(const FString& RecipeID);
+
+	/** GM/调试：使用一个消耗品（喂全体召唤宠）。控制台输入 MFUseItem 2001。 */
+	UFUNCTION(Exec)
+	void MFUseItem(int32 ItemID);
 
 private:
 	void HandleMove(const FInputActionValue& Value);
@@ -129,4 +150,21 @@ private:
 
 	/** 就近找掉落物（CarryReach 内最近）；供 HandleCarryOrRevive 优先拾取。 */
 	AMFLootPickup* FindNearestLootPickupInReach() const;
+
+	// -----------------------------------------------------------------------
+	// 消耗品投掷瞄准（配了 ThrowableData 的消耗品）
+	// -----------------------------------------------------------------------
+
+	/** 进入投掷瞄准态。 */
+	void BeginThrowConsumable(int32 ItemID, const UMFThrowableData* ThrowableData);
+
+	/** 投掷瞄准态每帧：左键确认落点 → 抛物线扔出投射物，右键取消。 */
+	void TickThrowAiming();
+
+	/** 反算抛物线初速度 + 重力（由 Speed/ArcHeight），Launch 一个 Flipbook 投射物；落地由回调生成 ImpactArea。 */
+	void LaunchThrowable(const FVector& InTarget);
+
+	bool bThrowAiming = false;
+	int32 PendingThrowItemID = 0;
+	const UMFThrowableData* PendingThrowable = nullptr;
 };

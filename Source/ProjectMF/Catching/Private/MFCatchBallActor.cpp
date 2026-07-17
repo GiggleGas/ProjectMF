@@ -2,23 +2,11 @@
 
 #include "MFCatchBallActor.h"
 #include "MFLog.h"
-#include "Components/SphereComponent.h"
-#include "Components/StaticMeshComponent.h"
 
 ACatchBallActor::ACatchBallActor()
 {
-	PrimaryActorTick.bCanEverTick = false; // 位置由外部 Task 驱动，不需要自 Tick
-
-	// 碰撞根
-	SphereCollision = CreateDefaultSubobject<USphereComponent>(TEXT("SphereCollision"));
-	SphereCollision->SetSphereRadius(20.f);
-	SphereCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision); // 原型阶段不参与碰撞
-	SetRootComponent(SphereCollision);
-
-	// 网格（在 Blueprint 子类中指定 StaticMesh 资产）
-	BallMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BallMesh"));
-	BallMesh->SetupAttachment(SphereCollision);
-	BallMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	// 位置由外部 AT_MoveBall 驱动，不需自 Tick（基类已 bCanEverTick=false）。
+	// 外观走基类 FlipbookComponent（BP 配球的 flipbook），billboard 由基类 UMFSpriteVisualComponent 接管。
 }
 
 void ACatchBallActor::BeginPlay()

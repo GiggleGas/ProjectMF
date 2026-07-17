@@ -91,22 +91,24 @@ void AMFCharacterBase::BeginPlay()
 		AttributeSet->OnHealthChanged.AddUObject(this, &AMFCharacterBase::OnHealthChangedCallback);
 	}
 
-	if (bAutoUpdateCollisionFromFlipbook)
-	{
-		UpdateCollisionFromFlipbook();
-	}
-
-	// 2D 表现组件绑定：目标 Flipbook + 碰撞胶囊；相机源复用子类已实现的 GetBillboardCameraForward
-	// （玩家=相机前向，AI=PlayerCameraManager）。S1 不接管 tick，仅供 exec 验收。
+	// 2D 表现组件绑定（须在碰撞拟合前——UpdateCollisionFromFlipbook 已转发给组件）：
+	// 目标 Flipbook + 碰撞胶囊；相机源复用子类已实现的 GetBillboardCameraForward
+	// （玩家=相机前向，AI=PlayerCameraManager）；组件接管每帧 billboard。
 	if (SpriteVisual)
 	{
 		SpriteVisual->InitVisual(FlipbookComponent, GetCapsuleComponent());
+		SpriteVisual->bDriveBillboardOnTick = true;
 
 		TWeakObjectPtr<AMFCharacterBase> WeakThis(this);
 		SpriteVisual->SetCameraForwardProvider([WeakThis](FVector& OutForward) -> bool
 		{
 			return WeakThis.IsValid() ? WeakThis->GetBillboardCameraForward(OutForward) : false;
 		});
+	}
+
+	if (bAutoUpdateCollisionFromFlipbook)
+	{
+		UpdateCollisionFromFlipbook();
 	}
 }
 
@@ -254,7 +256,7 @@ void AMFCharacterBase::Tick(float DeltaTime)
 
 	UpdateCharacterAction();
 	UpdateAnimation();
-	UpdateBillboard();
+	// billboard 由 UMFSpriteVisualComponent 接管（BeginPlay 已 bDriveBillboardOnTick=true）。
 	DrawDebug();
 	DrawFriendlyMarker();
 }
@@ -302,24 +304,8 @@ void AMFCharacterBase::UpdateAnimation()
 	AI->DirectionalInput = GetDirectionalInput();
 }
 
-void AMFCharacterBase::UpdateBillboard()
-{
-	if (!FlipbookComponent) return;
-
-	FVector CamForward;
-	if (!GetBillboardCameraForward(CamForward)) return;
-
-	// All sprites use the same direction: opposite of where the camera is looking.
-	// This gives a uniform tilt across the entire scene (no per-object angle variation).
-	const FVector ToCam = -CamForward;
-
-	// Build a rotation where local +Y (Paper2D sprite normal) points toward the camera.
-	const FRotator BillRot = FRotationMatrix::MakeFromYZ(ToCam, FVector::UpVector).Rotator();
-	FlipbookComponent->SetWorldRotation(BillRot);
-}
-
 // ---------------------------------------------------------------------------
-// S1 验收 exec —— 单独触发组件三块能力，对比与现有实现是否一致
+// 表现能力 exec —— 手动触发组件三块能力（S1 起验证 / 常态调试）
 // ---------------------------------------------------------------------------
 
 void AMFCharacterBase::MFSVBillboard()
@@ -381,37 +367,11 @@ FVector2D AMFCharacterBase::GetDirectionalInput() const
 
 void AMFCharacterBase::UpdateCollisionFromFlipbook()
 {
-	UCapsuleComponent* Capsule = GetCapsuleComponent();
-	if (!Capsule || !FlipbookComponent) return;
-
-	const UPaperFlipbook* Flipbook = FlipbookComponent->GetFlipbook();
-	if (!Flipbook || Flipbook->GetNumKeyFrames() == 0) return;
-
-	const UPaperSprite* Sprite = Flipbook->GetKeyFrameChecked(0).Sprite;
-	if (!Sprite) return;
-
-	const float PixelsPerUnit = Sprite->GetPixelsPerUnrealUnit();
-	if (PixelsPerUnit <= KINDA_SMALL_NUMBER) return;
-
-	// SpriteWidth / PPU = world-space width; half = sphere radius.
-	// Width (X) represents the character's horizontal extent — the footprint for a
-	// billboard sprite in a top-down 3D world.
-	const FVector2D SourceSize = Sprite->GetSourceSize();
-	const float SpriteWidthUnits = SourceSize.X / PixelsPerUnit;
-	const float NewRadius = FMath::Max(1.f, SpriteWidthUnits * 0.5f * CollisionRadiusScale);
-
-	// Setting HalfHeight == Radius makes the capsule geometrically identical to a sphere.
-	// The bUpdateOverlaps flag triggers an immediate overlap recheck.
-	Capsule->SetCapsuleSize(NewRadius, NewRadius, /*bUpdateOverlaps=*/true);
-
-	// Shift the sprite so its local origin sits at the bottom of the collision sphere.
-	// The capsule center is at the actor origin (Z=0); bottom of sphere is at Z=-Radius.
-	// This aligns the visual footprint with the physics footprint.
-	FlipbookComponent->SetRelativeLocation(FVector(0.f, 0.f, -NewRadius));
-
-	UE_LOG(LogTemp, Log,
-		TEXT("[%s] Collision sphere: Radius=%.1f  (sprite %.0f x %.0f px, PPU=%.2f, scale=%.2f)"),
-		*GetName(), NewRadius, SourceSize.X, SourceSize.Y, PixelsPerUnit, CollisionRadiusScale);
+	// 实现已抽入 UMFSpriteVisualComponent（S2）；保留本虚函数签名，转发给组件。
+	if (SpriteVisual)
+	{
+		SpriteVisual->FitCollisionToFlipbook(CollisionRadiusScale);
+	}
 }
 
 // ---------------------------------------------------------------------------
@@ -438,33 +398,20 @@ void AMFCharacterBase::OnHealthChangedCallback(float OldHealth, float NewHealth)
 	}
 }
 
-void AMFCharacterBase::FlashSpriteColor(const FLinearColor& Color)
-{
-	if (!FlipbookComponent) return;
-
-	FlipbookComponent->SetSpriteColor(Color);
-
-	GetWorldTimerManager().SetTimer(
-		HitFlashTimerHandle,
-		this, &AMFCharacterBase::ResetHitFlashColor,
-		HitFlashDuration, /*bLoop=*/false);
-}
-
 void AMFCharacterBase::ReactToHit_Implementation()
 {
-	FlashSpriteColor(FLinearColor::Red);
+	// 闪光实现已抽入 UMFSpriteVisualComponent（S2）；时长仍由各 Config 写入的 HitFlashDuration 控制。
+	if (SpriteVisual)
+	{
+		SpriteVisual->FlashColor(FLinearColor::Red, HitFlashDuration);
+	}
 }
 
 void AMFCharacterBase::ReactToHeal()
 {
-	FlashSpriteColor(FLinearColor::Green);
-}
-
-void AMFCharacterBase::ResetHitFlashColor()
-{
-	if (FlipbookComponent)
+	if (SpriteVisual)
 	{
-		FlipbookComponent->SetSpriteColor(FLinearColor::White);
+		SpriteVisual->FlashColor(FLinearColor::Green, HitFlashDuration);
 	}
 }
 

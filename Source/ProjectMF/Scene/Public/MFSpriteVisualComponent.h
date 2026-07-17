@@ -36,9 +36,9 @@ public:
 	UMFSpriteVisualComponent();
 
 	/**
-	 * 绑定要驱动的对象。
-	 * @param InFlipbook  billboard 旋转 + 闪光染色 + 碰撞拟合的目标 Flipbook（必填）。
-	 * @param InCapsule   碰撞自适应写入的胶囊（可空；场景物暂无胶囊时传 nullptr，跳过碰撞拟合）。
+	 * 绑定要驱动的 Flipbook（全项目场景物体统一 Flipbook，见 Docs/SceneObject_UnifiedSprite_Architecture.md）。
+	 * @param InFlipbook  billboard 旋转 + 闪光染色 + 碰撞拟合的目标 Flipbook。
+	 * @param InCapsule   碰撞自适应写入的胶囊（可空；场景物无胶囊时传 nullptr，跳过碰撞拟合）。
 	 */
 	void InitVisual(UPaperFlipbookComponent* InFlipbook, UCapsuleComponent* InCapsule);
 
@@ -48,7 +48,7 @@ public:
 	 */
 	void SetCameraForwardProvider(TFunction<bool(FVector&)> InProvider) { CameraForwardProvider = MoveTemp(InProvider); }
 
-	/** 让目标 Flipbook 面向相机（与原 AMFCharacterBase::UpdateBillboard 同算法）。 */
+	/** 让 billboard 目标面向相机（与原 AMFCharacterBase::UpdateBillboard 同算法，泛化到任意场景组件）。 */
 	void TickBillboard();
 
 	/** 闪一下指定颜色并在 Duration 秒后复位白色（受击闪红 / 治疗闪绿共用）。 */
@@ -75,9 +75,9 @@ private:
 	/** 闪光复位：染回白色。由 FlashColor 的定时器回调。 */
 	void ResetColorToWhite();
 
-	/** billboard 旋转目标 + 闪光染色目标。 */
+	/** billboard 旋转 + 闪光染色 + 碰撞拟合的目标 Flipbook。 */
 	UPROPERTY()
-	TObjectPtr<UPaperFlipbookComponent> TargetFlipbook;
+	TObjectPtr<UPaperFlipbookComponent> Flipbook;
 
 	/** 碰撞拟合写入目标（可空）。 */
 	TWeakObjectPtr<UCapsuleComponent> TargetCapsule;

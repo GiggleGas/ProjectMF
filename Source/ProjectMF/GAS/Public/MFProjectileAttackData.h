@@ -11,7 +11,7 @@
  * Assign one instance to each BP child of UGA_ThrowProjectile.
  *
  * Common fields (AttackAnim, DamageGE, DamageMultiplier, TargetFilter,
- * AnimToSpawnDelay, Speed, MaxRange, CollisionRadius, ProjectileMesh) are
+ * AnimToSpawnDelay, Speed, MaxRange, CollisionRadius, ProjectileFlipbook) are
  * inherited from UMFRangedAttackDataBase. This class only adds max-range splash.
  */
 UCLASS(BlueprintType)
