@@ -83,7 +83,7 @@ struct PROJECTMF_API FMFThreatConfig
 	 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Threat",
 		meta = (ClampMin = "0.1", UIMin = "0.1"))
-	float LockDuration = 5.f;
+	float LockDuration = 3.f;
 
 	/**
 	 * 周期性评估间隔（秒）。

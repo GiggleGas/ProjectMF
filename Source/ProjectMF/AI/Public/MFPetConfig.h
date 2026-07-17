@@ -6,6 +6,7 @@
 #include "MFAIConfig.h"
 #include "MFRadarSensingComponent.h"
 #include "MFThreatComponent.h"
+#include "MFHomeAnchorComponent.h"
 #include "MFAIAnimInstance.h"
 #include "MFPetConfig.generated.h"
 
@@ -72,6 +73,17 @@ public:
 	 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Perception")
 	FMFThreatConfig ThreatConfig;
+
+	// ----------------------------------------------------------------
+	// 行为（回家/巡逻）
+	// ----------------------------------------------------------------
+
+	/**
+	 * 出生锚点/回家配置：写入宠物的 UMFHomeAnchorComponent。
+	 * WanderRadius（巡逻/回家半径）/ HomeArrivalTolerance。
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Behavior")
+	FMFHomeAnchorConfig AnchorConfig;
 
 	// ----------------------------------------------------------------
 	// 动画

@@ -43,6 +43,9 @@ AMFAICharacter::AMFAICharacter()
 
 	// 索敌组件：依赖 RadarSensingComp，BeginPlay 中自动绑定其事件。
 	ThreatComp = CreateDefaultSubobject<UMFThreatComponent>(TEXT("ThreatComp"));
+
+	// 出生锚点组件：BeginPlay 记出生点，供 StateTree 回家/绕家巡逻判定。
+	HomeAnchorComp = CreateDefaultSubobject<UMFHomeAnchorComponent>(TEXT("HomeAnchorComp"));
 }
 
 void AMFAICharacter::BeginPlay()

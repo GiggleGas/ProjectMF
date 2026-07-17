@@ -7,6 +7,7 @@
 #include "MFMassInterface.h"
 #include "MFRadarSensingComponent.h"
 #include "MFThreatComponent.h"
+#include "MFHomeAnchorComponent.h"
 #include "MFAICharacter.generated.h"
 
 class UWidgetComponent;
@@ -186,6 +187,13 @@ protected:
 	 */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI|Threat")
 	TObjectPtr<UMFThreatComponent> ThreatComp;
+
+	/**
+	 * 出生锚点/回家组件：BeginPlay 记出生点，供 StateTree 判断该回家 / 绕家巡逻。
+	 * 战斗 > 回家 > 巡逻，见 Docs/HomeAnchor_Leash_Design.md。
+	 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI|HomeAnchor")
+	TObjectPtr<UMFHomeAnchorComponent> HomeAnchorComp;
 
 	// -----------------------------------------------------------------------
 	// Mass-driven state (protected so Blueprint subclasses can inspect it)

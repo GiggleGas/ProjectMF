@@ -20,6 +20,17 @@ struct PROJECTMF_API FSTTask_FindRandomNavPoint_InstanceData
 {
 	GENERATED_BODY()
 
+	/**
+	 * 采样中心（可选）。bUseCustomOrigin=true 时用它（绑出生锚点 = 绕家巡逻不漂移）；
+	 * false 时用 pawn 当前位置（默认，旧行为向后兼容）。
+	 */
+	UPROPERTY(EditAnywhere, Category = "Input")
+	FVector Origin = FVector::ZeroVector;
+
+	/** true = 用上面的 Origin 作采样中心；false = 用 pawn 当前位置（默认）。 */
+	UPROPERTY(EditAnywhere, Category = "Input")
+	bool bUseCustomOrigin = false;
+
 	/** 采样最小半径（cm），防止目标点太近 */
 	UPROPERTY(EditAnywhere, Category = "Input", meta = (ClampMin = "0.0"))
 	float MinRadius = 200.f;

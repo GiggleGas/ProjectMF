@@ -7,6 +7,7 @@
 #include "MFPetAIController.h"
 #include "MFRadarSensingComponent.h"
 #include "MFThreatComponent.h"
+#include "MFHomeAnchorComponent.h"
 #include "MFPetCommandComponent.h"
 #include "MFLog.h"
 #include "MFGameplayTags.h"
@@ -69,6 +70,12 @@ void AMFPetBase::ApplyPetConfig(const UMFPetConfig* Config)
 	if (UMFThreatComponent* MyThreatComp = FindComponentByClass<UMFThreatComponent>())
 	{
 		MyThreatComp->ApplyConfig(Config->ThreatConfig);
+	}
+
+	// 5. 行为：出生锚点/回家配置（家点由组件 BeginPlay 自记，此处只写半径配置）
+	if (UMFHomeAnchorComponent* MyAnchorComp = FindComponentByClass<UMFHomeAnchorComponent>())
+	{
+		MyAnchorComp->ApplyConfig(Config->AnchorConfig);
 	}
 }
 

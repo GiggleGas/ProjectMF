@@ -43,7 +43,8 @@ EStateTreeRunStatus FSTTask_FindRandomNavPoint::EnterState(
 		return EStateTreeRunStatus::Failed;
 	}
 
-	const FVector Origin = Pawn->GetActorLocation();
+	// 采样中心：绑了自定义 Origin（如出生锚点）→ 绕它采样（绕家巡逻）；否则用 pawn 当前位置（旧行为）。
+	const FVector Origin = InstanceData.bUseCustomOrigin ? InstanceData.Origin : Pawn->GetActorLocation();
 	const float MinR = FMath::Max(0.f, InstanceData.MinRadius);
 	const float MaxR = FMath::Max(MinR, InstanceData.MaxRadius);
 
